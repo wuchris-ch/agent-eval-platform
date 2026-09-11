@@ -206,6 +206,8 @@ metadata:
   namespace: agent-eval
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: pr-review-worker
@@ -217,7 +219,8 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: worker
-          image: pr-review-agent:local
+          image: pr-review-agent-flue:local
+          command: ["node", "dist/watcher.js"]
           imagePullPolicy: Never
           envFrom:
             - secretRef:
@@ -230,7 +233,7 @@ spec:
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: http/protobuf
             - name: OTEL_SERVICE_NAME
-              value: pr-review-agent
+              value: pr-review-agent-flue
           resources:
             requests:
               cpu: 25m

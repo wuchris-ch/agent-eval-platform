@@ -16,7 +16,7 @@ Specialized coding and pull-request review benchmarks remain available.
 to zoom, pan, use full screen, and move between the supporting system diagrams.
 
 This repository contains the evaluation system. The separately deployable
-reviewer lives in [`pr-review-agent`](https://github.com/wuchris-ch/pr-review-agent).
+reviewer lives in [`pr-review-agent-flue`](https://github.com/wuchris-ch/pr-review-agent-flue).
 
 ## Start with black-box evaluation
 
@@ -203,6 +203,10 @@ scanners, and proves the packaged wheel works without the source tree.
 
 See [DETAILS.md](DETAILS.md) for the exact contracts, metrics, governance,
 attestation, isolation model, and security boundaries.
+
+## Reviewer migration
+
+The review stack uses Flue for both continuous GitHub reviews and the independent daily evaluation. `./review-stack up` builds revision-tagged images from the sibling `pr-review-agent-flue` checkout, imports them into k3s, and waits for rollout completion. The single worker uses Recreate upgrades to avoid overlapping review publication. The existing runtime Secret, watched repositories, status context, and completion markers are preserved. No database migration is required.
 
 ## License
 

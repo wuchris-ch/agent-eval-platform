@@ -2,9 +2,9 @@
 set -eu
 
 repository_root=$(CDPATH='' cd "$(dirname "$0")" && pwd)
-reviewer_root=${PR_REVIEW_AGENT_REPO:-"$(dirname "$repository_root")/pr-review-agent"}
+reviewer_root=${PR_REVIEW_AGENT_REPO:-"$(dirname "$repository_root")/pr-review-agent-flue"}
 namespace=agent-eval
-default_repositories=wuchris-ch/agent-eval-k3s,wuchris-ch/pr-review-agent
+default_repositories=wuchris-ch/agent-eval-k3s,wuchris-ch/pr-review-agent-flue
 repositories_file=${PR_REVIEW_REPOSITORIES_FILE:-"$repository_root/.review-repositories"}
 
 usage() {
@@ -106,20 +106,32 @@ stack_up() {
     exit 1
   fi
 
-  docker build --tag pr-review-agent:local "$reviewer_root"
+  for source_root in "$reviewer_root" "$repository_root"; do
+    if ! git -C "$source_root" diff --quiet HEAD; then
+      printf '%s\n' 'Commit tracked source changes before building revision-tagged images.' >&2
+      exit 1
+    fi
+  done
+  reviewer_revision=$(git -C "$reviewer_root" rev-parse HEAD)
+  evaluator_revision=$(git -C "$repository_root" rev-parse HEAD)
+  reviewer_image="pr-review-agent-flue:$reviewer_revision"
+  evaluator_image="agent-eval:$evaluator_revision-$reviewer_revision"
+  docker build --tag "$reviewer_image" "$reviewer_root"
   docker build \
     --build-context "reviewer=$reviewer_root" \
     --file "$repository_root/deploy/evaluator.Dockerfile" \
-    --tag agent-eval:local \
+    --tag "$evaluator_image" \
     "$repository_root"
-  k3d image import --cluster agent-eval pr-review-agent:local agent-eval:local
+  k3d image import --cluster agent-eval "$reviewer_image" "$evaluator_image"
   kubectl create configmap otel-collector \
     --namespace "$namespace" \
     --from-file="config.yaml=$repository_root/observability/otel-collector.yaml" \
     --dry-run=client \
     -o yaml | kubectl apply -f - >/dev/null
-  kubectl apply -f "$repository_root/deploy/k3s/stack.yaml"
-  kubectl rollout restart deployment/otel-collector deployment/pr-review-worker \
+  sed -e "s|pr-review-agent-flue:local|$reviewer_image|g" \
+    -e "s|agent-eval:local|$evaluator_image|g" \
+    "$repository_root/deploy/k3s/stack.yaml" | kubectl apply -f -
+  kubectl rollout restart deployment/otel-collector \
     -n "$namespace" >/dev/null
   kubectl rollout status deployment/phoenix -n "$namespace" --timeout=10m
   kubectl rollout status deployment/otel-collector -n "$namespace" --timeout=5m

@@ -41,9 +41,9 @@ start_observability() {
   fi
 }
 
-if ! command -v pr-review-agent >/dev/null 2>&1; then
+if ! command -v pr-review-flue-agent >/dev/null 2>&1; then
   printf '%s\n' \
-    'pr-review-agent is not installed. Run "npm link" once in the pr-review-agent repository.' >&2
+    'pr-review-flue-agent is not installed. Run "npm link" once in the pr-review-agent-flue repository.' >&2
   exit 1
 fi
 
@@ -80,7 +80,7 @@ if is_true "${EVAL_JUDGE:-0}"; then
 fi
 
 set -- "$@" agent-eval eval-review-agent \
-  --command "$(command -v pr-review-agent)" \
+  --command "$(command -v pr-review-flue-agent)" \
   --corpus benchmarks/reviewer-corpus/v1/corpus.yaml \
   --trials "${EVAL_TRIALS:-1}" \
   --out review-agent-eval.json

@@ -2,7 +2,7 @@
 set -eu
 
 repository_root=$(CDPATH= cd "$(dirname "$0")" && pwd)
-reviewer_root=${PR_REVIEW_AGENT_REPO:-"$(dirname "$repository_root")/pr-review-agent"}
+reviewer_root=${PR_REVIEW_AGENT_REPO:-"$(dirname "$repository_root")/pr-review-agent-flue"}
 model=${1:-${REVIEW_AGENT_MODEL:-}}
 if [ -z "$model" ]; then
   printf '%s\n' 'usage: ./record-review-eval <public-model-alias>' >&2
