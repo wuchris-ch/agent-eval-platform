@@ -7,9 +7,56 @@ import uuid
 from datetime import datetime, timezone
 from statistics import median
 
-from .models import MAX_EVALUATIONS, Observation, Report, Result, Suite, digest
+from .models import (
+    MAX_EVALUATIONS,
+    Case,
+    ErrorCode,
+    Observation,
+    Report,
+    Result,
+    Suite,
+    digest,
+)
 from .scoring import Judge, score
 from .targets import Target, TargetError
+
+
+def grade_observation(
+    suite: Suite,
+    case: Case,
+    trial: int,
+    observation: Observation | None,
+    *,
+    error: ErrorCode | None = None,
+    judge: Judge | None = None,
+) -> Result:
+    """Grade one boundary observation without invoking the target."""
+    metrics = []
+    if error is None:
+        if observation is None:
+            error = "missing_observation"
+        elif observation.input_sha256 != digest(case.input):
+            error = "input_mismatch"
+        elif observation.status != "completed":
+            error = "recorded_error"
+    if error is None:
+        try:
+            for metric in case.metrics or suite.metrics:
+                metrics.append(score(metric, case, observation.actual_output, judge))
+        except Exception:
+            error = "judge_error"
+    return Result(
+        case_id=case.id,
+        trial=trial,
+        input_sha256=digest(case.input),
+        outcome="infra_error"
+        if error
+        else ("accepted" if all(metric.passed for metric in metrics) else "rejected"),
+        score=None if error else min(metric.score for metric in metrics),
+        metrics=metrics,
+        observation=observation,
+        error=error,
+    )
 
 
 def evaluate(
@@ -80,31 +127,9 @@ def evaluate(
             elif observation.status != "completed":
                 error = "recorded_error"
 
-            metrics = []
-            if error is None:
-                try:
-                    for metric in case.metrics or suite.metrics:
-                        metrics.append(
-                            score(metric, case, observation.actual_output, judge)
-                        )
-                except Exception:
-                    error = "judge_error"
             results.append(
-                Result(
-                    case_id=case.id,
-                    trial=trial,
-                    input_sha256=input_sha,
-                    outcome="infra_error"
-                    if error
-                    else (
-                        "accepted"
-                        if all(metric.passed for metric in metrics)
-                        else "rejected"
-                    ),
-                    score=None if error else min(metric.score for metric in metrics),
-                    metrics=metrics,
-                    observation=observation,
-                    error=error,
+                grade_observation(
+                    suite, case, trial, observation, error=error, judge=judge
                 )
             )
     accepted = sum(result.outcome == "accepted" for result in results)

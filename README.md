@@ -1,6 +1,6 @@
-# Agent Eval on k3s
+# Agent Eval Platform
 
-[![Assurance](https://github.com/wuchris-ch/agent-eval-k3s/actions/workflows/ci.yml/badge.svg)](https://github.com/wuchris-ch/agent-eval-k3s/actions/workflows/ci.yml)
+[![Assurance](https://github.com/wuchris-ch/agent-eval-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/wuchris-ch/agent-eval-platform/actions/workflows/ci.yml)
 [![Python 3.12–3.14](https://img.shields.io/badge/python-3.12%E2%80%933.14-3776AB)](pyproject.toml)
 [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-2f855a)](LICENSE)
 
@@ -10,13 +10,32 @@ with versioned goldens, deterministic checks, and optional DeepEval judging.
 Agents do not need to expose their internals or use a particular framework.
 Specialized coding and pull-request review benchmarks remain available.
 
-[![Agent evaluation and observability architecture](docs/local-review-platform.svg)](https://wuchris-ch.github.io/agent-eval-k3s/)
+[![Agent evaluation and observability architecture](docs/local-review-platform.svg)](https://wuchris-ch.github.io/agent-eval-platform/)
 
-[Open the interactive architecture explorer](https://wuchris-ch.github.io/agent-eval-k3s/)
+[Open the interactive architecture explorer](https://wuchris-ch.github.io/agent-eval-platform/)
 to zoom, pan, use full screen, and move between the supporting system diagrams.
 
 This repository contains the evaluation system. The separately deployable
 reviewer lives in [`pr-review-agent-flue`](https://github.com/wuchris-ch/pr-review-agent-flue).
+
+The [Agent Reliability & Evaluation Platform upgrade plan](docs/platform-plan/README.md)
+contains the September 11, 2026 research, current-state assessment, proposed
+architecture, and phased implementation plan. The [implementation status](docs/platform-plan/status.md)
+separates working features from operational qualifications.
+
+The [experiment workbench](docs/workbench.md) provides a packaged local UI, durable
+trials, independent state checks, paired comparisons, annotations, release policies,
+private target profiles, and opt-in PostgreSQL/Kubernetes execution.
+
+```sh
+uv run --frozen agent-eval workbench demo
+uv run --frozen agent-eval workbench serve
+```
+
+Open the printed local URL to inspect the seeded regression. The demo makes no
+model calls. See [journal recovery](docs/experiments.md) for crash and cancellation
+semantics. Production deployment and hostile hosted execution require separate
+qualification.
 
 ## Start with black-box evaluation
 

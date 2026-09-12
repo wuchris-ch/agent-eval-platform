@@ -4,7 +4,7 @@ set -eu
 repository_root=$(CDPATH='' cd "$(dirname "$0")" && pwd)
 reviewer_root=${PR_REVIEW_AGENT_REPO:-"$(dirname "$repository_root")/pr-review-agent-flue"}
 namespace=agent-eval
-default_repositories=wuchris-ch/agent-eval-k3s,wuchris-ch/pr-review-agent-flue
+default_repositories=wuchris-ch/agent-eval-platform,wuchris-ch/pr-review-agent-flue
 repositories_file=${PR_REVIEW_REPOSITORIES_FILE:-"$repository_root/.review-repositories"}
 
 usage() {

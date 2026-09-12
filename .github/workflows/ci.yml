@@ -34,6 +34,14 @@ jobs:
           enable-cache: true
       - name: Sync locked dependencies
         run: uv sync --frozen --all-extras
+      - name: Enable disposable PostgreSQL integration tests
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql
+          pg_bindir=$(pg_config --bindir)
+          test -x "$pg_bindir/initdb"
+          test -x "$pg_bindir/postgres"
+          echo "$pg_bindir" >> "$GITHUB_PATH"
       - name: Lint
         if: matrix.python-version == '3.12'
         run: uv run ruff check .
@@ -381,6 +389,9 @@ jobs:
               assert "agent_eval/scanner_runtime/gitleaks.toml" in names
               assert "agent_eval/scanner_runtime/invocation-policy.json" in names
               assert "agent_eval/scanner_runtime/ignore-empty.txt" in names
+              for name in ("index.html", "style.css", "app.js"):
+                  assert f"agent_eval/workbench/ui/{name}" in names
+              assert "agent_eval/distributed/worker.py" in names
           with tarfile.open(source[0]) as archive:
               assert any(name.endswith("/LICENSE") for name in archive.getnames())
           PY
@@ -423,6 +434,8 @@ jobs:
               assert results.scanner_status["semgrep"] == "ok"
           PY
           "$RUNNER_TEMP/wheel-venv/bin/agent-eval" tasks list
+          AGENT_EVAL_STATE_DIR="$RUNNER_TEMP/workbench-smoke" \
+            "$RUNNER_TEMP/wheel-venv/bin/agent-eval" workbench demo
           AGENT_EVAL_TASKS_DIR="$GITHUB_WORKSPACE/tasks" \
             "$RUNNER_TEMP/wheel-venv/bin/agent-eval" tasks list
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
