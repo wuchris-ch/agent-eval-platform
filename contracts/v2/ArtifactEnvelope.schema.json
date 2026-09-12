@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "agent-eval.artifact/v2",
+      "default": "agent-eval.artifact/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "encoding": {
+      "const": "base64",
+      "default": "base64",
+      "title": "Encoding",
+      "type": "string"
+    },
+    "content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Content Sha256",
+      "type": "string"
+    },
+    "data": {
+      "maxLength": 16777216,
+      "title": "Data",
+      "type": "string"
+    }
+  },
+  "required": [
+    "content_sha256",
+    "data"
+  ],
+  "title": "ArtifactEnvelope",
+  "type": "object"
+}

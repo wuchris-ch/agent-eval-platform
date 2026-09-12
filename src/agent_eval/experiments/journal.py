@@ -309,6 +309,34 @@ class Journal:
         self.receipt(row)
         self._transition(row["ordinal"], "running", "observed", observation=sha)
 
+    def reconcile_observation(self, row, receipt: Receipt):
+        """Operator reconciliation of independently recovered evidence; no invocation."""
+        if not self.write or row["state"] != "reconciliation_required":
+            raise JournalError(
+                "reconciliation requires an ambiguous trial and writer lock"
+            )
+        case, trial = self.plan.case_trial(row["ordinal"])
+        if (receipt.plan_sha256, receipt.attempt_id, receipt.ordinal) != (
+            self.plan_sha256,
+            row["attempt_id"],
+            row["ordinal"],
+        ) or (
+            receipt.observation is not None
+            and (
+                receipt.observation.case_id,
+                receipt.observation.trial,
+                receipt.observation.input_sha256,
+            )
+            != (case.id, trial, digest(case.input))
+        ):
+            raise JournalError("recovered observation identity mismatch")
+        sha = self.blob(receipt.model_dump(mode="json"))
+        immutable_json(self._receipt_path(row), {"sha256": sha})
+        self.receipt(row)
+        self._transition(
+            row["ordinal"], "reconciliation_required", "observed", observation=sha
+        )
+
     def recover(self):
         """Only the exclusive writer can declare an abandoned dispatch ambiguous."""
         for row in self.rows():

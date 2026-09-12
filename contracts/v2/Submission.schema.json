@@ -1,0 +1,209 @@
+{
+  "$defs": {
+    "ArtifactReference": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "candidate",
+            "patch",
+            "trace",
+            "public-verification",
+            "review"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "storage_key": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Storage Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "sha256",
+        "storage_key"
+      ],
+      "title": "ArtifactReference",
+      "type": "object"
+    },
+    "Usage": {
+      "additionalProperties": false,
+      "properties": {
+        "total_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Tokens"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms"
+        },
+        "provenance": {
+          "default": "unavailable",
+          "enum": [
+            "producer_reported",
+            "independently_observed",
+            "unavailable"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "title": "Usage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "base_revision": {
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+      "title": "Base Revision",
+      "type": "string"
+    },
+    "candidate_revision": {
+      "anyOf": [
+        {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Revision"
+    },
+    "candidate_tree_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Tree Sha256",
+      "type": "string"
+    },
+    "candidate_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Manifest Sha256",
+      "type": "string"
+    },
+    "trial_ticket_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Trial Ticket Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "agent-eval.submission/v2",
+      "default": "agent-eval.submission/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "execution_id": {
+      "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "execution_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Contract Sha256",
+      "type": "string"
+    },
+    "producer_run_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Producer Run Id",
+      "type": "string"
+    },
+    "recipe_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recipe Sha256",
+      "type": "string"
+    },
+    "suite_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Sha256",
+      "type": "string"
+    },
+    "policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Sha256",
+      "type": "string"
+    },
+    "evaluator_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evaluator Sha256",
+      "type": "string"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactReference"
+      },
+      "maxItems": 100,
+      "minItems": 2,
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "producer_status": {
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Producer Status",
+      "type": "string"
+    },
+    "usage": {
+      "$ref": "#/$defs/Usage"
+    }
+  },
+  "required": [
+    "base_revision",
+    "candidate_tree_sha256",
+    "candidate_manifest_sha256",
+    "trial_ticket_sha256",
+    "execution_id",
+    "execution_contract_sha256",
+    "producer_run_id",
+    "recipe_sha256",
+    "suite_sha256",
+    "policy_sha256",
+    "evaluator_sha256",
+    "artifacts",
+    "producer_status"
+  ],
+  "title": "Submission",
+  "type": "object"
+}

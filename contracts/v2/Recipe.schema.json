@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "Budget": {
+      "additionalProperties": false,
+      "properties": {
+        "max_model_requests": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Max Model Requests",
+          "type": "integer"
+        },
+        "max_total_tokens": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "max_elapsed_seconds": {
+          "maximum": 3600,
+          "minimum": 1,
+          "title": "Max Elapsed Seconds",
+          "type": "integer"
+        },
+        "max_repairs": {
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Max Repairs",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_model_requests",
+        "max_total_tokens",
+        "max_elapsed_seconds",
+        "max_repairs"
+      ],
+      "title": "Budget",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "agent-eval.recipe/v2",
+      "default": "agent-eval.recipe/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "producer_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Producer Sha256",
+      "type": "string"
+    },
+    "capability_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Capability Sha256",
+      "type": "string"
+    },
+    "model_configuration_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Configuration Sha256",
+      "type": "string"
+    },
+    "budget": {
+      "$ref": "#/$defs/Budget"
+    }
+  },
+  "required": [
+    "name",
+    "producer_sha256",
+    "capability_sha256",
+    "model_configuration_sha256",
+    "budget"
+  ],
+  "title": "Recipe",
+  "type": "object"
+}
