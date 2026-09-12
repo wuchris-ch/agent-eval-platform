@@ -60,26 +60,46 @@ repository checks, tool-call checks, and DeepEval inspection while keeping the
 shared input/output score separate. Saved runs can be inspected without rerunning
 the agent.
 
-## Latest validated reviewer benchmark
+## Platform verification
 
-The release-quality benchmark runs every one of the 20 reviewer cases three
-times. This result was recorded on September 3, 2026 with `gemini-3.8-flash`
-against reviewer corpus `v1.1.0`. Raw model responses stay local.
+Verified September 11, 2026 (Vancouver; September 12 UTC), on released evaluator revision `048a8d4`.
+
+| Check | Observed result |
+|---|---|
+| Python 3.12, 3.13 and 3.14 | **1,012 passed, 4 skipped on each version** |
+| Package and task images | Build, pinned scanner controls, dependency audits and installed-wheel checks passed |
+| Workbench persistence | Existing experiments and notes survived restart; isolated wheel/API/restart smoke passed |
+| Live PostgreSQL → k3s | Fenced claim, real Job, receipt persistence, exact output and owned-pod cleanup passed |
+
+[Verification details and skip explanations](benchmarks/platform/results/2026-09-12.md) · [Post-merge CI](https://github.com/wuchris-ch/agent-eval-platform/actions/runs/34663061627) · [Live execution evidence](benchmarks/platform/results/2026-09-12-distributed.json).
+
+## Latest live reviewer benchmark
+
+On September 11, 2026 (September 12 UTC), the released evaluator ran the actual
+Flue reviewer against the live model gateway: **20 cases × 3 trials**, with no
+evaluator self-correction or LLM judge. All 60 first attempts are included.
 
 | Metric | Result | Required gate |
 |---|---:|---:|
-| Release gate | **PASS** | `PASS` |
-| Overall grade | **A** | A |
-| Average score | **1.000** | ≥ 0.900 |
-| Accepted evaluations | **60/60** | Informational |
-| Infrastructure errors | **0** | 0 |
-| Security-blocker recall | **100%** (21/21) | 100% |
-| Clean-diff accuracy | **100%** (21/21) | ≥ 95% |
-| Case stability | **100%** (20/20) | 100% |
-| First-pass acceptance | **95%** (57/60) | Informational |
+| Release gate | **FAIL** | PASS |
+| Overall grade | A | A |
+| Average score | 0.958 | ≥ 0.900 |
+| Accepted / first-pass evaluations | 56/60 (93.3%) | Informational |
+| Infrastructure errors | 0 | 0 |
+| Security-blocker exact-match recall | 85.7% (18/21) | 100% |
+| Clean-diff accuracy | 100% (21/21) | ≥ 95% |
+| Case stability | 85% (17/20) | 100% |
+| Median / p95 invocation latency | 8.75 s / 28.39 s | Informational |
 
-See the [complete versioned result](benchmarks/reviewer-corpus/v1/results/2026-09-03.md)
-for run identities, report digests, and every case and trial.
+Three security findings failed the exact source-line match; one trial missed a
+swallowed-error bug. The aggregate A grade does **not** override the failed gate.
+This is a known regression corpus, not a held-out production-quality estimate.
+
+The [complete live result](benchmarks/reviewer-corpus/v1/results/2026-09-12-flue.md)
+contains every trial, pinned code/image identities, methodology, and limitations.
+Raw responses and private gateway configuration remain local. The
+[September 3 result](benchmarks/reviewer-corpus/v1/results/2026-09-03.md) is historical
+and used a different reviewer/model and correction policy.
 
 ## What makes the evaluation trustworthy
 
