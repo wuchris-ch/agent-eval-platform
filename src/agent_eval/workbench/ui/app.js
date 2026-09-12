@@ -1,7 +1,14 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let token = sessionStorage.getItem('ae-session') || '';
-if (location.hash.startsWith('#token=')) { token = decodeURIComponent(location.hash.slice(7)); sessionStorage.setItem('ae-session', token); history.replaceState(null, '', '/'); }
+function readSessionFragment() {
+  if (!location.hash.startsWith('#token=')) return false;
+  token = decodeURIComponent(location.hash.slice(7));
+  sessionStorage.setItem('ae-session', token);
+  history.replaceState(null, '', '/');
+  return true;
+}
+readSessionFragment();
 let runs = [], next = null, selected = null, revision = 0, frozenLaunch = null, launchKey = null, busy = false;
 const text = (tag, value, cls) => { const e = document.createElement(tag); e.textContent = value; if (cls) e.className = cls; return e; };
 function notice(value) { $('notice').textContent = value; }
@@ -61,6 +68,7 @@ for(const id of ['target','dataset','trials','budget']) $(id).onchange=()=>{froz
 $('preview-button').onclick=()=>action(async()=>{const body=launchInput();const p=await api('preview',body);frozenLaunch=body;launchKey=crypto.randomUUID();$('preview').textContent=JSON.stringify(p,null,2);$('launch-button').hidden=false;});
 $('launch-button').onclick=()=>action(async()=>{if(!frozenLaunch)throw new Error('Preview the current launch first.');const d=await api('experiments',frozenLaunch,{'Idempotency-Key':launchKey});await api(`experiments/${d.experiment_id}/start`,{});frozenLaunch=null;$('launch-button').hidden=true;tab('runs');await refresh();});
 async function initialize(){await refresh();const [targets,datasets]=await Promise.all([api('targets'),api('datasets')]);options('target',targets.items,v=>v.value.name);options('dataset',datasets.items.filter(v=>v.value.split!=='held_out'),v=>`${v.value.name} (${v.value.cases} cases)`);}
+window.addEventListener('hashchange',()=>action(async()=>{if(readSessionFragment())await initialize();}));
 if(token)action(initialize);else $('login').hidden=false;
 setInterval(()=>{if(token&&!document.hidden&&!$('runs').hidden)action(()=>refresh());},4000);
 

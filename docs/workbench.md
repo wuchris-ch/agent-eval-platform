@@ -160,3 +160,8 @@ The test suite includes local process crash windows, cancellation, corrupt recei
 Browser verification uses the packaged UI against the synthetic demo. The first live network probe failed and led to the startup guard described above. Job cancellation was requested with a UID precondition, then Job/pod absence was checked separately. The four pre-existing deployments remained ready, and the temporary experimental namespace was removed after verification.
 
 Live model benchmarks, independent human calibration, OIDC interoperability with a real configured provider, a production release, comprehensive hostile sandbox qualification, and enterprise backup/retention guarantees are not established by these fixtures. The implementation supplies the local workflows and opt-in execution/governance components; those operational qualifications need their own evidence.
+
+
+## Release verification
+
+Released evaluator revision `048a8d4` passed the corrected Python 3.12–3.14 matrix (1,012 passed, four skipped per version), installed-wheel/API/restart checks, and a live PostgreSQL-to-k3s execution with durable receipt persistence and owned-pod cleanup. See [the dated verification record](../benchmarks/platform/results/2026-09-12.md). This supersedes the earlier database-to-Job controlled-executor limitation for the smoke path; broader sandbox and provider qualification remains separate.

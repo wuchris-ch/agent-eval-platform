@@ -20,7 +20,13 @@ Kubernetes policy existence was insufficient in a real cold-start test. An immed
 
 The platform keeps original output scores, independent state outcomes, required inspection outcomes, and annotations separate. It does not reinterpret old reviewer success as evidence for current Flue. Model spend is never inferred from placeholder zero values.
 
-## Verification record
+## Release verification
+
+The implementation and follow-up evidence-read fixes were merged in [PR #9](https://github.com/wuchris-ch/agent-eval-platform/pull/9) and [PR #10](https://github.com/wuchris-ch/agent-eval-platform/pull/10). Released evaluator revision `048a8d498085e3d371ecf6008b9c2018b0f27112` passed the corrected Python 3.12–3.14 CI matrix: 1,012 tests passed and four skipped on each version. The matrix now asserts the actual interpreter, overriding the development pin.
+
+A live PostgreSQL worker drove the real Kubernetes executor through Job completion, durable receipt commit, and owned-pod cleanup. The disposable database and namespace were removed. The earlier controlled-executor limitation is superseded for this smoke path. See [the release verification record](../../benchmarks/platform/results/2026-09-12.md) for evidence, package/restart checks, skip explanations, and remaining qualifications.
+
+## Initial implementation verification record
 
 See [workbench operation and limits](../workbench.md) and [journal recovery](../experiments.md). Tests use synthetic or local fixture targets; no model or judge calls are needed. Verification on CPython 3.12.11:
 
@@ -32,4 +38,4 @@ See [workbench operation and limits](../workbench.md) and [journal recovery](../
 
 The seven full-suite skips were four OpenTelemetry SDK checks, two optional DeepEval checks, and the exact Trivy executable/prepared test database fixture. They are not counted as verified. Local PostgreSQL **14.23** was started in a disposable database for integration tests. Live k3s verification used **v1.35.5+k3s1 on arm64**. The standalone Job executor was exercised live; queue-to-Job orchestration was additionally checked with the real database and a controlled executor fixture.
 
-A fresh real Flue benchmark, an independently labeled calibration corpus, real-provider OIDC interoperability, and a hostile hosted pilot are separate evidence-producing operations. No commits, push, production deployment, or schedule migration is implied by implementing these components.
+The subsequent [live Flue benchmark](../../benchmarks/reviewer-corpus/v1/results/2026-09-12-flue.md) completed all 60 first attempts with 56 accepted and no infrastructure errors. It failed the strict reviewer gate because exact security-line recall and stability fell short. An independently labeled held-out corpus, real-provider OIDC interoperability, and a hostile hosted pilot remain unqualified.

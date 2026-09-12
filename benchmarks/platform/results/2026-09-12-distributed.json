@@ -1,0 +1,49 @@
+{
+  "evaluator_commit": "048a8d498085e3d371ecf6008b9c2018b0f27112",
+  "execution_id": "release-smoke-20260912005317",
+  "state": "completed",
+  "epoch": 1,
+  "manifest_sha256": "d7f275769b9492708a93c5f36742a26ecb9779507c10a0ea560955be6ea5dabd",
+  "job_uid": "12e20330-2330-405b-9afa-70617e3e16ad",
+  "pods": [
+    {
+      "node": "k3d-agent-eval-agent-0",
+      "phase": "Succeeded",
+      "reason": null,
+      "pod_uid": "d2f702bd-af04-424d-8954-d512028b9faf",
+      "containers": [
+        {
+          "name": "target",
+          "state": {
+            "terminated": {
+              "reason": "Completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-12T00:53:30Z",
+              "finishedAt": "2026-09-12T00:53:30Z",
+              "containerID": "containerd://4996641a102b8e7be962e6e57285e8d60b629a0687099a20091a845daa04a153"
+            }
+          },
+          "image_id": "docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
+          "restart_count": 0
+        },
+        {
+          "name": "network-ready",
+          "state": {
+            "terminated": {
+              "reason": "Completed",
+              "exitCode": 0,
+              "startedAt": "2026-09-12T00:53:24Z",
+              "finishedAt": "2026-09-12T00:53:30Z",
+              "containerID": "containerd://5d95130a64cae33c34cdc2c88ae92d55e87a7dc997d2f119acee88f9ae15037e"
+            }
+          },
+          "image_id": "docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
+          "restart_count": 0
+        }
+      ],
+      "pod_sha256": "c3e298a32ba13726b9f9913a034d1f4806782d5356ecea1a8110d404130733fa"
+    }
+  ],
+  "output_verified": true,
+  "owned_pods_removed": true
+}
