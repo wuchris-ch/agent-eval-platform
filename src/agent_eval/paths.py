@@ -109,7 +109,7 @@ def _macos_has_allow_acl(path: Path) -> bool:
 
 
 def _strip_private_acl(path: Path) -> None:
-    if sys.platform != "darwin":
+    if sys.platform != "darwin" or not _macos_has_extended_acl(path):
         return
     process = subprocess.run(
         ["/bin/chmod", "-N", os.fspath(path)],
@@ -235,7 +235,8 @@ def ensure_private_directory(
         _validate_private_directory_metadata(directory, metadata)
 
     validate_no_symlink_components(directory)
-    os.chmod(directory, 0o700, follow_symlinks=False)
+    if stat.S_IMODE(directory.lstat().st_mode) != 0o700:
+        os.chmod(directory, 0o700, follow_symlinks=False)
     _strip_private_acl(directory)
     return directory
 
@@ -267,11 +268,13 @@ def _secure_tree(directory: Path) -> None:
                     f"run state must not contain symlinks: {path}"
                 )
             if stat.S_ISDIR(metadata.st_mode):
-                os.chmod(path, 0o700)
+                if stat.S_IMODE(metadata.st_mode) != 0o700:
+                    os.chmod(path, 0o700)
                 _strip_private_acl(path)
                 _secure_tree(path)
             elif stat.S_ISREG(metadata.st_mode):
-                os.chmod(path, 0o600)
+                if stat.S_IMODE(metadata.st_mode) != 0o600:
+                    os.chmod(path, 0o600)
                 _strip_private_acl(path)
             else:
                 raise UnsafeStatePathError(
@@ -317,11 +320,27 @@ def ensure_private_file(path: Path | str, *, create: bool = True) -> Path:
             raise UnsafeStatePathError(
                 f"state file must be a regular file: {target}"
             )
-        os.fchmod(descriptor, 0o600)
+        if stat.S_IMODE(opened.st_mode) != 0o600:
+            os.fchmod(descriptor, 0o600)
     finally:
         os.close(descriptor)
     _strip_private_acl(target)
     return target
+
+
+def ensure_private_sqlite_sidecar(path: Path | str) -> None:
+    """Validate an optional SQLite file that another connection may unlink."""
+    target = Path(path)
+    validate_no_symlink_components(target.parent)
+    try:
+        ensure_private_file(target, create=False)
+    except FileNotFoundError:
+        pass
+    except UnsafeStatePathError:
+        # SQLite removes rollback journals on commit. A file that still exists,
+        # including a dangling symlink, must continue to fail closed.
+        if _metadata(target) is not None:
+            raise
 
 
 def atomic_write_private(path: Path | str, data: bytes) -> None:
@@ -353,8 +372,8 @@ def atomic_write_private(path: Path | str, data: bytes) -> None:
             os.fsync(stream.fileno())
         _strip_private_acl(temporary)
         os.replace(temporary, destination)
-        os.chmod(destination, 0o600)
-        _strip_private_acl(destination)
+        # The published inode already has private mode and no ACL. Touching its
+        # metadata after rename races readers verifying the immutable evidence.
         try:
             directory_descriptor = os.open(destination.parent, os.O_RDONLY)
         except OSError:

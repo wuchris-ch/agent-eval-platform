@@ -1026,3 +1026,35 @@ def test_strict_legacy_governance_evidence_remains_persistable(
     assert loaded is not None
     assert loaded.governance == legacy
     assert loaded.governance.schema_version == "agent-eval.governance-evidence/v1"
+
+
+def test_permission_checks_do_not_invalidate_a_concurrent_evidence_read(
+    tmp_path, monkeypatch
+):
+    from agent_eval import limits
+    from agent_eval.paths import (
+        ensure_private_directory,
+        ensure_private_file,
+        secure_run_tree,
+    )
+
+    root = ensure_private_directory(tmp_path / "private")
+    evidence = ensure_private_file(root / "evidence.json")
+    evidence.write_bytes(b'{"observed":true}')
+    original_read = limits.os.read
+    checked = False
+
+    def read_after_permission_check(descriptor, size):
+        nonlocal checked
+        if not checked:
+            checked = True
+            ensure_private_file(evidence, create=False)
+            secure_run_tree(root)
+        return original_read(descriptor, size)
+
+    monkeypatch.setattr(limits.os, "read", read_after_permission_check)
+    assert (
+        limits.read_stable_bounded_file(evidence, maximum_bytes=100)
+        == b'{"observed":true}'
+    )
+    assert checked
