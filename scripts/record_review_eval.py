@@ -166,15 +166,30 @@ def build_record(
         and item["first_attempt"].get("outcome") == "accepted"
         for item in results
     )
+    complete_cohort = (
+        set(by_case) == set(kind_by_id)
+        and all(
+            [int(item.get("trial", 0)) for item in case_results] == [1, 2, 3]
+            for case_results in by_case.values()
+        )
+        and report.get("corpus_id") == corpus.get("corpus_id")
+        and report.get("corpus_version") == corpus.get("version")
+    )
+    average_score = sum(float(item.get("score") or 0) for item in results) / evaluations
     report_sha = hashlib.sha256(report_path.read_bytes()).hexdigest()
     generated = datetime.now(UTC).replace(microsecond=0).isoformat()
     clean_accuracy = _percent(clean_correct, len(clean))
     blocker_recall = _percent(blocker_hits, len(blocker_runs))
     stability = _percent(stable_cases, len(by_case))
     gate_passed = (
-        infra_errors == 0
+        complete_cohort
+        and report.get("grade") == "A"
+        and average_score >= 0.9
+        and infra_errors == 0
+        and bool(blocker_runs)
         and blocker_hits == len(blocker_runs)
-        and (not clean or clean_correct / len(clean) >= 0.95)
+        and bool(clean)
+        and clean_correct / len(clean) >= 0.95
         and stable_cases == len(by_case)
     )
 
@@ -204,7 +219,8 @@ def build_record(
         "| Metric | Result | Gate |",
         "|---|---:|---:|",
         f"| Overall grade | {report.get('grade')} | A |",
-        f"| Average score | {float(report.get('average_score', 0)):.3f} | ≥ 0.900 |",
+        f"| Average score | {average_score:.3f} | ≥ 0.900 |",
+        f"| Complete three-trial corpus | {'yes' if complete_cohort else 'no'} | yes |",
         f"| Accepted evaluations | {accepted}/{evaluations} | Informational |",
         f"| Infrastructure errors | {infra_errors} | 0 |",
         f"| Security-blocker recall | {blocker_recall} ({blocker_hits}/{len(blocker_runs)}) | 100% |",
@@ -231,7 +247,9 @@ def build_record(
             "",
             "## Gate definition",
             "",
-            "The release gate requires zero infrastructure errors, exact detection of every",
+            "The release gate requires the complete corpus with three trials per case,",
+            "grade A, an average score of at least 0.900, zero infrastructure errors, and",
+            "exact detection of every",
             "security-blocker golden, at least 95% clean-diff accuracy, and stable verdicts",
             "across all three trial rounds. DeepEval is intentionally excluded from this",
             "baseline until the deterministic gate is stable.",
