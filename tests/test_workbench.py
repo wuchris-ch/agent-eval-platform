@@ -410,7 +410,7 @@ def test_api_full_launch_events_and_conflict(store, api_server):
     )
     assert request(f"/v1/experiments/{identity}/start", {})[0] == 202
     for _ in range(200):
-        status, result = request("/v1/experiments/" + identity)
+        status, result, _ = request("/v1/experiments/" + identity)
         assert status == 200, result
         if result["state"] == "completed":
             break
