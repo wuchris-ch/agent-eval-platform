@@ -3,24 +3,11 @@
     "BehaviorCheck": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "maxLength": 100,
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
-        },
         "description": {
           "maxLength": 500,
           "minLength": 1,
           "title": "Description",
           "type": "string"
-        },
-        "response_indices": {
-          "items": {
-            "type": "integer"
-          },
-          "title": "Response Indices",
-          "type": "array"
         },
         "expected_responses": {
           "items": {
@@ -28,18 +15,6 @@
           },
           "title": "Expected Responses",
           "type": "array"
-        },
-        "state_query": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "State Query"
         },
         "expected_rows": {
           "anyOf": [
@@ -58,6 +33,31 @@
           ],
           "default": null,
           "title": "Expected Rows"
+        },
+        "id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "response_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Response Indices",
+          "type": "array"
+        },
+        "state_query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "State Query"
         }
       },
       "required": [
@@ -71,37 +71,26 @@
   },
   "additionalProperties": false,
   "properties": {
-    "schema_version": {
-      "const": "agent-eval.behavior-suite/v2",
-      "default": "agent-eval.behavior-suite/v2",
-      "title": "Schema Version",
-      "type": "string"
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/BehaviorCheck"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
     },
-    "task_id": {
-      "title": "Task Id",
+    "entrypoint": {
+      "title": "Entrypoint",
       "type": "string"
     },
     "family": {
       "title": "Family",
       "type": "string"
     },
-    "split": {
-      "enum": [
-        "development",
-        "regression",
-        "capability",
-        "held_out"
-      ],
-      "title": "Split",
-      "type": "string"
-    },
     "image": {
       "pattern": "^\\S+@sha256:[a-f0-9]{64}$",
       "title": "Image",
-      "type": "string"
-    },
-    "entrypoint": {
-      "title": "Entrypoint",
       "type": "string"
     },
     "requests": {
@@ -116,14 +105,34 @@
       "title": "Requests",
       "type": "array"
     },
-    "checks": {
-      "items": {
-        "$ref": "#/$defs/BehaviorCheck"
-      },
-      "maxItems": 100,
-      "minItems": 1,
-      "title": "Checks",
-      "type": "array"
+    "runtime": {
+      "default": "python",
+      "enum": [
+        "python",
+        "node"
+      ],
+      "title": "Runtime",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "agent-eval.behavior-suite/v2",
+      "default": "agent-eval.behavior-suite/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "development",
+        "regression",
+        "capability",
+        "held_out"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "task_id": {
+      "title": "Task Id",
+      "type": "string"
     },
     "timeout_seconds": {
       "default": 30,

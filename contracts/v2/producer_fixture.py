@@ -36,7 +36,15 @@ def export(repository, replacement, destination):
             check=True,
         )
         if replacement is not None:
-            (workspace / "server.py").write_bytes(Path(replacement).read_bytes())
+            replacement = Path(replacement)
+            if replacement.is_dir():
+                tracked = git(workspace, "ls-files", "-z").split(b"\0")
+                for path in replacement.iterdir():
+                    if not path.is_file() or path.name.encode() not in tracked:
+                        raise ValueError("replacement must name a tracked regular file")
+                    (workspace / path.name).write_bytes(path.read_bytes())
+            else:
+                (workspace / "server.py").write_bytes(replacement.read_bytes())
         files = {}
         for raw in git(workspace, "ls-files", "-z").split(b"\0"):
             if raw:

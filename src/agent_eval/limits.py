@@ -31,7 +31,12 @@ def read_stable_bounded_file(
 
     if maximum_bytes < 0:
         raise ValueError("maximum_bytes must be nonnegative")
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+    )
     descriptor = os.open(path, flags)
     try:
         before = os.fstat(descriptor)
@@ -46,7 +51,10 @@ def read_stable_bounded_file(
             if len(output) > maximum_bytes:
                 raise ValueError("input exceeds the safe byte limit")
         after = os.fstat(descriptor)
-        if _file_identity(before) != _file_identity(after) or len(output) != after.st_size:
+        if (
+            _file_identity(before) != _file_identity(after)
+            or len(output) != after.st_size
+        ):
             raise ValueError("input changed while it was being read")
         return bytes(output)
     finally:

@@ -32,9 +32,20 @@ from .contracts import (
 
 def identity():
     root = Path(__file__).parent
+    from ..experiments import journal, service
+    from ..workbench import api, store
+    from .. import limits, paths
+
     return digest(
         {
             "python": platform.python_version(),
+            "experiment_evaluator": service.evaluator_identity(),
+            "storage": {
+                module.__name__: hashlib.sha256(
+                    Path(module.__file__).read_bytes()
+                ).hexdigest()
+                for module in (journal, store, paths, limits, api)
+            },
             "files": {
                 p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in sorted(root.glob("*.py"))
@@ -105,7 +116,10 @@ def git_snapshot(repository: Path, revision: str):
     if revision != resolved:
         raise ValueError("an exact Git commit is required")
     entries = git(repository, "ls-tree", "-rz", "--full-tree", resolved).split(b"\0")
+    if len(entries) > 2001:
+        raise ValueError("too many source files")
     files = {}
+    total = 0
     for entry in entries:
         if not entry:
             continue
@@ -114,6 +128,9 @@ def git_snapshot(repository: Path, revision: str):
         name = safe_path(name.decode())
         if kind != "blob" or mode not in ("100644", "100755"):
             raise ValueError("unsupported Git entry")
+        total += int(git(repository, "cat-file", "-s", sha))
+        if total > 8 * 1024 * 1024:
+            raise ValueError("source snapshot exceeds size limit")
         content = git(repository, "cat-file", "blob", sha)
         files[name] = {
             "mode": int(mode, 8) & 0o777,
@@ -240,6 +257,9 @@ def reserve(store, project, contract: TrialTicket, actor):
     if set(policy.required_checks) != {c.id for c in suite.checks}:
         raise ValueError("policy must include every independent behavioral check")
     if trial.parent_execution_id:
+        assessment = store.get(project, "assessment-v2", trial.parent_execution_id)
+        if assessment["outcome"] not in ("fail", "inconclusive"):
+            raise ValueError("repair requires a completed unsuccessful assessment")
         parent = ExecutionContract.model_validate(
             store.get(project, "execution-v2", trial.parent_execution_id)
         )
@@ -254,9 +274,41 @@ def reserve(store, project, contract: TrialTicket, actor):
             or parent.base_revision != contract.base_revision
         ):
             raise ValueError("repair parent identity mismatch")
-        if not recipe.budget.max_repairs:
-            raise ValueError("recipe does not permit repair")
+        count = 1
+        ancestor = parent
+        seen = {contract.execution_id}
+        while True:
+            if ancestor.execution_id in seen:
+                raise ValueError("repair ancestry cycle")
+            seen.add(ancestor.execution_id)
+            previous = ancestor.trial_identity.parent_execution_id
+            if previous is None:
+                break
+            count += 1
+            ancestor = ExecutionContract.model_validate(
+                store.get(project, "execution-v2", previous)
+            )
+        original_recipe = Recipe.model_validate(
+            store.get(project, "candidate-recipe", ancestor.recipe_sha256)
+        )
+        allowed_repairs = min(
+            recipe.budget.max_repairs, original_recipe.budget.max_repairs
+        )
+        try:
+            study = store.get(project, "candidate-study", trial.cohort_id)
+        except KeyError:
+            pass
+        else:
+            # Study-assisted executions have a separate, predeclared budget and selection.
+            # A producer's internal repair allowance can remain zero for first-candidate trials.
+            allowed_repairs = int(study["max_assisted_executions"] > 0)
+        if count > allowed_repairs:
+            raise ValueError("repair limit exhausted")
+        if parent.policy_sha256 != contract.policy_sha256:
+            raise ValueError("repair cannot change the acceptance policy")
     with store.db() as db:
+        if trial.parent_execution_id:
+            reserve_repair_budget(store, project, contract, recipe, db)
         # A task family cannot be silently moved between splits within a project.
         store.put(
             project,
@@ -288,6 +340,63 @@ def reserve(store, project, contract: TrialTicket, actor):
     }
 
 
+def reserve_repair_budget(store, project, ticket, recipe, db):
+    from ..blackbox.models import parse_json
+
+    cohort = ticket.trial_identity.cohort_id
+    try:
+        plan = store.get(project, "candidate-study", cohort, db=db)
+    except KeyError:
+        return
+    schedule = store.get(project, "candidate-schedule", cohort, db=db)["executions"]
+    eligible = []
+    for key in schedule:
+        try:
+            assessment = store.get(project, "assessment-v2", key, db=db)
+        except KeyError:
+            try:
+                store.get(project, "production-failure-v2", key, db=db)
+            except KeyError:
+                raise ValueError(
+                    "complete the initial cohort before assisted correction"
+                ) from None
+        else:
+            if assessment["outcome"] in ("fail", "inconclusive"):
+                eligible.append(key)
+    if (
+        ticket.trial_identity.parent_execution_id
+        not in eligible[: plan["max_assisted_executions"]]
+    ):
+        raise ValueError("repair is outside predeclared failure selection")
+    reserved = [
+        parse_json(row[0])
+        for row in db.execute(
+            "SELECT body FROM records WHERE project=? AND kind='trial-ticket-v2'",
+            (project,),
+        )
+    ]
+    repairs = [
+        r
+        for r in reserved
+        if r["trial_identity"]["cohort_id"] == cohort
+        and r["trial_identity"]["attempt_kind"] == "assisted_correction"
+        and r["execution_id"] != ticket.execution_id
+    ]
+    budgets = [
+        Recipe.model_validate(
+            store.get(project, "candidate-recipe", r["recipe_sha256"], db=db)
+        ).budget
+        for r in repairs
+    ] + [recipe.budget]
+    if (
+        len(budgets) > plan["max_assisted_executions"]
+        or sum(b.max_model_requests for b in budgets)
+        > plan["max_assisted_model_requests"]
+        or sum(b.max_total_tokens for b in budgets) > plan["max_assisted_total_tokens"]
+    ):
+        raise ValueError("assisted cohort budget exhausted")
+
+
 def issue(store, project, contract: ExecutionContract, actor):
     ticket = TrialTicket.model_validate(
         store.get(project, "trial-ticket-v2", contract.execution_id)
@@ -307,13 +416,21 @@ def issue(store, project, contract: ExecutionContract, actor):
     if contract.evaluator_sha256 != identity():
         raise ValueError("evaluator identity changed")
     manifest_for(store, project, contract)
-    store.put(
-        project,
-        "execution-v2",
-        contract.model_dump(mode="json"),
-        object_id=contract.execution_id,
-        actor=actor,
-    )
+    with store.db() as db:
+        try:
+            store.get(project, "production-failure-v2", contract.execution_id, db=db)
+        except KeyError:
+            pass
+        else:
+            raise ValueError("production failure already sealed for this ticket")
+        store.put(
+            project,
+            "execution-v2",
+            contract.model_dump(mode="json"),
+            object_id=contract.execution_id,
+            actor=actor,
+            db=db,
+        )
     return {
         "execution_contract": contract.model_dump(mode="json"),
         "execution_contract_sha256": digest(contract.model_dump(mode="json")),
@@ -366,3 +483,29 @@ def ingest(store, project, submission: Submission, actor):
         "submission_sha256": digest(value),
         "status": "awaiting_independent_evaluation",
     }
+
+
+def record_failure(store, project, failure, actor):
+    from .contracts import ProductionFailure
+
+    failure = ProductionFailure.model_validate(failure)
+    if failure.usage.provenance == "independently_observed":
+        raise ValueError("producer cannot claim independently observed usage")
+    with store.db() as db:
+        ticket = store.get(project, "trial-ticket-v2", failure.execution_id, db=db)
+        if digest(ticket) != failure.trial_ticket_sha256:
+            raise ValueError("failure differs from reserved ticket")
+        try:
+            store.get(project, "execution-v2", failure.execution_id, db=db)
+        except KeyError:
+            pass
+        else:
+            raise ValueError("candidate already bound; submit its actual outcome")
+        return store.put(
+            project,
+            "production-failure-v2",
+            failure.model_dump(mode="json"),
+            object_id=failure.execution_id,
+            actor=actor,
+            db=db,
+        )

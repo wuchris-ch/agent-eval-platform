@@ -134,7 +134,11 @@ def execute(
             "/bin/sh",
             suite.image,
             "-c",
-            'exec python -B "$1" < /inputs/requests.jsonl',
+            (
+                'exec python -B "$1" < /inputs/requests.jsonl'
+                if suite.runtime == "python"
+                else 'exec node "$1" < /inputs/requests.jsonl'
+            ),
             "candidate",
             "/candidate/" + suite.entrypoint,
         )
@@ -173,9 +177,29 @@ def execute(
         responses = [parse_json(line) for line in lines]
     except (ValueError, UnicodeError):
         protocol_error = True
-    state_values = {}
+    state_values = collect_state(root, suite)
+    observation = {
+        "responses": responses,
+        "state_queries": state_values,
+        "exit_code": state["ExitCode"],
+        "protocol_error": protocol_error,
+        "started_at": state["StartedAt"],
+        "finished_at": state["FinishedAt"],
+        "image_id": existing["Image"],
+        "container_id": existing["Id"],
+    }
+    immutable_json(
+        receipt, {"contract_sha256": contract_sha, "observation": observation}
+    )
+    return observation
+
+
+def collect_state(root, suite):
+    state_values = {check.id: None for check in suite.checks if check.state_query}
+    if not state_values:
+        return state_values
     db_path = root / "state" / "state.sqlite"
-    if any(c.state_query for c in suite.checks) and db_path.exists():
+    try:
         # Copy bounded regular bytes after the container has stopped, with no candidate connection.
         data = read_stable_bounded_file(db_path, maximum_bytes=8 * 1024 * 1024)
         observed = root / "observed.sqlite"
@@ -196,20 +220,11 @@ def execute(
                         ]
                     except sqlite3.Error:
                         state_values[check.id] = None
-    observation = {
-        "responses": responses,
-        "state_queries": state_values,
-        "exit_code": state["ExitCode"],
-        "protocol_error": protocol_error,
-        "image_id": existing["Image"],
-        "container_id": existing["Id"],
-        "started_at": state["StartedAt"],
-        "finished_at": state["FinishedAt"],
-    }
-    immutable_json(
-        receipt, {"contract_sha256": contract_sha, "observation": observation}
-    )
-    return observation
+    except (OSError, ValueError, sqlite3.Error):
+        # Missing, oversized, special-file or malformed state is failed candidate evidence.
+        # No exception text or candidate-controlled bytes enter the assessment.
+        return {key: None for key in state_values}
+    return state_values
 
 
 def cleanup(project, execution):

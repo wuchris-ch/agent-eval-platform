@@ -45,6 +45,7 @@ class BehaviorSuite(StrictModel):
     split: Literal["development", "regression", "capability", "held_out"]
     # Immutable OCI reference; image contents are verified by Docker at dispatch.
     image: str = Field(pattern=r"^\S+@sha256:[a-f0-9]{64}$")
+    runtime: Literal["python", "node"] = "python"
     entrypoint: str
     requests: list[dict[str, JsonValue]] = Field(min_length=1, max_length=100)
     checks: list[BehaviorCheck] = Field(min_length=1, max_length=100)

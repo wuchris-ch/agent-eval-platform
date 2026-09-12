@@ -124,3 +124,72 @@ def reserve(path: Path, project: str = "local"):
             "local",
         )
     )
+
+
+@command("study-reserve")
+def study_reserve(path: Path, project: str = "local"):
+    from .studies import StudyPlan, reserve_study
+
+    emit(
+        reserve_study(
+            Store(),
+            project,
+            StudyPlan.model_validate(parse_json(path.read_bytes())),
+            "local",
+        )
+    )
+
+
+@command("study-report")
+def study_report(cohort: str, project: str = "local"):
+    from .studies import study_report as report
+
+    emit(report(Store(), project, cohort))
+
+
+@command("failure")
+def failure(path: Path, project: str = "local"):
+    emit(
+        {
+            "execution_id": authority.record_failure(
+                Store(), project, parse_json(path.read_bytes()), "local"
+            )
+        }
+    )
+
+
+@command("export")
+def export(cohort: str, path: Path, project: str = "local"):
+    from ..blackbox.models import json_bytes
+    from ..paths import atomic_write_private
+    from .bundles import export_bundle, verify_bundle
+
+    bundle = export_bundle(Store(), project, cohort)
+    atomic_write_private(path, json_bytes(bundle))
+    emit(verify_bundle(bundle))
+
+
+@command("verify")
+def verify(path: Path):
+    from .bundles import verify_bundle
+
+    emit(verify_bundle(parse_json(path.read_bytes())))
+
+
+@command("policy-preview")
+def policy_preview(
+    path: Path,
+    max_latency_ms: float | None = None,
+    max_total_tokens: int | None = None,
+    max_cost_usd: float | None = None,
+):
+    from .bundles import compare_policy
+
+    emit(
+        compare_policy(
+            parse_json(path.read_bytes()),
+            max_latency_ms=max_latency_ms,
+            max_total_tokens=max_total_tokens,
+            max_cost_usd=max_cost_usd,
+        )
+    )

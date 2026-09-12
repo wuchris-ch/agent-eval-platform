@@ -27,6 +27,7 @@ def safe_path(value: str) -> str:
         not value
         or not path.parts
         or not value.isascii()
+        or any(ord(c) < 32 or ord(c) == 127 for c in value)
         or path.is_absolute()
         or str(path) != value
         or any(c in value for c in ("\\", "\x00", ":"))
@@ -195,6 +196,14 @@ class Usage(StrictModel):
         "producer_reported", "independently_observed", "unavailable"
     ] = "unavailable"
 
+    @model_validator(mode="after")
+    def unavailable_has_no_estimate(self):
+        if self.provenance == "unavailable" and any(
+            v is not None for v in (self.total_tokens, self.cost_usd, self.latency_ms)
+        ):
+            raise ValueError("unavailable usage cannot contain estimates")
+        return self
+
 
 class Submission(CandidateIdentity):
     trial_ticket_sha256: Sha256
@@ -208,6 +217,26 @@ class Submission(CandidateIdentity):
     evaluator_sha256: Sha256
     artifacts: list[ArtifactReference] = Field(min_length=2, max_length=100)
     producer_status: Literal["completed", "failed", "cancelled"]
+    usage: Usage = Field(default_factory=Usage)
+
+
+class ProductionFailure(StrictModel):
+    """A reserved invocation without a candidate remains in the study denominator."""
+
+    schema_version: Literal["agent-eval.production-failure/v2"] = (
+        "agent-eval.production-failure/v2"
+    )
+    execution_id: Identifier
+    trial_ticket_sha256: Sha256
+    reason: Literal[
+        "budget_exhausted",
+        "timeout",
+        "transport_error",
+        "invalid_output",
+        "verification_failed",
+        "cancelled",
+        "producer_error",
+    ]
     usage: Usage = Field(default_factory=Usage)
 
 

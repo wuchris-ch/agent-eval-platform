@@ -205,6 +205,7 @@ class Handler(BaseHTTPRequestHandler):
     def route(self, store, subject, project, path, query, data, mutation):
         from ..candidates import authority
         from ..candidates import contracts as candidate_contracts
+        from ..candidates import studies
 
         if not mutation:
             if path == ["authority"]:
@@ -227,8 +228,28 @@ class Handler(BaseHTTPRequestHandler):
                 return store.get(project, kind, path[1]), 200
             if path == ["candidate-runs"]:
                 return store.list(
-                    project, "assessment-v2", after=query.get("after", "")
+                    project, "trial-ticket-v2", after=query.get("after", "")
                 ), 200
+            if path == ["studies"]:
+                return store.list(
+                    project, "candidate-study", after=query.get("after", "")
+                ), 200
+            if len(path) == 2 and path[0] == "studies":
+                return studies.study_report(store, project, path[1]), 200
+            if len(path) == 3 and path[0] == "studies" and path[2] == "export":
+                from ..candidates.bundles import export_bundle
+
+                store.authorize(subject, project, "curate")
+                return export_bundle(store, project, path[1]), 200
+            if (
+                len(path) == 3
+                and path[0] == "candidate-runs"
+                and path[2] == "investigate"
+            ):
+                from ..candidates.investigation import investigate
+
+                store.authorize(subject, project, "curate")
+                return investigate(store, project, path[1]), 200
             if path == ["experiments"]:
                 page = store.list(
                     project,
@@ -300,6 +321,27 @@ class Handler(BaseHTTPRequestHandler):
             if len(path) == 2 and path[0] == "decisions":
                 return store.get(project, "decision", path[1]), 200
         else:
+            if path == ["studies"]:
+                store.authorize(subject, project, "admin")
+                return studies.reserve_study(
+                    store, project, studies.StudyPlan.model_validate(data), subject
+                ), 201
+            if path == ["production-failures"]:
+                store.authorize(subject, project, "run")
+                return {
+                    "execution_id": authority.record_failure(
+                        store, project, data, subject
+                    )
+                }, 201
+            if len(path) == 3 and path[0] == "studies" and path[2] == "policy-preview":
+                from ..candidates.bundles import compare_policy, export_bundle
+
+                store.authorize(subject, project, "curate")
+                if set(data) - {"max_latency_ms", "max_total_tokens", "max_cost_usd"}:
+                    raise ValueError("unsupported policy limit")
+                return compare_policy(
+                    export_bundle(store, project, path[1]), **data
+                ), 200
             if path == ["producer-artifacts"]:
                 store.authorize(subject, project, "run")
                 return authority.upload(

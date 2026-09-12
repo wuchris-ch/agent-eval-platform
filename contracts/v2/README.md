@@ -73,3 +73,36 @@ uv run python scripts/candidate_roundtrip.py \
 ```
 
 The command reads a pinned producer checkout into a private clone, creates a separate disposable repository, and invokes no model. The summary records the actual producer and base commits. Omit `--producer-root` to use the standalone fixture exporter.
+
+## Paired studies and evidence replay
+
+`StudyPlan.schema.json` describes a predeclared cohort. Each task may override both arm recipes together. The authority checks capability, model-configuration and budget equality within a task pair, caps aggregate planned requests/tokens, and reserves a deterministic randomized schedule before any dispatch.
+
+`ProductionFailure.schema.json` records a reserved invocation that did not produce a candidate. It binds the exact ticket, uses a bounded reason code, and remains in the denominator. Once that terminal record is sealed, the execution cannot be replaced with a different candidate. Unknown usage remains unknown.
+
+Recipe `max_repairs` limits internal producer repairs. Study-assisted executions have a separate declared execution/request/token budget. Initial trials can therefore set internal repairs to zero. The authority allows at most one assisted child for an eligible initial failure, selected in the frozen schedule after the complete initial cohort finishes. Original assessments are immutable.
+
+```sh
+agent-eval candidate study-reserve plan.json --project study
+agent-eval candidate study-report COHORT_UUID --project study
+agent-eval candidate export COHORT_UUID evidence.json --project study
+agent-eval candidate verify evidence.json
+agent-eval candidate policy-preview evidence.json --max-latency-ms 60000
+```
+
+An export contains the plan, complete schedule, exact tickets/contracts/submissions/assessments, failure records, recipes and policies. Hash verification checks every record and binding, then replays the saved acceptance decisions and report without model calls. This establishes recorded integrity and decision reproducibility; fresh candidate execution requires the original evaluator and pinned runtime. Candidate source artifacts and raw gateway messages are not embedded in this decision export. Review an export before publishing it.
+
+Workbench API additions:
+
+| Method | Route | Authority |
+| --- | --- | --- |
+| POST | `/v1/studies` | Admin |
+| GET | `/v1/studies` and `/v1/studies/{cohort}` | Project member |
+| POST | `/v1/production-failures` | Runner |
+| GET | `/v1/studies/{cohort}/export` | Curator |
+| POST | `/v1/studies/{cohort}/policy-preview` | Curator |
+| GET | `/v1/candidate-runs/{execution}/investigate` | Curator |
+
+Investigation rechecks the saved observation hash and reruns the independent oracle. Reference responses and state queries are restricted to the curator/operator view. The producer can retrieve its assessment and receipt hashes but cannot fetch the reference suite through the API.
+
+The HTTP producer flow is **reserve → admit → run → upload artifacts → issue candidate contract → submit → evaluate → retrieve assessment**. Uploading before issuance lets the operator verify the candidate manifest and reconstruct the patch before binding its contract. Upload and submission replay reuse immutable records.
