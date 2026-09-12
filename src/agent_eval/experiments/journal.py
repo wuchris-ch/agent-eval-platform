@@ -20,6 +20,7 @@ from ..paths import (
     atomic_write_private,
     ensure_private_directory,
     ensure_private_file,
+    ensure_private_sqlite_sidecar,
     get_state_dir,
 )
 from .models import ExperimentStatus, Plan, Receipt, TrialStatus
@@ -144,8 +145,7 @@ class Journal:
             # Never let SQLite follow a pre-existing sidecar symlink.
             for suffix in ("-journal", "-wal", "-shm"):
                 sidecar = Path(str(database) + suffix)
-                if sidecar.exists() or sidecar.is_symlink():
-                    ensure_private_file(sidecar, create=False)
+                ensure_private_sqlite_sidecar(sidecar)
             connection = sqlite3.connect(
                 database.as_uri() + "?mode=rw", uri=True, timeout=5
             )

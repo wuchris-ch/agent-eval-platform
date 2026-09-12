@@ -328,6 +328,21 @@ def ensure_private_file(path: Path | str, *, create: bool = True) -> Path:
     return target
 
 
+def ensure_private_sqlite_sidecar(path: Path | str) -> None:
+    """Validate an optional SQLite file that another connection may unlink."""
+    target = Path(path)
+    validate_no_symlink_components(target.parent)
+    try:
+        ensure_private_file(target, create=False)
+    except FileNotFoundError:
+        pass
+    except UnsafeStatePathError:
+        # SQLite removes rollback journals on commit. A file that still exists,
+        # including a dangling symlink, must continue to fail closed.
+        if _metadata(target) is not None:
+            raise
+
+
 def atomic_write_private(path: Path | str, data: bytes) -> None:
     """Durably replace a regular state file with owner-only permissions."""
 
@@ -357,8 +372,8 @@ def atomic_write_private(path: Path | str, data: bytes) -> None:
             os.fsync(stream.fileno())
         _strip_private_acl(temporary)
         os.replace(temporary, destination)
-        os.chmod(destination, 0o600)
-        _strip_private_acl(destination)
+        # The published inode already has private mode and no ACL. Touching its
+        # metadata after rename races readers verifying the immutable evidence.
         try:
             directory_descriptor = os.open(destination.parent, os.O_RDONLY)
         except OSError:

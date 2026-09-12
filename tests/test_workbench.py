@@ -410,7 +410,8 @@ def test_api_full_launch_events_and_conflict(store, api_server):
     )
     assert request(f"/v1/experiments/{identity}/start", {})[0] == 202
     for _ in range(200):
-        result = request("/v1/experiments/" + identity)[1]
+        status, result = request("/v1/experiments/" + identity)
+        assert status == 200, result
         if result["state"] == "completed":
             break
         time.sleep(0.02)
@@ -840,3 +841,42 @@ def test_private_http_profile_runs_fresh_boundary_requests(store, tmp_path):
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+@pytest.mark.parametrize("kind", ["journal", "catalog"])
+def test_sqlite_sidecar_disappearance_during_open(store, monkeypatch, kind):
+    from agent_eval import paths as paths_module
+    from agent_eval.paths import ensure_private_file
+
+    identity = launch(store)
+    database = directory(identity) / "journal.db" if kind == "journal" else store.path
+    sidecar = database.with_name(database.name + "-journal")
+    ensure_private_file(sidecar)
+    original = paths_module.ensure_private_file
+    removed = False
+
+    def remove_before_check(path, **kwargs):
+        nonlocal removed
+        if path == sidecar and not removed:
+            removed = True
+            sidecar.unlink()
+        return original(path, **kwargs)
+
+    monkeypatch.setattr(paths_module, "ensure_private_file", remove_before_check)
+    context = Journal.open(identity) if kind == "journal" else store.db()
+    with context:
+        pass
+    assert removed
+
+
+@pytest.mark.parametrize("kind", ["journal", "catalog"])
+def test_sqlite_sidecar_symlink_still_rejected(store, tmp_path, kind):
+    from agent_eval.paths import UnsafeStatePathError
+
+    identity = launch(store)
+    database = directory(identity) / "journal.db" if kind == "journal" else store.path
+    sidecar = database.with_name(database.name + "-journal")
+    sidecar.symlink_to(tmp_path / "absent")
+    context = Journal.open(identity) if kind == "journal" else store.db()
+    with pytest.raises(UnsafeStatePathError), context:
+        pass

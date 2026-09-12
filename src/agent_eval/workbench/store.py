@@ -11,7 +11,12 @@ from contextlib import contextmanager
 
 from ..blackbox.models import digest, json_bytes, parse_json
 from ..experiments.journal import JournalError
-from ..paths import ensure_private_directory, ensure_private_file, get_state_dir
+from ..paths import (
+    ensure_private_directory,
+    ensure_private_file,
+    ensure_private_sqlite_sidecar,
+    get_state_dir,
+)
 
 ROLES = {
     "viewer": {"read"},
@@ -67,8 +72,7 @@ class Store:
     def db(self):
         for suffix in ("-journal", "-wal", "-shm"):
             path = self.path.with_name(self.path.name + suffix)
-            if path.exists() or path.is_symlink():
-                ensure_private_file(path, create=False)
+            ensure_private_sqlite_sidecar(path)
         db = sqlite3.connect(self.path, timeout=10)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA trusted_schema=OFF")
