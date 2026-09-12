@@ -415,7 +415,11 @@ def test_api_full_launch_events_and_conflict(store, api_server):
             break
         time.sleep(0.02)
     assert result["passed"] is True
+    # The journal can be complete before the worker appends its catalog event.
+    # Wait for that producer before asserting the event cursor is caught up.
+    server.jobs[identity].result(timeout=10)
     events = request("/v1/events?after=0")[1]
+    assert any(event["action"] == "execution:completed" for event in events)
     assert events and request("/v1/events?after=" + str(events[-1]["seq"]))[1] == []
     store.grant("local", "alice", "viewer")
     assert request(f"/v1/experiments/{identity}/start", {})[0] == 403
