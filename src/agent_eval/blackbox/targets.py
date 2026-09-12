@@ -33,6 +33,10 @@ class TargetError(RuntimeError):
         super().__init__(code)
 
 
+class TargetCancelled(RuntimeError):
+    """Owned process stopped; external side effects can still be unknown."""
+
+
 class Target(Protocol):
     mode: Literal["command", "http"]
     identity: str
@@ -102,7 +106,7 @@ def _stop(process: subprocess.Popen) -> None:
     process.wait()
 
 
-def _drain(process: subprocess.Popen, deadline: float) -> bytes:
+def _drain(process: subprocess.Popen, deadline: float, cancel_check=None) -> bytes:
     streams = ((process.stdout, MAX_PAYLOAD_BYTES), (process.stderr, MAX_STDERR_BYTES))
     output = bytearray()
     counts = {}
@@ -112,6 +116,8 @@ def _drain(process: subprocess.Popen, deadline: float) -> bytes:
             selector.register(stream, selectors.EVENT_READ, limit)
             counts[stream] = 0
         while selector.get_map():
+            if cancel_check is not None and cancel_check():
+                raise TargetCancelled()
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TargetError("target_timeout")
@@ -148,6 +154,7 @@ class CommandTarget:
     ):
         if not command or any(not arg or "\x00" in arg for arg in command):
             raise ValueError("command must contain nonempty argv entries")
+        self.cancel_check = None
         self.command = list(command)
         self.timeout = _timeout(timeout)
         self.decoder = decoder
@@ -198,7 +205,9 @@ class CommandTarget:
                 except (OSError, ValueError):
                     raise TargetError("target_start") from None
                 try:
-                    raw = _drain(process, time.monotonic() + self.timeout)
+                    raw = _drain(
+                        process, time.monotonic() + self.timeout, self.cancel_check
+                    )
                 finally:
                     _stop(process)
                     process.stdout.close()

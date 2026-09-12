@@ -38,10 +38,10 @@ judge = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/wuchris-ch/agent-eval-k3s"
-Repository = "https://github.com/wuchris-ch/agent-eval-k3s"
-Issues = "https://github.com/wuchris-ch/agent-eval-k3s/issues"
-Security = "https://github.com/wuchris-ch/agent-eval-k3s/security/policy"
+Homepage = "https://github.com/wuchris-ch/agent-eval-platform"
+Repository = "https://github.com/wuchris-ch/agent-eval-platform"
+Issues = "https://github.com/wuchris-ch/agent-eval-platform/issues"
+Security = "https://github.com/wuchris-ch/agent-eval-platform/security/policy"
 
 [project.scripts]
 agent-eval = "agent_eval.cli:app"
