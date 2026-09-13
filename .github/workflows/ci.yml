@@ -51,7 +51,11 @@ jobs:
         if: matrix.python-version == '3.12'
         run: uv run ruff check .
       - name: Test
-        run: uv run pytest -q
+        env:
+          AGENT_EVAL_SOFTWARE_BUNDLE: ${{ runner.temp }}/software-study.json.gz
+        run: |
+          python scripts/fetch_software_evidence.py --output "$AGENT_EVAL_SOFTWARE_BUNDLE"
+          uv run pytest -q
 
   task-image:
     name: Task image ${{ matrix.task }}
@@ -125,8 +129,10 @@ jobs:
           AGENT_EVAL_STATE_DIR: ${{ runner.temp }}/agent-eval-state
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/repository-scan-venv
         run: |
+          python scripts/fetch_software_evidence.py --output "$RUNNER_TEMP/software-study.json.gz"
           uv run --frozen python - <<'PY'
           import os
+          import shutil
           import tempfile
           from pathlib import Path
 
@@ -146,6 +152,10 @@ jobs:
           ) as temporary:
               staged = Path(temporary) / "repository"
               _stage_gitleaks_workspace(repository, staged)
+              shutil.copyfile(
+                  Path(os.environ["RUNNER_TEMP"]) / "software-study.json.gz",
+                  staged / "docs/evidence/software-study.json.gz",
+              )
               process, status, _output = _execute_bounded(
                   [
                       "gitleaks",

@@ -28,9 +28,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline-report", type=Path, required=True)
     parser.add_argument("--software-bundle", type=Path)
+    parser.add_argument("--software-download-url")
+    parser.add_argument("--software-archive-output", type=Path)
     parser.add_argument("--protocol-state", type=Path)
     parser.add_argument("--study-root", type=Path)
     args = parser.parse_args()
+    if args.software_bundle and not args.software_download_url:
+        parser.error("--software-bundle requires --software-download-url")
     folder = ROOT / "docs/evidence"
     folder.mkdir(exist_ok=True)
     raw = args.baseline_report.read_bytes()
@@ -384,12 +388,25 @@ def main():
                     )
                 }
         # Keep the verified bundle unchanged; presentation labels belong only to the catalog.
-        original = json.loads(args.software_bundle.read_bytes())
-        (folder / "software-study.json.gz").write_bytes(
-            gzip.compress(json_bytes(original) + b"\n", mtime=0)
+        original_bytes = args.software_bundle.read_bytes()
+        original = json.loads(original_bytes)
+        archived = gzip.compress(original_bytes, mtime=0)
+        if args.software_archive_output:
+            args.software_archive_output.write_bytes(archived)
+        link = args.software_download_url
+        write(
+            folder,
+            "software-study-download.json",
+            {
+                "schema_version": "agent-eval.evidence-download/v1",
+                "url": link,
+                "gzip_sha256": hashlib.sha256(archived).hexdigest(),
+                "json_sha256": hashlib.sha256(original_bytes).hexdigest(),
+                "bundle_sha256": original["bundle_sha256"],
+                "records": len(original["report"]["rows"]),
+                "bytes": len(archived),
+            },
         )
-        (folder / "software-study.json").unlink(missing_ok=True)
-        link = "evidence/software-study.json.gz"
         elapsed = [
             r["usage"]["latency_ms"]
             for r in initial

@@ -92,14 +92,15 @@ through the authenticated HTTP contract and verified its exact bindings.
 
 ## Verification and follow-up
 
-The [portable bundle](../../../../docs/evidence/software-study.json.gz) contains all
+The [portable bundle](https://github.com/wuchris-ch/agent-eval-platform/releases/download/software-study-2026-09-13/software-study.json.gz) contains all
 26 records, the complete plan and schedule, and bound tickets, contracts,
 submissions, assessments and production failures. Verification recomputes
 record hashes, validates identity bindings, and reproduces saved decisions
 without model calls:
 
 ```sh
-gzip -dc docs/evidence/software-study.json.gz > /tmp/software-study.json
+python3 scripts/fetch_software_evidence.py --output /tmp/software-study.json.gz
+gzip -dc /tmp/software-study.json.gz > /tmp/software-study.json
 uv run agent-eval candidate verify /tmp/software-study.json
 uv run agent-eval candidate policy-preview /tmp/software-study.json \
   --max-latency-ms 30000
