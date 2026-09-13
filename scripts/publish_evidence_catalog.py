@@ -2,6 +2,7 @@
 """Build a content-minimized static catalog from verified recorded evidence."""
 
 import argparse
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -384,7 +385,11 @@ def main():
                 }
         # Keep the verified bundle unchanged; presentation labels belong only to the catalog.
         original = json.loads(args.software_bundle.read_bytes())
-        link = write(folder, "software-study.json", original)
+        (folder / "software-study.json.gz").write_bytes(
+            gzip.compress(json_bytes(original) + b"\n", mtime=0)
+        )
+        (folder / "software-study.json").unlink(missing_ok=True)
+        link = "evidence/software-study.json.gz"
         elapsed = [
             r["usage"]["latency_ms"]
             for r in initial
@@ -448,6 +453,33 @@ def main():
                 "rows": rows,
             },
         )
+    recorded_rows = sum(len(c["rows"]) for c in collections)
+    for collection in collections:
+        rows = collection.pop("rows")
+        collection["rows_files"] = []
+        chunk = []
+        size = 0
+        for row in rows:
+            row_size = len(json_bytes(row)) + 1
+            if chunk and size + row_size > 24000:
+                collection["rows_files"].append(
+                    write(
+                        folder,
+                        f"{collection['id']}-rows-{len(collection['rows_files']) + 1}.json",
+                        chunk,
+                    )
+                )
+                chunk, size = [], 0
+            chunk.append(row)
+            size += row_size
+        if chunk:
+            collection["rows_files"].append(
+                write(
+                    folder,
+                    f"{collection['id']}-rows-{len(collection['rows_files']) + 1}.json",
+                    chunk,
+                )
+            )
     write(
         folder,
         "index.json",
@@ -461,7 +493,7 @@ def main():
         json.dumps(
             {
                 "collections": len(collections),
-                "recorded_rows": sum(len(c["rows"]) for c in collections),
+                "recorded_rows": recorded_rows,
                 "model_calls": 0,
             }
         )

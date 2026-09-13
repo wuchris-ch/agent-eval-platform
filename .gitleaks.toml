@@ -11,7 +11,7 @@ regexes = ['''auth\.py:\s+[0-9a-f]{64}''']
 [[allowlists]]
 description = "Content-addressed artifact envelopes in versioned evaluation evidence"
 condition = "AND"
-paths = ['''(^|/)(contracts/v2/fixtures|benchmarks/software-corpus/v1/results|docs/evidence)/[^/]+\.json$''']
+paths = ['''(^|/)(contracts/v2/fixtures|benchmarks/software-corpus/v1/results|docs/evidence)/[^/]+\.json$''', '''(^|/)docs/evidence/software-study\.json\.gz$''']
 regexTarget = "match"
 regexes = ['''storage_key"\s*:\s*"[0-9a-f]{64}"''']
 

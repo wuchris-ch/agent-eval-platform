@@ -43,6 +43,7 @@ function renderPreview(){
 }
 try{
   const response=await fetch('evidence/index.json',{cache:'no-cache'});if(!response.ok)throw new Error('Evidence is currently unavailable.');catalog=await response.json();
+  await Promise.all(catalog.collections.map(async collection=>{collection.rows=(await Promise.all(collection.rows_files.map(async path=>{const part=await fetch(path);if(!part.ok)throw new Error('A recorded evidence file is unavailable.');return part.json();}))).flat();}));
   $('published').textContent='Recorded '+catalog.recorded_at;
   for(const collection of catalog.collections){const option=el('option',collection.title);option.value=collection.id;$('collection').append(option);}
   const requested=new URLSearchParams(location.search).get('collection');if(catalog.collections.some(c=>c.id===requested))$('collection').value=requested;

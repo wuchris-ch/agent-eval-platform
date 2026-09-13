@@ -107,7 +107,7 @@ measurement's provenance.
 
 [Explore the 26 records](https://wuchris-ch.github.io/agent-eval-platform/?collection=software-study)
 · [Full methods and results](benchmarks/software-corpus/v1/results/2026-09-13-software-study.md)
-· [Download the verifiable bundle](docs/evidence/software-study.json).
+· [Download the verifiable bundle](docs/evidence/software-study.json.gz).
 
 Release verification passed **1,048 regression tests** with 5 skipped, plus
 two new preflight tests. Independent oracle controls produced **10/10 expected
@@ -291,8 +291,9 @@ project members. Raw reference observations require curator access.
 Replay the published study without model calls:
 
 ```sh
-uv run agent-eval candidate verify docs/evidence/software-study.json
-uv run agent-eval candidate policy-preview docs/evidence/software-study.json \
+gzip -dc docs/evidence/software-study.json.gz > /tmp/software-study.json
+uv run agent-eval candidate verify /tmp/software-study.json
+uv run agent-eval candidate policy-preview /tmp/software-study.json \
   --max-latency-ms 30000
 ```
 
