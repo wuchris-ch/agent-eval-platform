@@ -27,6 +27,7 @@ class WorkbenchServer(ThreadingHTTPServer):
             max_workers=1, thread_name_prefix="experiment"
         )
         self.jobs = {}
+        self.candidate_jobs = {}
         self.jobs_lock = threading.Lock()
         super().__init__(("127.0.0.1", port), Handler)
         self.origin = f"http://127.0.0.1:{self.server_port}"
@@ -53,6 +54,21 @@ class WorkbenchServer(ThreadingHTTPServer):
                     raise
 
             self.jobs[experiment] = self.pool.submit(worker)
+
+    def start_candidate(self, project, execution, subject):
+        from ..candidates.execution import evaluate
+
+        self.store.get(project, "submission-v2", execution)
+        with self.jobs_lock:
+            old = self.candidate_jobs.get(execution)
+            if old is not None and not old.done():
+                return
+
+            def worker():
+                self.store.authorize(subject, project, "admin")
+                return evaluate(self.store, project, execution)
+
+            self.candidate_jobs[execution] = self.pool.submit(worker)
 
     def server_close(self):
         with self.jobs_lock:
@@ -150,7 +166,10 @@ class Handler(BaseHTTPRequestHandler):
                 ):
                     raise ValueError("JSON content length required")
                 length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= 1024 * 1024:
+                maximum = (
+                    20 * 1024 * 1024 if path == ["producer-artifacts"] else 1024 * 1024
+                )
+                if not 0 < length <= maximum:
                     raise ValueError("request size outside bounds")
                 data = parse_json(self.rfile.read(length))
                 if not isinstance(data, dict):
@@ -184,7 +203,53 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(500, {"error": "operation failed; private details omitted"})
 
     def route(self, store, subject, project, path, query, data, mutation):
+        from ..candidates import authority
+        from ..candidates import contracts as candidate_contracts
+        from ..candidates import studies
+
         if not mutation:
+            if path == ["authority"]:
+                return {
+                    "contract_version": 2,
+                    "evaluator_sha256": authority.identity(),
+                }, 200
+            if len(path) == 2 and path[0] in (
+                "execution-contracts",
+                "trial-tickets",
+                "assessments",
+                "submissions",
+            ):
+                kind = {
+                    "trial-tickets": "trial-ticket-v2",
+                    "execution-contracts": "execution-v2",
+                    "assessments": "assessment-v2",
+                    "submissions": "submission-v2",
+                }[path[0]]
+                return store.get(project, kind, path[1]), 200
+            if path == ["candidate-runs"]:
+                return store.list(
+                    project, "trial-ticket-v2", after=query.get("after", "")
+                ), 200
+            if path == ["studies"]:
+                return store.list(
+                    project, "candidate-study", after=query.get("after", "")
+                ), 200
+            if len(path) == 2 and path[0] == "studies":
+                return studies.study_report(store, project, path[1]), 200
+            if len(path) == 3 and path[0] == "studies" and path[2] == "export":
+                from ..candidates.bundles import export_bundle
+
+                store.authorize(subject, project, "curate")
+                return export_bundle(store, project, path[1]), 200
+            if (
+                len(path) == 3
+                and path[0] == "candidate-runs"
+                and path[2] == "investigate"
+            ):
+                from ..candidates.investigation import investigate
+
+                store.authorize(subject, project, "curate")
+                return investigate(store, project, path[1]), 200
             if path == ["experiments"]:
                 page = store.list(
                     project,
@@ -256,6 +321,55 @@ class Handler(BaseHTTPRequestHandler):
             if len(path) == 2 and path[0] == "decisions":
                 return store.get(project, "decision", path[1]), 200
         else:
+            if path == ["studies"]:
+                store.authorize(subject, project, "admin")
+                return studies.reserve_study(
+                    store, project, studies.StudyPlan.model_validate(data), subject
+                ), 201
+            if path == ["production-failures"]:
+                store.authorize(subject, project, "run")
+                return {
+                    "execution_id": authority.record_failure(
+                        store, project, data, subject
+                    )
+                }, 201
+            if len(path) == 3 and path[0] == "studies" and path[2] == "policy-preview":
+                from ..candidates.bundles import compare_policy, export_bundle
+
+                store.authorize(subject, project, "curate")
+                if set(data) - {"max_latency_ms", "max_total_tokens", "max_cost_usd"}:
+                    raise ValueError("unsupported policy limit")
+                return compare_policy(
+                    export_bundle(store, project, path[1]), **data
+                ), 200
+            if path == ["producer-artifacts"]:
+                store.authorize(subject, project, "run")
+                return authority.upload(
+                    store,
+                    project,
+                    candidate_contracts.ArtifactEnvelope.model_validate(data),
+                    subject,
+                ), 201
+            if path == ["trial-tickets"]:
+                store.authorize(subject, project, "admin")
+                return authority.reserve(
+                    store,
+                    project,
+                    candidate_contracts.TrialTicket.model_validate(data),
+                    subject,
+                ), 201
+            if path == ["execution-contracts"]:
+                store.authorize(subject, project, "admin")
+                return authority.issue(
+                    store,
+                    project,
+                    candidate_contracts.ExecutionContract.model_validate(data),
+                    subject,
+                ), 201
+            if len(path) == 3 and path[0] == "submissions" and path[2] == "evaluate":
+                store.authorize(subject, project, "admin")
+                self.server.start_candidate(project, path[1], subject)
+                return {"execution_id": path[1], "status": "evaluation_queued"}, 202
             if path in (["preview"], ["experiments"]):
                 store.authorize(subject, project, "run")
                 launch = Launch.model_validate(data)
@@ -330,6 +444,13 @@ class Handler(BaseHTTPRequestHandler):
                 }, 201
             if path == ["submissions"]:
                 store.authorize(subject, project, "run")
+                if data.get("schema_version") == "agent-eval.submission/v2":
+                    return authority.ingest(
+                        store,
+                        project,
+                        candidate_contracts.Submission.model_validate(data),
+                        subject,
+                    ), 201
                 return ingest(
                     store, project, Submission.model_validate(data), subject
                 ), 201

@@ -20,6 +20,7 @@ from .blackbox.cli import app as blackbox_app
 from .experiments.cli import app as experiments_app
 from .workbench.cli import app as workbench_app
 from .distributed.cli import app as distributed_app
+from .candidates.cli import app as candidates_app
 from .report import (
     markdown_report,
     print_run_detail,
@@ -58,6 +59,7 @@ app.add_typer(blackbox_app, name="blackbox")
 app.add_typer(experiments_app, name="experiment")
 app.add_typer(workbench_app, name="workbench")
 app.add_typer(distributed_app, name="distributed")
+app.add_typer(candidates_app, name="candidate")
 console = Console()
 
 

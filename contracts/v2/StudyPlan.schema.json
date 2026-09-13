@@ -1,0 +1,164 @@
+{
+  "$defs": {
+    "StudyTask": {
+      "additionalProperties": false,
+      "properties": {
+        "base_revision": {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "title": "Base Revision",
+          "type": "string"
+        },
+        "baseline_recipe_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Recipe Sha256"
+        },
+        "candidate_recipe_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Recipe Sha256"
+        },
+        "policy_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Policy Sha256",
+          "type": "string"
+        },
+        "suite_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Suite Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "base_revision",
+        "suite_sha256",
+        "policy_sha256"
+      ],
+      "title": "StudyTask",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "baseline_recipe_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Recipe Sha256",
+      "type": "string"
+    },
+    "candidate_recipe_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Recipe Sha256",
+      "type": "string"
+    },
+    "cohort_id": {
+      "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$",
+      "title": "Cohort Id",
+      "type": "string"
+    },
+    "evaluator_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evaluator Sha256",
+      "type": "string"
+    },
+    "max_assisted_executions": {
+      "default": 0,
+      "maximum": 200,
+      "minimum": 0,
+      "title": "Max Assisted Executions",
+      "type": "integer"
+    },
+    "max_assisted_model_requests": {
+      "default": 0,
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Max Assisted Model Requests",
+      "type": "integer"
+    },
+    "max_assisted_total_tokens": {
+      "default": 0,
+      "maximum": 10000000,
+      "minimum": 0,
+      "title": "Max Assisted Total Tokens",
+      "type": "integer"
+    },
+    "max_model_requests": {
+      "maximum": 10000,
+      "minimum": 0,
+      "title": "Max Model Requests",
+      "type": "integer"
+    },
+    "max_total_tokens": {
+      "maximum": 10000000,
+      "minimum": 0,
+      "title": "Max Total Tokens",
+      "type": "integer"
+    },
+    "name": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "repair_selection": {
+      "const": "first_failed_in_schedule",
+      "default": "first_failed_in_schedule",
+      "title": "Repair Selection",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "agent-eval.study/v2",
+      "default": "agent-eval.study/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "seed": {
+      "default": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "tasks": {
+      "items": {
+        "$ref": "#/$defs/StudyTask"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Tasks",
+      "type": "array"
+    },
+    "trials": {
+      "default": 3,
+      "maximum": 100,
+      "minimum": 2,
+      "title": "Trials",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "cohort_id",
+    "name",
+    "baseline_recipe_sha256",
+    "candidate_recipe_sha256",
+    "tasks",
+    "max_model_requests",
+    "max_total_tokens",
+    "evaluator_sha256"
+  ],
+  "title": "StudyPlan",
+  "type": "object"
+}

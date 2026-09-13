@@ -1,0 +1,221 @@
+{
+  "$defs": {
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        },
+        "reason": {
+          "maxLength": 500,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "passed",
+        "reason"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "Usage": {
+      "additionalProperties": false,
+      "properties": {
+        "total_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Tokens"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms"
+        },
+        "provenance": {
+          "default": "unavailable",
+          "enum": [
+            "producer_reported",
+            "independently_observed",
+            "unavailable"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "title": "Usage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "base_revision": {
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+      "title": "Base Revision",
+      "type": "string"
+    },
+    "candidate_revision": {
+      "anyOf": [
+        {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate Revision"
+    },
+    "candidate_tree_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Tree Sha256",
+      "type": "string"
+    },
+    "candidate_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Manifest Sha256",
+      "type": "string"
+    },
+    "trial_ticket_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Trial Ticket Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "agent-eval.assessment/v2",
+      "default": "agent-eval.assessment/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "execution_id": {
+      "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "execution_contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Contract Sha256",
+      "type": "string"
+    },
+    "submission_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Submission Sha256",
+      "type": "string"
+    },
+    "recipe_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recipe Sha256",
+      "type": "string"
+    },
+    "suite_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Sha256",
+      "type": "string"
+    },
+    "policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Sha256",
+      "type": "string"
+    },
+    "evaluator_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evaluator Sha256",
+      "type": "string"
+    },
+    "observation_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observation Sha256",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/Check"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "outcome": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "usage": {
+      "$ref": "#/$defs/Usage"
+    },
+    "evaluation_latency_ms": {
+      "minimum": 0,
+      "title": "Evaluation Latency Ms",
+      "type": "number"
+    }
+  },
+  "required": [
+    "base_revision",
+    "candidate_tree_sha256",
+    "candidate_manifest_sha256",
+    "trial_ticket_sha256",
+    "execution_id",
+    "execution_contract_sha256",
+    "submission_sha256",
+    "recipe_sha256",
+    "suite_sha256",
+    "policy_sha256",
+    "evaluator_sha256",
+    "observation_sha256",
+    "checks",
+    "outcome",
+    "reasons",
+    "usage",
+    "evaluation_latency_ms"
+  ],
+  "title": "Assessment",
+  "type": "object"
+}

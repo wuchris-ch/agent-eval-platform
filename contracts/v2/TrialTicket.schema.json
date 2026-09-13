@@ -1,0 +1,135 @@
+{
+  "$defs": {
+    "TrialIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "cohort_id": {
+          "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$",
+          "title": "Cohort Id",
+          "type": "string"
+        },
+        "task_id": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        },
+        "family": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Family",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "development",
+            "regression",
+            "capability",
+            "held_out"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "trial": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Trial",
+          "type": "integer"
+        },
+        "arm": {
+          "enum": [
+            "baseline",
+            "candidate"
+          ],
+          "title": "Arm",
+          "type": "string"
+        },
+        "attempt_kind": {
+          "default": "initial",
+          "enum": [
+            "initial",
+            "assisted_correction"
+          ],
+          "title": "Attempt Kind",
+          "type": "string"
+        },
+        "parent_execution_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Execution Id"
+        }
+      },
+      "required": [
+        "cohort_id",
+        "task_id",
+        "family",
+        "split",
+        "trial",
+        "arm"
+      ],
+      "title": "TrialIdentity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "agent-eval.trial-ticket/v2",
+      "default": "agent-eval.trial-ticket/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "execution_id": {
+      "pattern": "^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "base_revision": {
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+      "title": "Base Revision",
+      "type": "string"
+    },
+    "trial_identity": {
+      "$ref": "#/$defs/TrialIdentity"
+    },
+    "recipe_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Recipe Sha256",
+      "type": "string"
+    },
+    "suite_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Suite Sha256",
+      "type": "string"
+    },
+    "policy_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Policy Sha256",
+      "type": "string"
+    },
+    "evaluator_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evaluator Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "execution_id",
+    "base_revision",
+    "trial_identity",
+    "recipe_sha256",
+    "suite_sha256",
+    "policy_sha256",
+    "evaluator_sha256"
+  ],
+  "title": "TrialTicket",
+  "type": "object"
+}

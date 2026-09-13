@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "CandidateFile": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "maxLength": 12582912,
+          "title": "Data",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            420,
+            493
+          ],
+          "title": "Mode",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "data",
+        "mode"
+      ],
+      "title": "CandidateFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "candidate/v1",
+      "default": "candidate/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "base_revision": {
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+      "title": "Base Revision",
+      "type": "string"
+    },
+    "tree_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tree Sha256",
+      "type": "string"
+    },
+    "files": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CandidateFile"
+      },
+      "maxProperties": 2000,
+      "minProperties": 1,
+      "title": "Files",
+      "type": "object"
+    },
+    "changed_paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "title": "Changed Paths",
+      "type": "array"
+    },
+    "patch_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Patch Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "base_revision",
+    "tree_sha256",
+    "files",
+    "changed_paths",
+    "patch_sha256"
+  ],
+  "title": "CandidateManifest",
+  "type": "object"
+}

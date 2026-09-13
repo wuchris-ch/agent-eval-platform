@@ -1,0 +1,71 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "agent-eval.acceptance-policy/v2",
+      "default": "agent-eval.acceptance-policy/v2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "required_checks": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Required Checks",
+      "type": "array"
+    },
+    "max_latency_ms": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Latency Ms"
+    },
+    "max_total_tokens": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Total Tokens"
+    },
+    "max_cost_usd": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Cost Usd"
+    }
+  },
+  "required": [
+    "name",
+    "required_checks"
+  ],
+  "title": "AcceptancePolicy",
+  "type": "object"
+}

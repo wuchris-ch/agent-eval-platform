@@ -20,8 +20,8 @@ async function api(path, body, extra = {}) {
 }
 async function action(fn) { try { notice(''); await fn(); } catch (e) { notice(e.message); } }
 function options(id, values, label) { const old = $(id).value; $(id).replaceChildren(...values.map(v => { const o=text('option',label(v)); o.value=v.id; return o; })); if (values.some(v=>v.id===old)) $(id).value=old; }
-function tab(name) { for (const n of ['runs','compare','launch','review']) { $(n).hidden=n!==name; $('tab-'+n).classList.toggle('active',n===name); } }
-for(const n of ['runs','compare','launch','review']) $('tab-'+n).onclick=()=>tab(n);
+function tab(name) { for (const n of ['runs','compare','launch','review','studies']) { $(n).hidden=n!==name; $('tab-'+n).classList.toggle('active',n===name); } }
+for(const n of ['runs','compare','launch','review','studies']) $('tab-'+n).onclick=()=>tab(n);
 function button(label, fn) { const b=text('button',label); b.onclick=()=>action(fn); return b; }
 async function evidence(id, ordinal) {
   const d=await api(`experiments/${id}/trials/${ordinal}`); selected={id,ordinal};
@@ -52,7 +52,7 @@ async function refresh(append=false) {
   try {const page=await api('experiments'+(append&&next?'?after='+encodeURIComponent(next):''));runs=append?[...runs,...page.items]:page.items;next=page.next;renderRuns();$('login').hidden=true;} finally {busy=false;}
 }
 $('connect').onclick=()=>action(async()=>{token=$('token').value;sessionStorage.setItem('ae-session',token);$('token').value='';await initialize();});
-$('refresh').onclick=()=>action(()=>refresh());$('more').onclick=()=>action(()=>refresh(true));$('project').onchange=()=>action(()=>initialize());
+$('refresh').onclick=()=>action(()=>$('studies').hidden?refresh():loadStudies());$('more').onclick=()=>action(()=>refresh(true));$('project').onchange=()=>action(async()=>{studyReport=null;$('study-detail').hidden=true;$('study-list').replaceChildren();$('evidence').hidden=true;selected=null;await initialize();if(!$('studies').hidden)await loadStudies();});
 $('close-evidence').onclick=()=>{$('evidence').hidden=true;selected=null;};
 $('save-annotation').onclick=()=>action(async()=>{if(!selected)throw new Error('Select a trial first.');const body=$('annotation').value;await api(`experiments/${selected.id}/trials/${selected.ordinal}/annotations`,{body,expected_revision:revision});$('annotation').value='';await evidence(selected.id,selected.ordinal);notice('Annotation saved.');});
 $('compare-button').onclick=()=>action(async()=>{
@@ -73,3 +73,47 @@ if(token)action(initialize);else $('login').hidden=false;
 setInterval(()=>{if(token&&!document.hidden&&!$('runs').hidden)action(()=>refresh());},4000);
 
 $('load-review').onclick=()=>action(async()=>{const notes=await api('review');$('review-list').replaceChildren(...notes.map(n=>{const e=text('article','','card');e.append(text('p',n.body),text('small',`${n.actor} · revision ${n.revision}`),button('Open evidence',()=>evidence(n.experiment,n.ordinal)));return e;}));if(!notes.length)$('review-list').append(text('p','No investigation notes yet.','muted'));});
+
+let studyReport = null;
+const measured = (v, unit='') => v == null ? 'Unavailable' : Number(v).toLocaleString(undefined,{maximumFractionDigits:2}) + unit;
+async function loadStudies() {
+  const page=await api('studies'); $('study-list').replaceChildren();
+  for(const item of page.items) {
+    const card=text('article','','card'); card.append(text('h3',item.value.name),text('p',`${item.value.tasks.length} task families · ${item.value.trials} paired trials per task`,'muted'),button('Inspect study',()=>openStudy(item.id)));$('study-list').append(card);
+  }
+  if(!page.items.length)$('study-list').append(text('p','No candidate studies are registered in this project. Reserve a paired study with the candidate study-reserve command.','muted'));
+  if(studyReport)await openStudy(studyReport.cohort_id);
+}
+async function openStudy(id) {
+  studyReport=await api('studies/'+id);$('study-title').textContent=studyReport.name;$('study-detail').hidden=false;$('candidate-investigation').hidden=true;$('policy-results').replaceChildren();
+  const summary=$('study-summary');summary.replaceChildren();
+  for(const arm of ['baseline','candidate']) {
+    const c=studyReport.summary.counts[arm],card=text('article','','card');card.append(text('p',arm.toUpperCase(),'eyebrow'),text('h3',`${c.accepted} / ${c.planned} accepted`),text('p',`${c.rejected} rejected · ${c.unavailable-c.production_failed-c.pending} inconclusive · ${c.production_failed} production failures · ${c.pending} pending`,'muted'));
+    for(const [field,label,scale,unit] of [['latency_ms','Median production latency',1000,' s'],['total_tokens','Median tokens',1,''],['cost_usd','Total cost (USD)',1,'']]) {
+      const m=c.metrics[field],value=field==='cost_usd'?m.total:m.median;
+      card.append(text('p',`${label}: ${measured(value==null?null:value/scale,unit)} (${m.observed}/${m.planned} measured)`));
+      if(m.provenance.length)card.append(text('small',m.provenance.join(', ').replaceAll('_',' '),'muted'));
+    }summary.append(card);
+  }
+  const s=studyReport.summary;$('study-inference').textContent=`${s.paired_families} paired task families; ${s.missing_pairs} unavailable pairs. Family-weighted candidate difference on evaluable pairs: ${s.missing_pairs?'Unavailable (incomplete pairs)':measured(s.effect==null?null:s.effect*100,' percentage points')}. 95% family bootstrap interval: ${s.interval?s.interval.map(x=>(x*100).toFixed(1)).join(' to ')+' points':'Unavailable'}. ${s.inference_scope} Assisted corrections: ${studyReport.repairs.accepted}/${studyReport.repairs.planned} accepted, reported separately.`;
+  renderStudyRows();
+}
+function renderStudyRows() {
+  if(!studyReport)return;
+  const rows=studyReport.rows.filter(r=>($('study-attempt').value==='all'||r.attempt_kind===$('study-attempt').value)&&($('study-outcome').value==='all'||r.outcome===$('study-outcome').value));
+  const table=document.createElement('table'),head=document.createElement('tr');for(const h of ['Task / family','Trial / arm','Outcome','Reason','Evidence'])head.append(text('th',h));table.append(head);
+  for(const r of rows){const tr=document.createElement('tr');tr.append(text('td',r.task_id+' / '+r.family),text('td',`${r.trial} / ${r.arm}`),text('td',r.outcome.replaceAll('_',' ')),text('td',r.reasons.join('; ')||r.checks.filter(c=>!c.passed).map(c=>c.reason).join('; ')||'All required checks matched'));const cell=document.createElement('td');if(r.assessment_sha256)cell.append(button('Investigate',()=>inspectCandidate(r.execution_id)));else cell.append(text('span',r.outcome==='pending'?'Awaiting result':'No candidate assessment','muted'));tr.append(cell);table.append(tr);}
+  $('study-table').replaceChildren(table);if(!rows.length)$('study-table').append(text('p','No attempts match these filters.','muted'));
+}
+async function inspectCandidate(id) {
+  const detail=await api(`candidate-runs/${id}/investigate`),area=$('candidate-investigation');area.replaceChildren();area.hidden=false;
+  area.append(text('h2',`${detail.ticket.trial_identity.task_id}: ${detail.assessment.outcome}`),text('p',detail.assessment.reasons.join('; ')||'Every required independent check matched.'));
+  const trace=text('ol','','receipt-trace');for(const step of detail.trace){const li=text('li',step.stage.replaceAll('_',' '));li.append(text('code',step.sha256));trace.append(li);}area.append(trace);
+  for(const check of detail.checks){const card=text('details','','check-detail'),summary=text('summary',`${check.passed?'Pass':'Fail'} · ${check.oracle.description}`);card.append(summary,text('p',check.reason),text('pre',JSON.stringify({requests:check.requests,expected_responses:check.oracle.expected_responses,observed_responses:check.oracle.response_indices.map(i=>detail.observation.responses[i]),expected_state:check.oracle.expected_rows,observed_state:detail.observation.state_queries[check.id]},null,2)));area.append(card);}
+  area.scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('load-studies').onclick=()=>action(loadStudies);
+$('tab-studies').onclick=()=>{tab('studies');action(loadStudies);};
+$('study-attempt').onchange=renderStudyRows;$('study-outcome').onchange=renderStudyRows;
+$('export-study').onclick=()=>action(async()=>{if(!studyReport)return;const bundle=await api(`studies/${studyReport.cohort_id}/export`),url=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)+'\n'],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=`study-${studyReport.cohort_id}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('Evidence exported. Replay it with agent-eval candidate verify <file>.');});
+$('preview-policy').onclick=()=>action(async()=>{if(!studyReport)return;const body={};for(const [id,key,scale] of [['policy-latency','max_latency_ms',1000],['policy-tokens','max_total_tokens',1],['policy-cost','max_cost_usd',1]])if($(id).value!=='')body[key]=Number($(id).value)*scale;const preview=await api(`studies/${studyReport.cohort_id}/policy-preview`,body),table=document.createElement('table'),head=document.createElement('tr');for(const title of ['Task / arm','Recorded policy','Preview policy','Reason'])head.append(text('th',title));table.append(head);for(const row of preview.rows){const tr=document.createElement('tr');for(const value of [row.task_id+' / '+row.arm,row.recorded_outcome,row.preview_outcome,row.reasons.join('; ')||'All policy requirements met'])tr.append(text('td',value));table.append(tr);}$('policy-results').replaceChildren(text('p','Recorded evidence replayed. Original assessments are unchanged.','muted'),table);});

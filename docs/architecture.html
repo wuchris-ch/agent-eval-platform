@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Interactive architecture diagrams for the Agent Eval platform.">
+    <meta name="theme-color" content="#f8fafc">
+    <title>Agent Eval Architecture</title>
+    <link rel="stylesheet" href="viewer.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Agent Eval evidence home">
+        <span class="brand-mark" aria-hidden="true">AE</span>
+        <span>
+          <strong>Agent Eval</strong>
+          <small>Architecture explorer</small>
+        </span>
+      </a>
+      <div class="header-links">
+        <a href="./">Evidence</a>
+        <a href="https://github.com/wuchris-ch/agent-eval-platform">Repository</a>
+        <a href="https://github.com/wuchris-ch/pr-review-agent-flue">PR reviewer</a>
+      </div>
+    </header>
+
+    <nav class="diagram-nav" aria-label="Architecture diagrams">
+      <button class="diagram-tab is-active" type="button"
+        data-diagram="platform"
+        data-src="local-review-platform.svg"
+        data-width="1440"
+        data-height="900"
+        data-title="Evaluation platform"
+        data-description="How versioned evidence, blind execution, deterministic scoring, observability, and local Kubernetes fit together.">
+        Evaluation platform
+      </button>
+      <button class="diagram-tab" type="button"
+        data-diagram="coding"
+        data-src="coding-agent-evaluation.svg"
+        data-width="1200"
+        data-height="480"
+        data-title="Coding-agent evaluation"
+        data-description="How an isolated agent task becomes independently verified evidence and an explicit outcome.">
+        Coding agents
+      </button>
+      <button class="diagram-tab" type="button"
+        data-diagram="governance"
+        data-src="governed-run.svg"
+        data-width="1200"
+        data-height="350"
+        data-title="Governed execution"
+        data-description="The admission checks that bind an approved request to its exact task snapshot, identity, image, and recipe.">
+        Governance
+      </button>
+      <button class="diagram-tab" type="button"
+        data-diagram="metrics"
+        data-src="metrics-flow.svg"
+        data-width="1200"
+        data-height="330"
+        data-title="Evidence and metrics"
+        data-description="How canonical results, queryable metrics, verification, and privacy-filtered telemetry stay consistent.">
+        Metrics
+      </button>
+    </nav>
+
+    <main class="viewer-shell">
+      <section class="diagram-heading" aria-live="polite">
+        <div>
+          <p class="eyebrow">Interactive system map</p>
+          <h1 id="diagram-title">Evaluation platform</h1>
+        </div>
+        <p id="diagram-description">How versioned evidence, blind execution, deterministic scoring, observability, and local Kubernetes fit together.</p>
+      </section>
+
+      <section class="diagram-stage" id="diagram-stage" aria-label="Interactive architecture diagram">
+        <div class="diagram-canvas" id="diagram-canvas">
+          <img id="diagram-image" src="local-review-platform.svg" width="1440" height="900" alt="Agent Eval platform architecture" draggable="false">
+        </div>
+
+        <div class="viewer-controls" role="group" aria-label="Diagram controls">
+          <button type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
+          <output id="zoom-level" aria-live="polite">100%</output>
+          <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
+          <span class="control-divider" aria-hidden="true"></span>
+          <button class="text-control" type="button" data-action="fit">Fit</button>
+          <button class="text-control" type="button" data-action="fullscreen">Full screen</button>
+        </div>
+
+        <p class="interaction-hint">Drag to move <span>•</span> Scroll or pinch to zoom <span>•</span> Press 0 to fit</p>
+      </section>
+    </main>
+
+    <script src="viewer.js"></script>
+  </body>
+</html>

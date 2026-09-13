@@ -4,16 +4,23 @@
 [![Python 3.12–3.14](https://img.shields.io/badge/python-3.12%E2%80%933.14-3776AB)](pyproject.toml)
 [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-2f855a)](LICENSE)
 
-An evaluation platform for AI agents through their observable inputs and
-outputs. Evaluate CLI tools, HTTP services, or recorded responses from a database
-with versioned goldens, deterministic checks, and optional DeepEval judging.
-Agents do not need to expose their internals or use a particular framework.
-Specialized coding and pull-request review benchmarks remain available.
+An evaluation platform that checks what agents produce against independent
+behavior and final-state evidence. Reserve matched trials before dispatch,
+evaluate the exact candidate, investigate failures, and replay saved decisions
+under different resource limits.
 
-[![Agent evaluation and observability architecture](docs/local-review-platform.svg)](https://wuchris-ch.github.io/agent-eval-platform/)
+Evaluate coding agents, pull-request reviewers, CLI tools, HTTP services, or
+recorded database responses. Versioned contracts and deterministic checks work
+across agent frameworks; optional DeepEval judging supports additional criteria.
 
-[Open the interactive architecture explorer](https://wuchris-ch.github.io/agent-eval-platform/)
-to zoom, pan, use full screen, and move between the supporting system diagrams.
+[Open the evidence explorer](https://wuchris-ch.github.io/agent-eval-platform/)
+to compare recorded trials, inspect independent checks and receipt identities,
+preview resource policies, and download the evidence.
+
+[![Agent evaluation and observability architecture](docs/local-review-platform.svg)](https://wuchris-ch.github.io/agent-eval-platform/architecture.html)
+
+[Explore the architecture](https://wuchris-ch.github.io/agent-eval-platform/architecture.html)
+to zoom, pan, and move between the supporting system diagrams.
 
 This repository contains the evaluation system. The separately deployable
 reviewer lives in [`pr-review-agent-flue`](https://github.com/wuchris-ch/pr-review-agent-flue).
@@ -73,7 +80,40 @@ Verified September 11, 2026 (Vancouver; September 12 UTC), on released evaluator
 
 [Verification details and skip explanations](benchmarks/platform/results/2026-09-12.md) · [Post-merge CI](https://github.com/wuchris-ch/agent-eval-platform/actions/runs/34663061627) · [Live execution evidence](benchmarks/platform/results/2026-09-12-distributed.json).
 
-## Latest live reviewer benchmark
+## Live software producer study
+
+Recorded September 12, 2026 in Vancouver, September 13 UTC: **four task families
+× three trials × two policies**, plus two separately reported assisted attempts.
+All 24 initial tickets were reserved before the actual producer called the live
+model gateway. The evaluator independently checked candidate behavior and final
+SQLite state.
+
+| Initial result | Single coder | Selective coordination |
+| --- | ---: | ---: |
+| Accepted / planned | **9 / 12** | **4 / 12** |
+| Inconclusive with candidate | 3 | 5 |
+| Failed before candidate | 0 | 3 |
+| Median recorded production time | 21.52 s | 35.28 s |
+| Producer-reported model requests | 60 | 79 |
+
+All 21 returned candidates passed independent behavior checks. Eight remained
+inconclusive because producer completion was not established. The study found
+a form-task verifier image missing Python, three planner validation failures,
+and two workflows requiring attention. A new verifier preflight catches the
+image prerequisite before future trial admission; its positive and negative
+controls made zero model calls. Eight incomplete task/trial pairs prevent a
+paired confidence interval. The complete report retains every outcome and
+measurement's provenance.
+
+[Explore the 26 records](https://wuchris-ch.github.io/agent-eval-platform/?collection=software-study)
+· [Full methods and results](benchmarks/software-corpus/v1/results/2026-09-13-software-study.md)
+· [Download the verifiable bundle](https://github.com/wuchris-ch/agent-eval-platform/releases/download/software-study-2026-09-13/software-study.json.gz).
+
+Release verification passed **1,048 regression tests** with 5 skipped, plus
+two new preflight tests. Independent oracle controls produced **10/10 expected
+decisions**; actual authenticated producer/evaluator controls produced **2/2**.
+
+## Preserved live reviewer baseline
 
 On September 11, 2026 (September 12 UTC), the released evaluator ran the actual
 Flue reviewer against the live model gateway: **20 cases × 3 trials**, with no
@@ -112,7 +152,7 @@ and used a different reviewer/model and correction policy.
   prevent a broken model request from being counted as a clean result.
 - **Reproducible inputs.** Corpus artifacts, expected findings, task images,
   commands, and reports are bound to hashes and versioned metadata.
-- **Honest correction metrics.** First attempts and critique-guided corrections
+- **Separate correction metrics.** First attempts and critique-guided corrections
   are recorded separately, so retries cannot rewrite the baseline.
 - **Privacy-aware observability.** Traces retain scores, latency, attempts, and
   counts while excluding prompts, diffs, completions, credentials, and private
@@ -122,6 +162,7 @@ and used a different reviewer/model and correction policy.
 
 | Mode | Target | Evidence |
 |---|---|---|
+| Independent software candidate | A producer's exact Git base, candidate tree and patch | Pre-dispatch trial tickets, isolated behavior checks, independently queried final state, paired studies and portable decision replay |
 | General black-box evaluation | Any CLI or HTTP agent; recorded JSONL, SQLite, or Postgres observations | Versioned input/output cases, exact/contains/JSON checks, optional configurable GEval, repeated trials |
 | Reviewer benchmark | External review-agent executable | 20 golden diffs, exact finding matches, block decisions, stability, optional GEval |
 | Coding-agent run | Agent working inside k3s | Hidden tests, coverage, Semgrep, Gitleaks, Trivy, Ruff, challenges, optional judge |
@@ -226,6 +267,35 @@ observability/     Docker Compose and privacy-filtering OTel configuration
 src/agent_eval/    runner, evaluators, policy, evidence, and reporting
 tasks/             isolated coding-agent tasks and hidden evaluators
 tests/             unit, integration, adversarial, and assurance tests
+```
+
+## Reproduce
+
+Verify the independent observer with fixed positive and negative candidates:
+
+```sh
+uv sync --frozen --all-extras
+uv run python scripts/qualify_software_corpus.py --out /tmp/software-qualification
+```
+
+This runs ten controls in the corpus's pinned Docker images without model calls.
+Use a new output directory. The [software corpus](benchmarks/software-corpus/v1/README.md)
+defines task contracts, checks, matched budgets, and family-level comparisons.
+
+The [candidate contract guide](contracts/v2/README.md) documents authenticated
+producer intake, independent assessment, crash recovery, and study reservation.
+The local workbench's **Candidate studies** view exposes comparisons, failure
+investigation, resource-policy previews, and evidence export to authorized
+project members. Raw reference observations require curator access.
+
+Replay the published study without model calls:
+
+```sh
+python3 scripts/fetch_software_evidence.py --output /tmp/software-study.json.gz
+gzip -dc /tmp/software-study.json.gz > /tmp/software-study.json
+uv run agent-eval candidate verify /tmp/software-study.json
+uv run agent-eval candidate policy-preview /tmp/software-study.json \
+  --max-latency-ms 30000
 ```
 
 ## Development

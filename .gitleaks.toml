@@ -3,6 +3,21 @@ useDefault = true
 
 [[allowlists]]
 description = "SHA-256 fixture identities in the reviewer corpus manifest"
-paths = ['''^benchmarks/reviewer-corpus/v1/corpus\.yaml$''']
+condition = "AND"
+paths = ['''(^|/)benchmarks/reviewer-corpus/v1/corpus\.yaml$''']
 regexTarget = "match"
 regexes = ['''auth\.py:\s+[0-9a-f]{64}''']
+
+[[allowlists]]
+description = "Content-addressed artifact envelopes in versioned evaluation evidence"
+condition = "AND"
+paths = ['''(^|/)(contracts/v2/fixtures|benchmarks/software-corpus/v1/results|docs/evidence)/[^/]+\.json$''', '''(^|/)docs/evidence/software-study\.json\.gz$''']
+regexTarget = "match"
+regexes = ['''storage_key"\s*:\s*"[0-9a-f]{64}"''']
+
+[[allowlists]]
+description = "Source-file SHA-256 identities in the software corpus manifest"
+condition = "AND"
+paths = ['''(^|/)benchmarks/software-corpus/v1/manifest\.json$''']
+regexTarget = "match"
+regexes = ['''api\.mjs"\s*:\s*"[0-9a-f]{64}"''']
