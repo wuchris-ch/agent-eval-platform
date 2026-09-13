@@ -1,0 +1,25 @@
+{
+  "schema_version": "agent-eval.verifier-preflight/v1",
+  "observed_at": "2026-09-13 UTC",
+  "producer_revision": "a8f4f3e6d1a77992602b343589265baac884cf99",
+  "model_calls": 0,
+  "controls": [
+    {
+      "control": "missing-python",
+      "image": "mcr.microsoft.com/playwright@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+      "exit_code": 1,
+      "receipt": {
+        "error_class": "SandboxError"
+      }
+    },
+    {
+      "control": "python-and-node",
+      "image": "sha256:a20af1305dec98ff505f4f7dedd35123166f47e3370f0e8a91c7e491624d6ea1",
+      "exit_code": 0,
+      "receipt": {
+        "passed": true,
+        "model_calls": 0
+      }
+    }
+  ]
+}

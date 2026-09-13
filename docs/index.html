@@ -1,94 +1,12 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Interactive architecture diagrams for the Agent Eval platform.">
-    <meta name="theme-color" content="#f8fafc">
-    <title>Agent Eval Architecture</title>
-    <link rel="stylesheet" href="viewer.css">
-  </head>
-  <body>
-    <header class="site-header">
-      <a class="brand" href="./" aria-label="Agent Eval architecture home">
-        <span class="brand-mark" aria-hidden="true">AE</span>
-        <span>
-          <strong>Agent Eval</strong>
-          <small>Architecture explorer</small>
-        </span>
-      </a>
-      <div class="header-links">
-        <a href="https://github.com/wuchris-ch/agent-eval-platform">Repository</a>
-        <a href="https://wuchris-ch.github.io/pr-review-agent/">PR reviewer</a>
-      </div>
-    </header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Inspect independent agent evaluations, compare policies, investigate failures, and replay recorded decisions."><meta name="theme-color" content="#f4f5f2"><title>Agent Eval | Evidence Explorer</title><link rel="stylesheet" href="evidence.css"><script src="evidence.mjs" type="module"></script></head>
+<body><header class="topbar"><a class="brand" href="./"><span class="mark">ae</span><span>Agent Eval <small>Evidence explorer</small></span></a><nav aria-label="Primary"><a href="architecture.html">Architecture</a><a href="https://github.com/wuchris-ch/agent-eval-platform">Source <span aria-hidden="true">↗</span></a></nav></header>
+<main><section class="hero"><div><p class="eyebrow"><span class="live-dot"></span> INDEPENDENT EVALUATION</p><h1>Every verdict.<br>With the evidence.</h1><p class="intro">Inspect what an agent produced, what the environment observed, and why the candidate passed or failed.</p></div><aside class="record-note"><span class="record-icon" aria-hidden="true">▤</span><div><strong>Recorded, replayable results</strong><p>Explore saved trials here. Fresh evaluations run through the operator service.</p><span id="published" class="tiny">Loading evidence</span></div></aside></section>
+<div class="study-bar"><label>Evidence collection<select id="collection" aria-label="Evidence collection"></select></label><div class="study-links"><a id="download" class="download" download>Download evidence <span aria-hidden="true">↓</span></a><a id="report-link">Method & results ↗</a></div></div>
+<div id="status" role="status" aria-live="polite">Loading recorded evidence…</div>
+<section aria-labelledby="collection-title"><div class="section-head"><div><p id="kind" class="eyebrow"></p><h2 id="collection-title"></h2></div><span id="revision" class="revision"></span></div><p id="description" class="description"></p><div id="metrics" class="metric-grid"></div><div id="arm-comparison" class="arm-comparison"></div><p id="inference" class="footnote"></p></section>
+<section id="policy-section" class="policy-section" hidden><div><p class="eyebrow">REPLAY A DECISION</p><h2>What does your policy require?</h2><p>Keep the behavioral checks and add a resource limit. The preview uses saved measurements and preserves every original verdict.</p></div><div class="policy-controls"><label>Resource<select id="policy-metric"><option value="none">Behavior checks only</option><option value="latency_ms">Production latency</option><option value="total_tokens">Total tokens</option><option value="cost_usd">Cost (USD)</option></select></label><label>Maximum<input id="policy-limit" type="number" min="0" step="any" value="60" disabled></label><span id="policy-unit" class="tiny"></span></div><div id="policy-preview" class="preview-grid"></div><p class="footnote">A limit requires an independently observed measurement. Missing measurements produce an inconclusive preview.</p></section>
+<section class="investigation" aria-labelledby="trials-heading"><div class="section-head"><div><p class="eyebrow">INVESTIGATE</p><h2 id="trials-heading">Look inside a result.</h2></div><span id="row-count" class="tiny"></span></div><div class="filters"><label>Outcome<select id="outcome"><option value="all">All outcomes</option><option value="fail">Rejected</option><option value="pass">Accepted</option><option value="production_failed">Production failed</option><option value="inconclusive">Inconclusive</option><option value="pending">Pending</option></select></label><label>Attempt<select id="attempt"><option value="initial">First attempts</option><option value="assisted_correction">Assisted corrections</option><option value="all">All attempts</option></select></label><label class="search-label">Find a task<input id="search" type="search" placeholder="Task or family"></label></div><div class="evidence-layout"><div class="table-wrap"><table><thead><tr><th scope="col">Task / trial</th><th scope="col">Policy</th><th scope="col">Outcome</th><th scope="col" id="latency-heading">Latency</th></tr></thead><tbody id="rows"></tbody></table><p id="empty" hidden>No trials match these filters.</p></div><aside id="detail" class="detail-panel" aria-live="polite"><p class="eyebrow">TRIAL RECEIPT</p><h3>Select a result</h3><p class="muted">See the independent checks and the identities that bind the decision.</p></aside></div></section>
 
-    <nav class="diagram-nav" aria-label="Architecture diagrams">
-      <button class="diagram-tab is-active" type="button"
-        data-diagram="platform"
-        data-src="local-review-platform.svg"
-        data-width="1440"
-        data-height="900"
-        data-title="Evaluation platform"
-        data-description="How versioned evidence, blind execution, deterministic scoring, observability, and local Kubernetes fit together.">
-        Evaluation platform
-      </button>
-      <button class="diagram-tab" type="button"
-        data-diagram="coding"
-        data-src="coding-agent-evaluation.svg"
-        data-width="1200"
-        data-height="480"
-        data-title="Coding-agent evaluation"
-        data-description="How an isolated agent task becomes independently verified evidence and an explicit outcome.">
-        Coding agents
-      </button>
-      <button class="diagram-tab" type="button"
-        data-diagram="governance"
-        data-src="governed-run.svg"
-        data-width="1200"
-        data-height="350"
-        data-title="Governed execution"
-        data-description="The admission checks that bind an approved request to its exact task snapshot, identity, image, and recipe.">
-        Governance
-      </button>
-      <button class="diagram-tab" type="button"
-        data-diagram="metrics"
-        data-src="metrics-flow.svg"
-        data-width="1200"
-        data-height="330"
-        data-title="Evidence and metrics"
-        data-description="How canonical results, queryable metrics, verification, and privacy-filtered telemetry stay consistent.">
-        Metrics
-      </button>
-    </nav>
-
-    <main class="viewer-shell">
-      <section class="diagram-heading" aria-live="polite">
-        <div>
-          <p class="eyebrow">Interactive system map</p>
-          <h1 id="diagram-title">Evaluation platform</h1>
-        </div>
-        <p id="diagram-description">How versioned evidence, blind execution, deterministic scoring, observability, and local Kubernetes fit together.</p>
-      </section>
-
-      <section class="diagram-stage" id="diagram-stage" aria-label="Interactive architecture diagram">
-        <div class="diagram-canvas" id="diagram-canvas">
-          <img id="diagram-image" src="local-review-platform.svg" width="1440" height="900" alt="Agent Eval platform architecture" draggable="false">
-        </div>
-
-        <div class="viewer-controls" role="group" aria-label="Diagram controls">
-          <button type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
-          <output id="zoom-level" aria-live="polite">100%</output>
-          <button type="button" data-action="zoom-in" aria-label="Zoom in">+</button>
-          <span class="control-divider" aria-hidden="true"></span>
-          <button class="text-control" type="button" data-action="fit">Fit</button>
-          <button class="text-control" type="button" data-action="fullscreen">Full screen</button>
-        </div>
-
-        <p class="interaction-hint">Drag to move <span>•</span> Scroll or pinch to zoom <span>•</span> Press 0 to fit</p>
-      </section>
-    </main>
-
-    <script src="viewer.js"></script>
-  </body>
-</html>
+<section class="method-strip"><div><span>01</span><h3>Reserve the trial</h3><p>Freeze task, policy, recipe, budgets, and evaluator identities before dispatch.</p></div><div><span>02</span><h3>Observe independently</h3><p>Check behavior and final state outside the candidate's own verification.</p></div><div><span>03</span><h3>Keep the denominator</h3><p>Retain failures and missing results. Report assisted corrections separately.</p></div></section>
+<footer><p>Agent Eval Platform <span>Versioned evidence. Independent decisions.</span></p><a href="https://github.com/wuchris-ch/agent-eval-platform#reproduce">Run an evaluation ↗</a></footer></main></body></html>

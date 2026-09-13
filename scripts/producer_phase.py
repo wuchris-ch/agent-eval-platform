@@ -4,6 +4,9 @@
 import argparse
 import json
 import os
+import shutil
+import tempfile
+import uuid
 from pathlib import Path
 
 from swe_platform.producer import (
@@ -13,6 +16,8 @@ from swe_platform.producer import (
     ProducerRequest,
 )
 from swe_platform.workflow import Workflow
+from swe_platform.sandbox.docker import Docker
+from swe_platform.workspace.snapshot import snapshot
 
 
 def main():
@@ -27,6 +32,7 @@ def main():
             "assessment",
             "inspect",
             "cancel",
+            "preflight",
         ],
     )
     parser.add_argument("request", type=Path)
@@ -37,6 +43,27 @@ def main():
     request = ProducerRequest.model_validate_json(args.request.read_bytes())
     if args.phase == "recipe":
         print(json.dumps(request.recipe_descriptor()))
+        return
+    if args.phase == "preflight":
+        directory = Path(tempfile.mkdtemp(prefix="producer-preflight-"))
+        base = snapshot(request.source, directory / "source")
+        docker = Docker(directory / "containers", image=request.recipe.image)
+        key = str(uuid.uuid4())
+        try:
+            result = docker.run(
+                key,
+                base["files"],
+                request.recipe.argv,
+                timeout=request.recipe.timeout,
+            )
+            if result["exit_code"] != 0 or result["reason"] is not None:
+                raise ValueError("Public verification preflight failed")
+            print(json.dumps({"passed": True, "model_calls": 0}))
+        finally:
+            if not docker.cancel(key):
+                raise RuntimeError("Preflight termination is unconfirmed")
+            docker.remove(key)
+            shutil.rmtree(directory)
         return
     if args.phase in ("inspect", "cancel"):
         print(json.dumps(getattr(Workflow(args.root), args.phase)(request.key)))

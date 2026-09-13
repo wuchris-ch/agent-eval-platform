@@ -27,6 +27,15 @@ The initial live cohort selects order idempotency, document authorization, schem
 
 At most two assisted executions are selected from the first unsuccessful independent assessments in the original schedule after all initial outcomes finish. They have a separate aggregate budget. Their success is reported separately from the initial cohort.
 
+Study preparation now runs the public verification command through the actual
+producer sandbox before reserving any trial. Its wrapper requires Python even
+when the public check invokes Node. Node tasks therefore default to the pinned
+producer image supplied by `--image`, which must contain both runtimes.
+The independent observer keeps its separately pinned suite image. The
+[recorded preflight controls](results/verifier-preflight.json) rejected the
+incompatible image and accepted the compatible runtime with zero model calls.
+This preparation change does not alter earlier tickets or assessments.
+
 Repeated runs of one task share inputs and are not independent task families. Reports retain the planned denominator, measurement coverage and provenance, paired family effects, and a seeded family bootstrap interval when complete. A four-family development study does not establish general production superiority. The promotion status remains inconclusive below ten paired families.
 
 ## Reserved families

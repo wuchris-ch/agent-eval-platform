@@ -88,14 +88,14 @@ async function openStudy(id) {
   studyReport=await api('studies/'+id);$('study-title').textContent=studyReport.name;$('study-detail').hidden=false;$('candidate-investigation').hidden=true;$('policy-results').replaceChildren();
   const summary=$('study-summary');summary.replaceChildren();
   for(const arm of ['baseline','candidate']) {
-    const c=studyReport.summary.counts[arm],card=text('article','','card');card.append(text('p',arm.toUpperCase(),'eyebrow'),text('h3',`${c.accepted} / ${c.planned} accepted`),text('p',`${c.rejected} rejected · ${c.production_failed} production failures · ${c.pending} pending`,'muted'));
+    const c=studyReport.summary.counts[arm],card=text('article','','card');card.append(text('p',arm.toUpperCase(),'eyebrow'),text('h3',`${c.accepted} / ${c.planned} accepted`),text('p',`${c.rejected} rejected · ${c.unavailable-c.production_failed-c.pending} inconclusive · ${c.production_failed} production failures · ${c.pending} pending`,'muted'));
     for(const [field,label,scale,unit] of [['latency_ms','Median production latency',1000,' s'],['total_tokens','Median tokens',1,''],['cost_usd','Total cost (USD)',1,'']]) {
       const m=c.metrics[field],value=field==='cost_usd'?m.total:m.median;
       card.append(text('p',`${label}: ${measured(value==null?null:value/scale,unit)} (${m.observed}/${m.planned} measured)`));
       if(m.provenance.length)card.append(text('small',m.provenance.join(', ').replaceAll('_',' '),'muted'));
     }summary.append(card);
   }
-  const s=studyReport.summary;$('study-inference').textContent=`${s.paired_families} paired task families; ${s.missing_pairs} unavailable pairs. Candidate effect: ${measured(s.effect==null?null:s.effect*100,' percentage points')}. 95% family bootstrap interval: ${s.interval?s.interval.map(x=>(x*100).toFixed(1)).join(' to ')+' points':'Unavailable'}. ${s.inference_scope} Assisted corrections: ${studyReport.repairs.accepted}/${studyReport.repairs.planned} accepted, reported separately.`;
+  const s=studyReport.summary;$('study-inference').textContent=`${s.paired_families} paired task families; ${s.missing_pairs} unavailable pairs. Family-weighted candidate difference on evaluable pairs: ${s.missing_pairs?'Unavailable (incomplete pairs)':measured(s.effect==null?null:s.effect*100,' percentage points')}. 95% family bootstrap interval: ${s.interval?s.interval.map(x=>(x*100).toFixed(1)).join(' to ')+' points':'Unavailable'}. ${s.inference_scope} Assisted corrections: ${studyReport.repairs.accepted}/${studyReport.repairs.planned} accepted, reported separately.`;
   renderStudyRows();
 }
 function renderStudyRows() {

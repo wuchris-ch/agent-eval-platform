@@ -65,7 +65,7 @@ def phase(root, config, name, request_path, ticket_path=None, *, timeout=60):
         "--root",
         str(root / "producer-state"),
     ]
-    if name != "recipe":
+    if name not in ("recipe", "preflight"):
         argv += ["--connection", str(root / "connection.json")]
     if ticket_path:
         argv += ["--ticket", str(ticket_path)]
@@ -158,7 +158,9 @@ def prepare(root, config):
                 "allowed_paths": ALLOWED[task],
                 "recipe": {
                     "schema_version": "verification-recipe/v1",
-                    "image": suite.image,
+                    "image": suite.image
+                    if suite.runtime == "python"
+                    else config["image"],
                     "argv": public_argv,
                     "timeout": 60,
                 },
@@ -184,6 +186,12 @@ def prepare(root, config):
             }
             path = root / "templates" / (task + "-" + arm + ".json")
             save(path, request)
+            if arm == "baseline":
+                # Exercise the actual producer wrapper before reserving any trials.
+                checked = phase(root, config, "preflight", path, timeout=90)
+                if checked != {"passed": True, "model_calls": 0}:
+                    raise ValueError("Public verification preflight did not pass")
+                save(root / "preflights" / (task + ".json"), checked)
             recipe = Recipe.model_validate(phase(root, config, "recipe", path))
             recipes[arm] = store.put(
                 project, "candidate-recipe", recipe.model_dump(mode="json")
