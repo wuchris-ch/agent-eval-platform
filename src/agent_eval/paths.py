@@ -14,6 +14,12 @@ STATE_DIR_ENV = "AGENT_EVAL_STATE_DIR"
 TASKS_DIR_ENV = "AGENT_EVAL_TASKS_DIR"
 BUNDLED_TASKS_DIR = Path(__file__).resolve().parents[2] / "tasks"
 
+# Annotated as a plain bool so the ACL helpers below stay type-checked on every
+# platform. Comparing `sys.platform` inline lets a type checker prove the macOS
+# branches dead when it analyses for Linux, which both hides real errors in
+# that code and makes the result depend on where the checker runs.
+_IS_MACOS: bool = sys.platform == "darwin"
+
 
 class UnsafeStatePathError(ValueError):
     """A state path is a symlink, special file, or outside its expected root."""
@@ -84,7 +90,7 @@ def _metadata(path: Path) -> os.stat_result | None:
 
 
 def _macos_acl_entries(path: Path) -> tuple[str, ...]:
-    if sys.platform != "darwin":
+    if not _IS_MACOS:
         return ()
     process = subprocess.run(
         ["/bin/ls", "-lde", os.fspath(path)],
@@ -112,7 +118,7 @@ def _macos_has_allow_acl(path: Path) -> bool:
 
 
 def _strip_private_acl(path: Path) -> None:
-    if sys.platform != "darwin" or not _macos_has_extended_acl(path):
+    if not _IS_MACOS or not _macos_has_extended_acl(path):
         return
     process = subprocess.run(
         ["/bin/chmod", "-N", os.fspath(path)],

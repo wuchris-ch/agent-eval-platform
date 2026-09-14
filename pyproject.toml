@@ -218,6 +218,10 @@ known-first-party = ["agent_eval"]
 [tool.mypy]
 python_version = "3.12"
 files = ["src/agent_eval"]
+# Pin the analysis platform so the gate gives the same answer on a macOS
+# workstation as it does on the Linux CI runner. Platform-specific code stays
+# checked because the branches test a plain bool rather than `sys.platform`.
+platform = "linux"
 # Third-party analysis targets (deepeval, kubernetes tooling, optional extras)
 # do not all ship type information.
 ignore_missing_imports = true
