@@ -18,6 +18,8 @@ import subprocess
 import tempfile
 import threading
 import time
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO
@@ -1538,6 +1540,142 @@ def _run(
     return proc, status
 
 
+@dataclass(frozen=True, slots=True)
+class ScannerContext:
+    """Inputs shared by every scanner in a single scan phase."""
+
+    workspace: Path
+    scans_dir: Path
+    language: str | None
+    python_targets: tuple[Path, ...] | None
+
+
+@dataclass(frozen=True, slots=True)
+class _RegisteredScanner:
+    """One scanner and the call that records its findings."""
+
+    name: str
+    run: Callable[[ScannerContext, ScanResults], None]
+
+
+# The registry is closed on purpose. Scanner identity is attested and checked
+# against `allowed_scanner_identities` in the governance bundle, so admitting
+# scanners through entry points, the way agent adapters are admitted, would let
+# an installed package change what a passing scan phase means. Adding a scanner
+# is a deliberate change here plus a policy update.
+#
+# Order is the merge order, which fixes the order of findings and of the
+# scanner_* dictionaries in the persisted record.
+_SCANNER_REGISTRY: tuple[_RegisteredScanner, ...] = (
+    _RegisteredScanner(
+        "ruff",
+        lambda context, results: _lint(
+            context.language,
+            context.workspace,
+            context.scans_dir,
+            results,
+            targets=context.python_targets,
+        ),
+    ),
+    _RegisteredScanner(
+        "semgrep",
+        lambda context, results: _semgrep(
+            context.workspace,
+            context.scans_dir,
+            results,
+            targets=context.python_targets,
+        ),
+    ),
+    _RegisteredScanner(
+        "gitleaks",
+        lambda context, results: _gitleaks(
+            context.workspace, context.scans_dir, results
+        ),
+    ),
+    _RegisteredScanner(
+        "trivy",
+        lambda context, results: _trivy(context.workspace, context.scans_dir, results),
+    ),
+)
+
+# Scalar verdicts, each owned by exactly one scanner.
+_SCANNER_RESULT_SCALARS = (
+    "lint_errors",
+    "sec_findings_high",
+    "sec_findings_medium",
+    "sec_findings_low",
+    "secrets_found",
+    "vulns",
+    "trivy_db",
+)
+# Evidence maps keyed by scanner name, so entries never collide.
+_SCANNER_RESULT_MAPS = (
+    "scanner_status",
+    "scanner_versions",
+    "scanner_configs",
+    "scanner_executable_sha256",
+)
+
+
+def _merge_scanner_results(target: ScanResults, source: ScanResults) -> None:
+    """Fold one scanner's findings into the phase result.
+
+    Scanners write disjoint scalars and disjoint keys of the shared maps, so a
+    merge in registry order reproduces the insertion order that sequential
+    execution produced.
+    """
+
+    for name in _SCANNER_RESULT_MAPS:
+        getattr(target, name).update(getattr(source, name))
+    target.findings.extend(source.findings)
+    for name in _SCANNER_RESULT_SCALARS:
+        value = getattr(source, name)
+        if value is not None:
+            setattr(target, name, value)
+
+
+def _scanner_worker_count() -> int:
+    """Resolve the scan-phase worker count, defaulting to full concurrency."""
+
+    configured = os.environ.get("AGENT_EVAL_SCANNER_WORKERS", "").strip()
+    if not configured:
+        return len(_SCANNER_REGISTRY)
+    try:
+        requested = int(configured)
+    except ValueError:
+        return len(_SCANNER_REGISTRY)
+    return max(1, min(requested, len(_SCANNER_REGISTRY)))
+
+
+def _execute_scanners(context: ScannerContext) -> list[ScanResults]:
+    """Run every registered scanner and return results in registry order.
+
+    Scanners are independent: each reads the workspace, shells out to its own
+    tool, and writes artifacts under a distinct name in `scans_dir`. Running
+    them concurrently turns the phase cost from the sum of the tools into the
+    slowest one. Each scanner fills a private result so no shared object is
+    mutated from more than one thread.
+
+    Exceptions surface in registry order, matching sequential execution.
+    """
+
+    workers = _scanner_worker_count()
+
+    def run_one(scanner: _RegisteredScanner) -> ScanResults:
+        partial = ScanResults()
+        scanner.run(context, partial)
+        return partial
+
+    if workers == 1:
+        return [run_one(scanner) for scanner in _SCANNER_REGISTRY]
+
+    with ThreadPoolExecutor(
+        max_workers=workers, thread_name_prefix="agent-eval-scan"
+    ) as pool:
+        futures = [pool.submit(run_one, scanner) for scanner in _SCANNER_REGISTRY]
+        return [future.result() for future in futures]
+
+
 def run_scanners(
     workspace: Path, run_dir: Path, language: str | None = "python"
 ) -> ScanResults:
@@ -1560,21 +1698,14 @@ def run_scanners(
         python_targets = _python_scan_targets(workspace)
     except (OSError, RuntimeError, ValueError):
         python_targets = None
-    _lint(
-        language,
-        workspace,
-        scans_dir,
-        results,
-        targets=python_targets,
+    context = ScannerContext(
+        workspace=workspace,
+        scans_dir=scans_dir,
+        language=language,
+        python_targets=python_targets,
     )
-    _semgrep(
-        workspace,
-        scans_dir,
-        results,
-        targets=python_targets,
-    )
-    _gitleaks(workspace, scans_dir, results)
-    _trivy(workspace, scans_dir, results)
+    for partial in _execute_scanners(context):
+        _merge_scanner_results(results, partial)
     uv_after = _executable_sha256(uv_executable) if uv_executable is not None else None
     results.scanner_executable_sha256["uv"] = (
         uv_before if uv_before is not None and uv_before == uv_after else None

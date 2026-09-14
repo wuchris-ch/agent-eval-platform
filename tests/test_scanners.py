@@ -1687,3 +1687,106 @@ def test_truncated_process_output_remains_explicitly_non_ok(monkeypatch, tmp_pat
 
     assert results.scanner_status["ruff"] == "truncated"
     assert results.lint_errors is None
+
+
+def _phase_payload(workspace, run_dir):
+    return json.dumps(
+        scanners.run_scanners(workspace, run_dir).model_dump(mode="json"),
+        sort_keys=False,
+    )
+
+
+def test_concurrent_scan_phase_matches_serial_execution(monkeypatch, tmp_path):
+    """Concurrency must not change the recorded evidence.
+
+    The scan phase runs registered scanners in parallel. Findings order and
+    scanner_* key order both reach the persisted record and the attestation, so
+    the parallel phase has to produce exactly what the serial phase produced.
+    """
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "app.py").write_text(
+        "import os\n\n\ndef handler(path):\n    return os.popen(path).read()\n",
+        encoding="utf-8",
+    )
+    (workspace / "config.env").write_text(
+        'token = "AKIAIOSFODNN7EXAMPLE"\n', encoding="utf-8"
+    )
+
+    # The first phase in a fresh state directory materialises the scanner
+    # runtime, so its before/after environment digests disagree and are
+    # recorded as null. Warm that up so the comparison isolates concurrency.
+    monkeypatch.setenv("AGENT_EVAL_SCANNER_WORKERS", "1")
+    _phase_payload(workspace, tmp_path / "warmup")
+
+    serial = _phase_payload(workspace, tmp_path / "serial")
+
+    monkeypatch.setenv(
+        "AGENT_EVAL_SCANNER_WORKERS", str(len(scanners._SCANNER_REGISTRY))
+    )
+    parallel = _phase_payload(workspace, tmp_path / "parallel")
+
+    assert parallel == serial
+    assert json.loads(serial)["scanner_runtime_environment_sha256"] is not None
+
+
+def test_scan_phase_surfaces_the_first_registered_scanner_failure(monkeypatch):
+    """A scanner crash must not be masked or reordered by the thread pool."""
+
+    calls = []
+
+    def failing(name):
+        def run(context, results):
+            del context, results
+            calls.append(name)
+            raise RuntimeError(f"{name} exploded")
+
+        return run
+
+    def succeeding(name):
+        def run(context, results):
+            del context
+            calls.append(name)
+            results.scanner_status[name] = "ok"
+
+        return run
+
+    monkeypatch.setattr(
+        scanners,
+        "_SCANNER_REGISTRY",
+        (
+            scanners._RegisteredScanner("first", failing("first")),
+            scanners._RegisteredScanner("second", succeeding("second")),
+        ),
+    )
+    context = scanners.ScannerContext(
+        workspace=Path("/nonexistent"),
+        scans_dir=Path("/nonexistent"),
+        language="python",
+        python_targets=None,
+    )
+
+    with pytest.raises(RuntimeError, match="first exploded"):
+        scanners._execute_scanners(context)
+
+    assert "first" in calls
+
+
+def test_scanner_worker_count_is_bounded_and_fails_soft(monkeypatch):
+    registered = len(scanners._SCANNER_REGISTRY)
+
+    monkeypatch.delenv("AGENT_EVAL_SCANNER_WORKERS", raising=False)
+    assert scanners._scanner_worker_count() == registered
+
+    for value, expected in (
+        ("1", 1),
+        ("0", 1),
+        ("-4", 1),
+        (str(registered + 99), registered),
+        ("not-a-number", registered),
+        ("  2  ", min(2, registered)),
+        ("", registered),
+    ):
+        monkeypatch.setenv("AGENT_EVAL_SCANNER_WORKERS", value)
+        assert scanners._scanner_worker_count() == expected, value
