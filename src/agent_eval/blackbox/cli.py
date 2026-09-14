@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import shlex
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -14,6 +14,12 @@ from rich.console import Console
 
 from ..limits import MAX_RESULTS_JSON_BYTES, read_stable_bounded_file
 from ..paths import atomic_write_private, ensure_private_directory, get_state_dir
+from .inspection import (
+    InspectionEvidence,
+    finish_evidence,
+    inspect_report,
+    prepare_inspection,
+)
 from .models import (
     Case,
     Metric,
@@ -25,12 +31,6 @@ from .models import (
     parse_json,
 )
 from .runner import evaluate
-from .inspection import (
-    InspectionEvidence,
-    finish_evidence,
-    inspect_report,
-    prepare_inspection,
-)
 from .scoring import DeepEvalJudge
 from .storage import load_database_observations, load_observations, save_report
 from .targets import CommandTarget, HttpTarget, ResponseDecoder
@@ -418,7 +418,7 @@ def inspect_saved(
             | {
                 "parent_run_id": report.run_id,
                 "run_id": str(uuid.uuid4()),
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
             }
         )
     except typer.Exit:

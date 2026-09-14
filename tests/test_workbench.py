@@ -38,7 +38,7 @@ from agent_eval.workbench.datasets import (
 from agent_eval.workbench.lifecycle import backup, expire, restore
 from agent_eval.workbench.models import Launch, TargetProfile
 from agent_eval.workbench.store import Conflict, Denied, Store
-from agent_eval.workbench.submissions import Submission, ingest, import_external
+from agent_eval.workbench.submissions import Submission, import_external, ingest
 
 
 @pytest.fixture
@@ -97,10 +97,9 @@ def register(store, mode="good", *, world=None):
 
 def launch(store, mode="good", world=None):
     request = register(store, mode, world=world)
-    identity = service.launch_experiment(
+    return service.launch_experiment(
         store, "local", request, actor="test", key=mode
     )
-    return identity
 
 
 def test_complete_product_workflow_and_regrade(store, tmp_path):
@@ -573,8 +572,9 @@ def test_backup_restore_hashes_retention_and_traversal(store, tmp_path, monkeypa
     ],
 )
 def test_oidc_claim_failures_are_closed(monkeypatch, change):
-    from agent_eval.workbench.auth import OIDC
     import urllib.request
+
+    from agent_eval.workbench.auth import OIDC
 
     claims = {
         "active": True,
@@ -612,8 +612,9 @@ def test_oidc_claim_failures_are_closed(monkeypatch, change):
 
 
 def test_oidc_valid_and_no_plain_http(monkeypatch):
-    from agent_eval.workbench.auth import OIDC, NoRedirect
     import urllib.request
+
+    from agent_eval.workbench.auth import OIDC, NoRedirect
 
     claims = {
         "active": True,
@@ -638,13 +639,13 @@ def test_oidc_valid_and_no_plain_http(monkeypatch):
             return Response()
 
     monkeypatch.setattr(urllib.request, "build_opener", lambda *args: Opener())
-    args = dict(
-        endpoint="https://identity.example/introspect",
-        issuer="https://identity.example",
-        audience="evaluation",
-        client_id="test-client",
-        client_secret="test-secret",
-    )
+    args = {
+        "endpoint": "https://identity.example/introspect",
+        "issuer": "https://identity.example",
+        "audience": "evaluation",
+        "client_id": "test-client",
+        "client_secret": "test-secret",
+    }
     assert OIDC(**args).authenticate("test-token") == "https://identity.example#alice"
     assert NoRedirect().redirect_request(None, None, None, None, None, None) is None
     with pytest.raises(ValueError):

@@ -163,7 +163,7 @@ class JudgeConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _valid_weights(self) -> "JudgeConfig":
+    def _valid_weights(self) -> JudgeConfig:
         if not self.weights or len(self.weights) > 32:
             raise ValueError("judge weights must contain between 1 and 32 dimensions")
         for name, weight in self.weights.items():
@@ -287,7 +287,7 @@ class EvaluationConfig(BaseModel):
     readiness: EvaluationReadiness | None = None
 
     @model_validator(mode="after")
-    def _complete_black_box_contract(self) -> "EvaluationConfig":
+    def _complete_black_box_contract(self) -> EvaluationConfig:
         command = self.submission_command
         if command is not None and (not command.strip() or "\x00" in command):
             raise ValueError(

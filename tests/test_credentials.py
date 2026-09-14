@@ -2,7 +2,7 @@ import io
 import json
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -32,7 +32,7 @@ def test_adapter_credentials_are_scoped(monkeypatch, tmp_path):
 
 
 def test_broker_material_is_short_lived_and_never_uses_shell(monkeypatch, tmp_path):
-    expires = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+    expires = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
     broker = tmp_path / "broker.py"
     broker.write_text(
         "import json\n"
@@ -53,7 +53,7 @@ def test_broker_expiry_must_cover_trial_and_long_ttl_is_not_short_lived(
     monkeypatch, tmp_path
 ):
     broker = tmp_path / "broker.py"
-    expires = (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat()
+    expires = (datetime.now(UTC) + timedelta(minutes=2)).isoformat()
     broker.write_text(
         "import json\n"
         f"print(json.dumps({{'env': {{'TOKEN': 'value'}}, 'expires_at': {expires!r}}}))\n"
@@ -63,7 +63,7 @@ def test_broker_expiry_must_cover_trial_and_long_ttl_is_not_short_lived(
     with pytest.raises(ValueError, match="trial timeout"):
         load_trial_credentials("custom", minimum_ttl_seconds=300)
 
-    far_expiry = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    far_expiry = (datetime.now(UTC) + timedelta(days=30)).isoformat()
     broker.write_text(
         "import json\n"
         f"print(json.dumps({{'env': {{'TOKEN': 'value'}}, 'expires_at': {far_expiry!r}}}))\n"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -21,7 +22,6 @@ from agent_eval.review_benchmark import (
     BenchmarkManifest,
     ExpectedFinding,
 )
-
 
 DIFF = b"""diff --git a/auth.py b/auth.py
 --- a/auth.py
@@ -287,10 +287,8 @@ def test_successful_agent_cannot_leave_a_background_descendant(tmp_path: Path) -
         time.sleep(0.75)
         assert not survived.exists()
     finally:
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
 
 
 @pytest.mark.parametrize("timeout", [float("nan"), float("inf"), float("-inf"), 0])

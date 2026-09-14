@@ -768,7 +768,7 @@ def test_scanner_preflight_binds_every_promoted_material(monkeypatch, tmp_path):
         "/tools/trivy": "d" * 64,
     }
     monkeypatch.setattr(
-        scanners, "_resolved_executable", lambda name: executables.get(name)
+        scanners, "_resolved_executable", executables.get
     )
     monkeypatch.setattr(
         scanners,
@@ -818,15 +818,15 @@ def test_prepare_scanner_runtime_hydrates_then_returns_exact_identity(
     expected_identity = object()
 
     monkeypatch.setattr(
-        scanners, "_resolved_executable", lambda name: executables.get(name)
+        scanners, "_resolved_executable", executables.get
     )
     monkeypatch.setattr(
         scanners,
         "_executable_sha256",
-        lambda executable: {
+        {
             "/tools/uv": "a" * 64,
             "/tools/trivy": "b" * 64,
-        }.get(executable),
+        }.get,
     )
     monkeypatch.setattr(scanners, "_scanner_identity_root", lambda: tmp_path)
 

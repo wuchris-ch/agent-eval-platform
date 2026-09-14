@@ -8,12 +8,13 @@ import os
 import platform
 import shutil
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pydantic
 
-from ..blackbox import models as blackbox_models, runner, scoring, targets
+from ..blackbox import models as blackbox_models
+from ..blackbox import runner, scoring, targets
 from ..blackbox.models import Suite, digest, json_bytes
 from ..blackbox.targets import CommandTarget, ResponseDecoder
 from ..limits import MAX_RESULTS_JSON_BYTES, read_stable_bounded_file
@@ -23,13 +24,17 @@ from .models import CommandSpec, FileIdentity, Plan
 
 def evaluator_identity() -> str:
     # Bind the actual deterministic grading implementation, including the caller.
-    from . import executor, models
     from ..environments import world
     from ..workbench import (
-        service as workbench_service,
         analysis,
+    )
+    from ..workbench import (
         models as workbench_models,
     )
+    from ..workbench import (
+        service as workbench_service,
+    )
+    from . import executor, models
 
     return digest(
         {
@@ -108,7 +113,7 @@ def create_experiment(
     key = os.urandom(32)
     plan = Plan(
         experiment_id=str(uuid.uuid4()),
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         agent=agent,
         suite=suite.model_copy(deep=True),
         suite_sha256=digest(suite.model_dump(mode="json")),

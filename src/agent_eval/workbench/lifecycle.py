@@ -9,7 +9,7 @@ from contextlib import ExitStack
 from pathlib import Path, PurePosixPath
 
 from ..blackbox.models import json_bytes, parse_json
-from ..experiments.journal import Journal, directory, JournalError
+from ..experiments.journal import Journal, JournalError, directory
 from ..paths import (
     atomic_write_private,
     ensure_private_directory,

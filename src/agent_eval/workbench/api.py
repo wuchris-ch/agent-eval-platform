@@ -203,9 +203,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(500, {"error": "operation failed; private details omitted"})
 
     def route(self, store, subject, project, path, query, data, mutation):
-        from ..candidates import authority
+        from ..candidates import authority, studies
         from ..candidates import contracts as candidate_contracts
-        from ..candidates import studies
 
         if not mutation:
             if path == ["authority"]:

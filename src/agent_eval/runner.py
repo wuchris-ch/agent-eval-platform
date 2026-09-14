@@ -21,21 +21,22 @@ import time
 import uuid
 from contextlib import suppress
 from dataclasses import dataclass
-from importlib.metadata import PackageNotFoundError, version as package_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 from pydantic import BaseModel
 from rich.console import Console
 
 from . import cluster as cluster_mod
-from .audit import AuditChain
+from .assessments import Assessment, derive_assessments, expected_assessment_id
 from .attestation import (
     capture_git_state,
     create_attestation,
     hash_tree,
     sha256_file,
 )
-from .assessments import Assessment, derive_assessments, expected_assessment_id
+from .audit import AuditChain
 from .cluster import build_and_import_image, build_image_with_metadata
 from .credentials import (
     CredentialRedactionError,
@@ -43,21 +44,6 @@ from .credentials import (
     load_trial_credentials,
 )
 from .evaluators.tests import TestResults, parse_coverage_artifact, parse_junit
-from .kube import (
-    CommandOutputLimitError,
-    KubeError,
-    MAX_SNAPSHOT_BYTES,
-    MAX_SNAPSHOT_MEMBERS,
-    Pod,
-    UnsafeArchiveError,
-    containerd_image_manifest_identity,
-    create_black_box_link,
-    create_egress_proxy,
-    create_sandbox_pod,
-    create_trial_secret,
-    ensure_namespace,
-    runtime_class_name,
-)
 from .governance import (
     EvaluationRequest,
     GovernanceBundle,
@@ -67,6 +53,21 @@ from .governance import (
     sha256_json,
     validate_execution_continuity,
     write_canonical_json,
+)
+from .kube import (
+    MAX_SNAPSHOT_BYTES,
+    MAX_SNAPSHOT_MEMBERS,
+    CommandOutputLimitError,
+    KubeError,
+    Pod,
+    UnsafeArchiveError,
+    containerd_image_manifest_identity,
+    create_black_box_link,
+    create_egress_proxy,
+    create_sandbox_pod,
+    create_trial_secret,
+    ensure_namespace,
+    runtime_class_name,
 )
 from .metrics import DiffStats, RunRecord, now_iso, prepare_run_dir, save_run
 from .observability import export_run_assessments
@@ -1354,10 +1355,8 @@ def _complete_record(
         # normalized record above. The immediately preceding redaction pass is
         # therefore the final boundary before this corrective save.
         save_run(record)
-    try:
+    with suppress(Exception):
         export_run_assessments(record)
-    except Exception:
-        pass
     return record
 
 
@@ -1903,7 +1902,7 @@ def _workspace_safety_error(workspace: Path) -> str | None:
                 return f"workspace path {relative} is unreadable: {type(exc).__name__}"
             if stat.S_ISLNK(metadata.st_mode):
                 return f"workspace symlink {relative} is not allowed"
-            elif stat.S_ISDIR(metadata.st_mode):
+            if stat.S_ISDIR(metadata.st_mode):
                 if error := visit(Path(entry.path)):
                     return error
             elif not stat.S_ISREG(metadata.st_mode):
@@ -3066,11 +3065,10 @@ def _run_agent_trial_impl(
             decision=execution_decision,
         )
         task = _governed_task(task, execution_decision)
+    elif rebuild:
+        ensure_image(task, rebuild=True)
     else:
-        if rebuild:
-            ensure_image(task, rebuild=True)
-        else:
-            ensure_image(task)
+        ensure_image(task)
 
     record = RunRecord(
         run_id=new_run_id(task, adapter.name),
@@ -3452,12 +3450,10 @@ def _run_agent_trial_impl(
                 else:
                     record.efficiency.infra_error = proxy_log_error
         cleanup_errors = []
-        if pod:
-            if error := _delete_with_retries(pod, "agent pod"):
-                cleanup_errors.append(error)
-        if proxy:
-            if error := _delete_with_retries(proxy, "egress proxy"):
-                cleanup_errors.append(error)
+        if pod and (error := _delete_with_retries(pod, "agent pod")):
+            cleanup_errors.append(error)
+        if proxy and (error := _delete_with_retries(proxy, "egress proxy")):
+            cleanup_errors.append(error)
         if secret:
             if error := _delete_with_retries(secret, "credential Secret"):
                 cleanup_errors.append(error)

@@ -8,7 +8,8 @@ import math
 import re
 import statistics
 from collections import Counter, defaultdict
-from typing import Callable, Literal
+from collections.abc import Callable
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -216,7 +217,7 @@ def _cohort(record: RunRecord) -> EvaluationCohort:
     missing.extend(name for name, value in git_values.items() if value is None)
     missing = sorted(set(missing))
     if missing:
-        identity = f"legacy-unbound\0{record.run_id}".encode("utf-8")
+        identity = f"legacy-unbound\0{record.run_id}".encode()
         binding: Literal["bound", "legacy-unbound"] = "legacy-unbound"
     else:
         identity = json.dumps(

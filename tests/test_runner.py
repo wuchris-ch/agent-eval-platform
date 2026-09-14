@@ -8,10 +8,10 @@ import pytest
 
 from agent_eval import metrics, runner
 from agent_eval.attestation import CLEAN_WORKTREE_SHA256
+from agent_eval.credentials import CredentialMaterial, CredentialRedactor
 from agent_eval.evaluators.tests import TestResults as EvalTestResults
 from agent_eval.kube import KubeError, UnsafeArchiveError
 from agent_eval.metrics import AgentMetrics
-from agent_eval.credentials import CredentialMaterial, CredentialRedactor
 from agent_eval.task import EvaluationConfig, SandboxResources, load_task
 
 IMAGE_DIGEST = "sha256:" + "a" * 64
@@ -165,7 +165,6 @@ class _BlackBoxPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def image_digest(self):
         return IMAGE_DIGEST
@@ -252,7 +251,6 @@ class _SnapshotAgentPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def image_digest(self):
         return IMAGE_DIGEST
@@ -310,7 +308,6 @@ class _CredentialExfilPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def image_digest(self):
         return IMAGE_DIGEST
@@ -1196,7 +1193,7 @@ def test_eval_rejects_submitted_pytest_shadow_before_starting_pod(
 
     assert not result.resolved
     assert result.command_exit_code == 126
-    assert "evaluator-control path changed: pytest.py" == result.integrity_error
+    assert result.integrity_error == "evaluator-control path changed: pytest.py"
 
 
 def test_isolated_evaluate_workspace_does_not_apply_cooperative_pytest_controls(

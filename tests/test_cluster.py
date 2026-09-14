@@ -54,7 +54,7 @@ def test_cluster_up_starts_an_existing_stopped_cluster(monkeypatch):
     commands = []
     namespace_calls = []
     monkeypatch.setattr(cluster, "_cluster_record", lambda: stopped)
-    monkeypatch.setattr(cluster, "_run", lambda command: commands.append(command))
+    monkeypatch.setattr(cluster, "_run", commands.append)
     monkeypatch.setattr(
         cluster, "ensure_namespace", lambda: namespace_calls.append(True)
     )
@@ -68,7 +68,7 @@ def test_cluster_up_starts_an_existing_stopped_cluster(monkeypatch):
 def test_cluster_up_creates_with_digest_pinned_k3s_image(monkeypatch):
     commands = []
     monkeypatch.setattr(cluster, "_cluster_record", lambda: None)
-    monkeypatch.setattr(cluster, "_run", lambda command: commands.append(command))
+    monkeypatch.setattr(cluster, "_run", commands.append)
     monkeypatch.setattr(cluster, "ensure_namespace", lambda: None)
 
     cluster.cluster_up()

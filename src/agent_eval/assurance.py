@@ -59,7 +59,7 @@ class ChallengeCheck(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _required_parameters(self) -> "ChallengeCheck":
+    def _required_parameters(self) -> ChallengeCheck:
         if self.type == "path_absent" and self.path is None:
             raise ValueError("path_absent requires path")
         if self.type in ("content_absent", "transcript_absent") and self.pattern is None:

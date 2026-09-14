@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import math
 import os
 import tempfile
@@ -17,10 +17,9 @@ from rich.table import Table
 
 from . import cluster as cluster_mod
 from .blackbox.cli import app as blackbox_app
-from .experiments.cli import app as experiments_app
-from .workbench.cli import app as workbench_app
-from .distributed.cli import app as distributed_app
 from .candidates.cli import app as candidates_app
+from .distributed.cli import app as distributed_app
+from .experiments.cli import app as experiments_app
 from .report import (
     markdown_report,
     print_run_detail,
@@ -29,6 +28,7 @@ from .report import (
 )
 from .runner import evaluate_workspace, validate_task
 from .task import list_tasks, load_task
+from .workbench.cli import app as workbench_app
 
 app = typer.Typer(
     help="Evaluation-only harness for agents through black-box CLI/HTTP interfaces, "
@@ -1452,8 +1452,8 @@ def verify_run(
     run_id: str = typer.Option(..., "--run"),
 ) -> None:
     """Recompute attestation, audit, and governance evidence for one run."""
-    from .attestation import verify_attestation
     from .assessments import derive_assessments
+    from .attestation import verify_attestation
     from .audit import verify_audit_chain
     from .governance import (
         EvaluationRequest,
@@ -1778,10 +1778,10 @@ def verify_run(
                         "governance request and decision do not match results.json"
                     )
                 from .runner import (
-                    _governed_task,
                     _governance_judge_evidence,
                     _governance_network_evidence,
                     _governance_task_evidence,
+                    _governed_task,
                 )
 
                 domains, proxy_image = _governance_network_evidence(

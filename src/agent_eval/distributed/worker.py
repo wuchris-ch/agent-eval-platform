@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import threading
 import time
+from pathlib import Path
 
 from ..blackbox.models import digest
 from ..blackbox.targets import TargetCancelled, TargetError
-from ..experiments.models import CommandSpec
-from ..experiments.service import make_target, file_identity
-from ..experiments.models import FileIdentity
-from pathlib import Path
+from ..experiments.models import CommandSpec, FileIdentity
+from ..experiments.service import file_identity, make_target
 from .postgres import LeaseLost
 
 
@@ -50,14 +49,14 @@ def work_once(queue, tenant, worker, *, lease_seconds=30, kube_context=None):
             if labels["agent-eval/execution"] != identity:
                 raise ValueError("Job is not bound to the queue execution ID")
             container = template["spec"]["template"]["spec"]["containers"][0]
-            parameters = dict(
-                execution_id=identity,
-                image=container["image"],
-                command=container["command"],
-                cpu=container["resources"]["limits"]["cpu"],
-                memory=container["resources"]["limits"]["memory"],
-                seconds=template["spec"]["activeDeadlineSeconds"],
-            )
+            parameters = {
+                "execution_id": identity,
+                "image": container["image"],
+                "command": container["command"],
+                "cpu": container["resources"]["limits"]["cpu"],
+                "memory": container["resources"]["limits"]["memory"],
+                "seconds": template["spec"]["activeDeadlineSeconds"],
+            }
             if template != job(**parameters, epoch=int(labels["agent-eval/epoch"])):
                 raise ValueError(
                     "Kubernetes queue accepts only the guarded execution profile"

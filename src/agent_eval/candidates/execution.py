@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -180,10 +181,8 @@ def evaluate(store, project, execution):
         store.get(project, "candidate-policy", contract.policy_sha256)
     )
     usage = submission.usage
-    try:
+    with contextlib.suppress(KeyError):
         usage = Usage.model_validate(store.get(project, "candidate-usage", execution))
-    except KeyError:
-        pass
     verdict, reasons = policy_decision(
         checks, policy, usage, completed=submission.producer_status == "completed"
     )

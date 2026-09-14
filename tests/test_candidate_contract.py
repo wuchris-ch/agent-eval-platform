@@ -320,6 +320,7 @@ def test_live_independent_final_state(tmp_path, monkeypatch, good):
 def test_http_roles_project_scope_and_versioned_ticket(tmp_path, monkeypatch):
     import http.client
     import threading
+
     from agent_eval.workbench.api import WorkbenchServer
 
     store, ticket, contract, submission, _ = prepare(tmp_path, monkeypatch)

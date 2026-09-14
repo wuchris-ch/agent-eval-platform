@@ -235,12 +235,12 @@ def build_record(
         "| Case | Kind | " + " | ".join(f"Trial {index}" for index in range(1, rounds + 1)) + " |",
         "|---|---|" + "---|" * rounds,
     ]
-    for case_id in kind_by_id:
+    for case_id, case_kind in kind_by_id.items():
         case_results = by_case.get(case_id, [])
         cells = [_cell(item) for item in case_results]
         cells.extend(["missing"] * (rounds - len(cells)))
         lines.append(
-            f"| `{case_id}` | {kind_by_id[case_id]} | " + " | ".join(cells) + " |"
+            f"| `{case_id}` | {case_kind} | " + " | ".join(cells) + " |"
         )
     lines.extend(
         [

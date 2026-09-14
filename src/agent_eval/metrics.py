@@ -9,17 +9,18 @@ import re
 import sqlite3
 import stat
 import tempfile
-from contextlib import closing
-from datetime import datetime, timezone
+from collections.abc import Mapping
+from contextlib import closing, suppress
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal, Mapping
+from typing import Literal
 from urllib.parse import quote
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .assurance import AssuranceResult
 from .assessments import Assessment, expected_assessment_id
+from .assurance import AssuranceResult
 from .evaluators.tests import TestResults
 from .governance import GovernanceEvidence, LegacyGovernanceEvidenceV1
 from .limits import MAX_RESULTS_JSON_BYTES
@@ -329,7 +330,7 @@ class RunRecord(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _assessment_integrity(self) -> "RunRecord":
+    def _assessment_integrity(self) -> RunRecord:
         assessment_ids: set[str] = set()
         assessment_names: set[str] = set()
         for assessment in self.assessments:
@@ -351,7 +352,7 @@ class RunRecord(BaseModel):
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 _RUNS_SCHEMA = """
@@ -839,7 +840,11 @@ def _state_database_exists() -> bool:
             if stat.S_ISDIR(metadata.st_mode) and not stat.S_ISLNK(metadata.st_mode):
                 secure_run_tree(root / "admissions")
                 return False
-        raise ValueError("state directory has content but no metrics.db")
+        # The missing database is the condition being reported, not an
+        # unexpected failure, so the lookup error is not chained.
+        raise ValueError(
+            "state directory has content but no metrics.db"
+        ) from None
     if stat.S_ISLNK(database_metadata.st_mode):
         raise UnsafeStatePathError(f"state file must not be a symlink: {database}")
     if not stat.S_ISREG(database_metadata.st_mode):
@@ -1001,8 +1006,7 @@ def _write_record_rows(
            files_changed, judge_score, experiment_id, outcome_status,
            image_digest, results_json
            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        tuple(projection[column] for column in _RUN_PROJECTION_COLUMNS)
-        + (results_json,),
+        (*tuple(projection[column] for column in _RUN_PROJECTION_COLUMNS), results_json),
     )
     conn.execute("DELETE FROM assessments WHERE run_id = ?", (record.run_id,))
     for assessment in record.assessments:
@@ -1134,10 +1138,8 @@ def save_run(record: RunRecord) -> None:
                 os.replace(backup, results)
                 backup = None
             elif published:
-                try:
+                with suppress(FileNotFoundError):
                     results.unlink()
-                except FileNotFoundError:
-                    pass
             _fsync_directory(record.run_dir)
         raise
     finally:
@@ -1146,10 +1148,8 @@ def save_run(record: RunRecord) -> None:
         cleanup = (staged, backup) if committed else (staged,)
         for temporary in cleanup:
             if temporary is not None:
-                try:
+                with suppress(FileNotFoundError):
                     temporary.unlink()
-                except FileNotFoundError:
-                    pass
     _secure_sqlite_files(create_database=False)
 
 

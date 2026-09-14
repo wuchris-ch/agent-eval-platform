@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import re
@@ -231,7 +232,7 @@ class CorpusCase(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _case_paths_and_polarity_are_bound(self) -> "CorpusCase":
+    def _case_paths_and_polarity_are_bound(self) -> CorpusCase:
         prefix = ("cases", self.id)
         if PurePosixPath(self.diff).parts[:2] != prefix:
             raise ValueError(
@@ -291,7 +292,7 @@ class CorpusManifest(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _unique_cases(self) -> "CorpusManifest":
+    def _unique_cases(self) -> CorpusManifest:
         ids = [case.id for case in self.cases]
         if len(ids) != len(set(ids)):
             raise ValueError("corpus contains duplicate case ids")
@@ -397,10 +398,8 @@ def _terminate_reproducer(process: subprocess.Popen[bytes]) -> None:
         os.killpg(process.pid, signal.SIGKILL)
     except OSError:
         if process.poll() is None:
-            try:
+            with contextlib.suppress(OSError):
                 process.kill()
-            except OSError:
-                pass
     process.wait()
 
 
@@ -432,7 +431,7 @@ def _run_reproducer_command(
     assert process.stdout is not None
     assert process.stderr is not None
     streams = {"stdout": process.stdout, "stderr": process.stderr}
-    totals = {name: 0 for name in streams}
+    totals = dict.fromkeys(streams, 0)
     tails = {name: bytearray() for name in streams}
     selector = selectors.DefaultSelector()
     for name, stream in streams.items():

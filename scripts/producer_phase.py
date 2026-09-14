@@ -15,8 +15,8 @@ from swe_platform.producer import (
     Producer,
     ProducerRequest,
 )
-from swe_platform.workflow import Workflow
 from swe_platform.sandbox.docker import Docker
+from swe_platform.workflow import Workflow
 from swe_platform.workspace.snapshot import snapshot
 
 

@@ -11,6 +11,7 @@ import yaml
 from typer.testing import CliRunner
 
 from agent_eval import agents, cli, metrics, runner
+from agent_eval.assessments import derive_assessments
 from agent_eval.attestation import canonical_statement_bytes, capture_git_state
 from agent_eval.audit import (
     GENESIS_HASH,
@@ -18,7 +19,6 @@ from agent_eval.audit import (
     canonical_audit_json_bytes,
     verify_audit_chain,
 )
-from agent_eval.assessments import derive_assessments
 from agent_eval.evaluators import scanners
 from agent_eval.evaluators.tests import TestResults as EvalTestResults
 from agent_eval.governance import (
@@ -30,6 +30,7 @@ from agent_eval.governance import (
     sha256_json,
     write_canonical_json,
 )
+from agent_eval.kube import KubeError
 from agent_eval.metrics import (
     AgentMetrics,
     DiffStats,
@@ -37,10 +38,8 @@ from agent_eval.metrics import (
     ScanResults,
     TrivyDatabaseIdentity,
 )
-from agent_eval.kube import KubeError
 from agent_eval.outcome import RunOutcome
 from agent_eval.task import EvaluationConfig, load_task
-
 
 IMAGE_DIGEST = "sha256:" + "a" * 64
 IMAGE_REF = "agent-eval/example-todo-api:governed-" + "a" * 64
@@ -1022,7 +1021,6 @@ class _SuccessfulAgentPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def delete(self):
         self.deleted = True
@@ -1113,7 +1111,6 @@ def test_governed_run_writes_ordered_privacy_safe_audit_and_applies_budget(
         assert audit_path.is_file()
         events = [json.loads(line) for line in audit_path.read_text().splitlines()]
         audit_at_credential_access.extend(event["event_type"] for event in events)
-        return None
 
     monkeypatch.setattr(runner, "load_trial_credentials", fake_credentials)
     monkeypatch.setattr(runner, "_docker_platform", lambda: IMAGE_PLATFORM)

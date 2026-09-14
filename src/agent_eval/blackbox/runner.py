@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from statistics import median
 
 from .models import (
@@ -141,7 +141,7 @@ def evaluate(
     ]
     return Report(
         run_id=str(uuid.uuid4()),
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         suite_id=suite.id,
         suite_version=suite.version,
         suite_sha256=digest(suite.model_dump(mode="json")),

@@ -173,6 +173,7 @@ def execute_job(manifest, *, context, cancelled=lambda: False):
     """
     import subprocess
     import time
+
     from ..blackbox.models import json_bytes, parse_json
     from ..blackbox.targets import TargetCancelled
     from ..limits import MAX_RESULTS_JSON_BYTES
@@ -299,6 +300,7 @@ def execute_job(manifest, *, context, cancelled=lambda: False):
 def cleanup_job(*, context, name, uid):
     """Delete only the owned Job after its receipt has been durably stored."""
     import subprocess
+
     from ..blackbox.models import json_bytes
 
     if (

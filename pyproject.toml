@@ -52,7 +52,9 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.18",
     "pytest>=9.1.1",
+    "pytest-xdist>=3.8",
     "ruff>=0.15.21",
 ]
 security = [
@@ -61,3 +63,207 @@ security = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# `--strict-markers` and `--strict-config` turn silent typos into failures.
+addopts = "--strict-markers --strict-config"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests"]
+# Evaluation fixtures are graded inputs, not project source. The reviewer and
+# software corpora contain deliberately planted defects (dead guard clauses,
+# path traversal, missing authorization) that the platform exists to detect, so
+# linting them would be both noisy and wrong.
+extend-exclude = [
+    "benchmarks/reviewer-corpus",
+    "benchmarks/software-corpus",
+    "dist",
+    "examples",
+    "runs",
+    "tasks",
+]
+
+[tool.ruff.lint]
+select = [
+    "A",    # flake8-builtins
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "C90",  # mccabe complexity
+    "DTZ",  # flake8-datetimez
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "G",    # flake8-logging-format
+    "I",    # isort
+    "ISC",  # implicit string concatenation
+    "LOG",  # flake8-logging
+    "N",    # pep8-naming
+    "PIE",  # flake8-pie
+    "PL",   # pylint
+    "RET",  # flake8-return
+    "RUF",  # ruff-specific
+    "SIM",  # flake8-simplify
+    "T20",  # flake8-print
+    "UP",   # pyupgrade
+    "W",    # pycodestyle warnings
+]
+ignore = [
+    # Line length is owned by the formatter; long literals (digests, shell
+    # snippets, manifest fragments) are not worth wrapping by hand.
+    "E501",
+    # The CLI imports heavy optional subsystems lazily so `--help` stays fast.
+    "PLC0415",
+    # Typer's `typer.Option(...)` default idiom.
+    "B008",
+    # Comparisons against protocol constants, exit codes, and byte limits read
+    # better inline than as one-use module constants.
+    "PLR2004",
+    # Scanner and sandbox call sites inspect `returncode` deliberately so that
+    # tool failure is recorded as evidence instead of raising.
+    "PLW1510",
+    # Domain exception names (`LeaseLost`, `AdmissionDelayed`, `Conflict`,
+    # `Denied`) read as states rather than errors; renaming them would break the
+    # public API for no behavioural gain.
+    "N818",
+    # `input` and `license` are the wire names of a pod-exec payload and a CLI
+    # option; renaming them would change the documented interface.
+    "A002",
+    # Adapter descriptors (`name`, `env`) are read-only class data required by
+    # the `AgentAdapter` protocol, which types them as instance attributes.
+    "RUF012",
+    # Sandbox and archive streaming deliberately owns file handles beyond a
+    # single `with` block so that readers can be multiplexed with `selectors`.
+    "SIM115",
+    # The OpenTelemetry runtime is an intentional process-wide singleton.
+    "PLW0603",
+    # Narrowing a loop variable in place (`line = line.strip()`) is clearer than
+    # inventing a second name for the same value.
+    "PLW2901",
+    # Nested `if`/`with` blocks are frequently split so that each condition can
+    # carry its own explanatory comment.
+    "SIM102",
+    "SIM117",
+]
+
+# Complexity budget. These limits are deliberately generous: they are set just
+# below the current worst offenders so that new code cannot add god functions,
+# while existing debt stays visible in `per-file-ignores` below instead of
+# being silently waived project-wide.
+[tool.ruff.lint.mccabe]
+max-complexity = 18
+
+[tool.ruff.lint.pylint]
+max-args = 8
+max-branches = 18
+max-returns = 10
+max-statements = 70
+
+[tool.ruff.lint.per-file-ignores]
+# --- Complexity debt ratchet -------------------------------------------------
+# Every entry is a module that predates the budget above. Delete an entry once
+# its functions are decomposed; never add one for new code.
+"src/agent_eval/assessments.py" = ["C901", "PLR0912", "PLR0913", "PLR0915"]
+"src/agent_eval/assurance.py" = ["C901", "PLR0912", "PLR0915"]
+"src/agent_eval/attestation.py" = ["PLR0912", "PLR0913", "C901"]
+"src/agent_eval/audit.py" = ["C901", "PLR0911", "PLR0912", "PLR0915"]
+"src/agent_eval/blackbox/cli.py" = ["PLR0913", "PLR0915"]
+"src/agent_eval/candidates/boundary.py" = ["C901"]
+"src/agent_eval/cli.py" = ["PLR0912", "PLR0913", "PLR0915", "C901"]
+"src/agent_eval/corpus.py" = ["PLR0912", "C901"]
+"src/agent_eval/distributed/worker.py" = ["C901", "PLR0913"]
+"src/agent_eval/evaluators/scanners.py" = [
+    "C901",
+    "PLR0911",
+    "PLR0912",
+    "PLR0915",
+]
+"src/agent_eval/evaluators/tests.py" = ["PLR0912", "PLR0915", "C901"]
+"src/agent_eval/experiments/cli.py" = ["PLR0913"]
+"src/agent_eval/experiments/executor.py" = ["C901", "PLR0912", "PLR0913"]
+"src/agent_eval/external_review_eval.py" = ["PLR0911", "PLR0913", "PLR0915"]
+"src/agent_eval/governance.py" = ["PLR0912", "PLR0913", "PLR0915", "C901"]
+"src/agent_eval/kube.py" = ["C901", "PLR0911", "PLR0912", "PLR0913"]
+"src/agent_eval/metrics.py" = ["PLR0912"]
+"src/agent_eval/runner.py" = ["PLR0912", "PLR0913", "PLR0915", "C901"]
+"src/agent_eval/workbench/api.py" = ["PLR0911", "PLR0912", "PLR0915", "C901"]
+# --- Test suite --------------------------------------------------------------
+# Tests legitimately reach into private helpers, build long arrange blocks, and
+# use throwaway lambda signatures to stand in for collaborators.
+"tests/**" = [
+    "C901",
+    "N802",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PLR2004",
+    # Audit tests deliberately embed homoglyphs and control characters to prove
+    # that canonicalisation and redaction handle them.
+    "RUF001",
+    "RUF043",
+    "RUF059",
+    "T20",
+    "UP031",
+]
+"scripts/**" = ["C901", "PLR0912", "PLR0915", "T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agent_eval"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/agent_eval"]
+# Third-party analysis targets (deepeval, kubernetes tooling, optional extras)
+# do not all ship type information.
+ignore_missing_imports = true
+disallow_any_generics = true
+no_implicit_reexport = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_unused_ignores = true
+warn_unused_configs = true
+
+# --- Type debt ratchet -------------------------------------------------------
+# 47 of 84 modules already pass the settings above. The modules below do not
+# yet, so they are excluded from enforcement rather than weakening the gate for
+# the whole package. Remove a module from this list once it type-checks; CI
+# fails if a module that is *not* listed regresses.
+[[tool.mypy.overrides]]
+module = [
+    "agent_eval.agent_comparison",
+    "agent_eval.agents.registry",
+    "agent_eval.assessments",
+    "agent_eval.assurance",
+    "agent_eval.attestation",
+    "agent_eval.audit",
+    "agent_eval.blackbox.cli",
+    "agent_eval.blackbox.inspection",
+    "agent_eval.blackbox.runner",
+    "agent_eval.blackbox.scoring",
+    "agent_eval.blackbox.source_evidence",
+    "agent_eval.blackbox.storage",
+    "agent_eval.blackbox.targets",
+    "agent_eval.blackbox.telemetry",
+    "agent_eval.blackbox.trace_evidence",
+    "agent_eval.candidates.authority",
+    "agent_eval.candidates.cli",
+    "agent_eval.candidates.studies",
+    "agent_eval.cli",
+    "agent_eval.cluster",
+    "agent_eval.corpus",
+    "agent_eval.environments.world",
+    "agent_eval.evaluators.judge",
+    "agent_eval.evaluators.scanners",
+    "agent_eval.experiments.cli",
+    "agent_eval.experiments.service",
+    "agent_eval.external_review_eval",
+    "agent_eval.governance",
+    "agent_eval.kube",
+    "agent_eval.metrics",
+    "agent_eval.observability",
+    "agent_eval.review_benchmark",
+    "agent_eval.review_experiment",
+    "agent_eval.runner",
+    "agent_eval.workbench.cli",
+    "agent_eval.workbench.datasets",
+    "agent_eval.workbench.lifecycle",
+]
+ignore_errors = true

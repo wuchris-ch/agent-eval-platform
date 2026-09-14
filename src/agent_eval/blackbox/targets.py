@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import http.client
 import math
 import os
@@ -99,10 +100,8 @@ class ResponseDecoder:
 
 
 def _stop(process: subprocess.Popen) -> None:
-    try:
+    with contextlib.suppress(ProcessLookupError):
         os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
     process.wait()
 
 
@@ -287,10 +286,8 @@ class HttpTarget:
             expired.set()
             active = sock or connection.sock
             if active is not None:
-                try:
+                with contextlib.suppress(OSError):
                     active.shutdown(socket.SHUT_RDWR)
-                except OSError:
-                    pass
 
         # Socket timeouts alone reset on each incoming byte. A watchdog also
         # bounds servers that continually drip response headers or body bytes.

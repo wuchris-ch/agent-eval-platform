@@ -6,14 +6,15 @@ the run. Scanner artifacts are kept under the configured state root at
 from __future__ import annotations
 
 import ast
+import contextlib
 import hashlib
 import json
 import os
 import re
-import signal
 import shutil
-import subprocess
+import signal
 import stat
+import subprocess
 import tempfile
 import threading
 import time
@@ -698,20 +699,16 @@ class _BoundedBuffer:
         except OSError:
             self.error = True
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 stream.close()
-            except OSError:
-                pass
 
 
 def _terminate_process_group(proc: subprocess.Popen[bytes]) -> None:
     try:
         os.killpg(proc.pid, signal.SIGTERM)
     except (OSError, ProcessLookupError):
-        try:
+        with contextlib.suppress(OSError, ProcessLookupError):
             proc.terminate()
-        except (OSError, ProcessLookupError):
-            pass
     try:
         proc.wait(timeout=_TERMINATION_GRACE_SECONDS)
         return
@@ -720,14 +717,10 @@ def _terminate_process_group(proc: subprocess.Popen[bytes]) -> None:
     try:
         os.killpg(proc.pid, signal.SIGKILL)
     except (OSError, ProcessLookupError):
-        try:
+        with contextlib.suppress(OSError, ProcessLookupError):
             proc.kill()
-        except (OSError, ProcessLookupError):
-            pass
-    try:
+    with contextlib.suppress(subprocess.TimeoutExpired):
         proc.wait(timeout=_TERMINATION_GRACE_SECONDS)
-    except subprocess.TimeoutExpired:
-        pass
 
 
 def _execute_bounded(
@@ -779,10 +772,8 @@ def _execute_bounded(
     if any(thread.is_alive() for thread in threads):
         _terminate_process_group(proc)
         for stream in (proc.stdout, proc.stderr):
-            try:
+            with contextlib.suppress(OSError):
                 stream.close()
-            except OSError:
-                pass
         for thread in threads:
             thread.join(timeout=_STREAM_JOIN_SECONDS)
     if timed_out:
@@ -1241,8 +1232,13 @@ def _redacted_gitleaks_identities_bounded(
                 "|".join(re.escape(segment) for segment in selected_segments)
             )
 
-            def redact(match: re.Match[str]) -> str:
-                redacted_segments.add(match.group(0))
+            # Bind the per-file accumulator at definition time so the closure
+            # can never observe a later loop iteration's set.
+            def redact(
+                match: re.Match[str],
+                sink: set[str] = redacted_segments,
+            ) -> str:
+                sink.add(match.group(0))
                 return _REDACTED_SECRET
 
             redacted_lines = [pattern.sub(redact, line) for line in source_lines]

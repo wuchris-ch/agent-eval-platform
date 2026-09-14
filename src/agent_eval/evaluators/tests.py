@@ -8,13 +8,13 @@ import math
 import os
 import stat
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import BinaryIO, Iterator, Literal
+from typing import BinaryIO, Literal
 
 from pydantic import BaseModel, Field
-
 
 MAX_JUNIT_BYTES = 16 * 1024 * 1024
 MAX_COVERAGE_BYTES = 16 * 1024 * 1024

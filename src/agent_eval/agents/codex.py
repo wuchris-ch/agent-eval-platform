@@ -4,10 +4,9 @@ runner's unique per-trial Kubernetes Secret."""
 
 from __future__ import annotations
 
+import json
 import shlex
 from pathlib import Path
-
-import json
 
 from ..kube import CREDENTIAL_MOUNT, Pod
 from ..metrics import AgentMetrics

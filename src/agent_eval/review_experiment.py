@@ -53,11 +53,11 @@ from .review_benchmark import (
     CaseResult,
     PredictedFinding,
     _DuplicateJsonKeyError,
-    _UniqueKeySafeLoader,
     _normalize_file,
     _predictions_from_raw,
     _reject_json_constant,
     _unique_json_object,
+    _UniqueKeySafeLoader,
     parse_manifest_bytes,
     score_benchmark,
 )
@@ -574,9 +574,7 @@ def _load_output(path: Path) -> _LoadedOutput:
         metrics_raw = raw.get("metrics")
         if metrics_raw is not None:
             metrics = OutputMetrics.model_validate(metrics_raw)
-    except (
-        ValueError,
-    ) as exc:
+    except ValueError as exc:
         metric_issue = f"invalid metrics: {exc}"
 
     return _LoadedOutput(

@@ -13,6 +13,7 @@ artifact is opened.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import math
@@ -760,10 +761,8 @@ def _atomic_write(path: Path, data: bytes) -> None:
             os.fsync(stream.fileno())
         os.replace(temporary, path)
     except BaseException:
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(temporary)
-        except FileNotFoundError:
-            pass
         raise
 
 

@@ -9,6 +9,7 @@ and are deliberately labelled as reusable.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -18,7 +19,7 @@ import subprocess
 import tempfile
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 
@@ -679,7 +680,7 @@ def _parse_expiry(
         raise ValueError("credential broker expires_at is not valid ISO-8601") from exc
     if parsed.tzinfo is None:
         raise ValueError("credential broker expires_at must include a timezone")
-    remaining = (parsed - datetime.now(timezone.utc)).total_seconds()
+    remaining = (parsed - datetime.now(UTC)).total_seconds()
     if remaining <= 0:
         raise ValueError("credential broker returned an expired credential")
     if remaining < minimum_ttl_seconds:
@@ -693,10 +694,8 @@ def _terminate_broker_group(process: subprocess.Popen[bytes]) -> None:
     """Terminate the broker and descendants that remain in its process group."""
 
     if hasattr(os, "killpg"):
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.killpg(process.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
     elif process.poll() is None:
         process.kill()
     try:

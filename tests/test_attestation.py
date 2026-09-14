@@ -6,9 +6,9 @@ import os
 import subprocess
 from pathlib import Path
 
-import agent_eval.attestation as attestation_module
 import pytest
 
+import agent_eval.attestation as attestation_module
 from agent_eval.attestation import (
     CLEAN_WORKTREE_SHA256,
     PREDICATE_TYPE,

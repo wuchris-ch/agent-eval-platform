@@ -107,13 +107,7 @@ def _validate_repository_relative_file(path: str) -> str:
     candidate = path.strip().replace("\\", "/")
     normalized = _normalize_file(path)
     if (
-        candidate.startswith("/")
-        or _URI_OR_DRIVE_PREFIX.match(candidate)
-        or normalized in ("", ".")
-        or normalized.startswith("/")
-        or _URI_OR_DRIVE_PREFIX.match(normalized)
-        or normalized == ".."
-        or normalized.startswith("../")
+        candidate.startswith("/") or _URI_OR_DRIVE_PREFIX.match(candidate) or normalized in ("", ".") or normalized.startswith(("/", "../")) or _URI_OR_DRIVE_PREFIX.match(normalized) or normalized == ".."
     ):
         raise ValueError("must be a repository-relative path")
     return path

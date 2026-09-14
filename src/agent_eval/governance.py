@@ -9,6 +9,7 @@ boundary.
 
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import hashlib
 import json
@@ -26,7 +27,10 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .yaml_utils import DuplicateKeyError as DuplicateKeyError
+# Bundle loading surfaces this error to callers, so it is part of the governance
+# public API. The redundant alias is the PEP 484 explicit re-export form that
+# mypy requires under `no_implicit_reexport`.
+from .yaml_utils import DuplicateKeyError as DuplicateKeyError  # noqa: PLC0414
 from .yaml_utils import load_unique_yaml
 
 REQUEST_SCHEMA_VERSION = "agent-eval.request/v2"
@@ -275,7 +279,7 @@ class GovernanceRules(BaseModel):
         return _validate_unique(values, field=info.field_name)
 
     @model_validator(mode="after")
-    def _scanner_allowlist_required(self) -> "GovernanceRules":
+    def _scanner_allowlist_required(self) -> GovernanceRules:
         if self.require_scans and not self.allowed_scanner_identities:
             raise ValueError(
                 "require_scans requires at least one approved scanner identity"
@@ -353,7 +357,7 @@ class ApprovedTaskImage(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _content_derived_identity(self) -> "ApprovedTaskImage":
+    def _content_derived_identity(self) -> ApprovedTaskImage:
         digest = self.manifest_digest.removeprefix("sha256:")
         if not self.reference.endswith(f":governed-{digest}"):
             raise ValueError(
@@ -413,7 +417,7 @@ class TaskRegistryEntry(BaseModel):
         return values
 
     @model_validator(mode="after")
-    def _approved_images_match_task(self) -> "TaskRegistryEntry":
+    def _approved_images_match_task(self) -> TaskRegistryEntry:
         expected_prefix = f"agent-eval/{self.task_id}:governed-"
         if any(
             not image.reference.startswith(expected_prefix)
@@ -443,7 +447,7 @@ class TaskRegistry(BaseModel):
         return _validate_revision(value, field="task_registry.revision")
 
     @model_validator(mode="after")
-    def _unique_tasks(self) -> "TaskRegistry":
+    def _unique_tasks(self) -> TaskRegistry:
         task_ids = [entry.task_id for entry in self.tasks]
         if len(task_ids) != len(set(task_ids)):
             raise ValueError("task registry contains a duplicate task_id")
@@ -523,7 +527,7 @@ class ModelRegistry(BaseModel):
         return _validate_revision(value, field="model_registry.revision")
 
     @model_validator(mode="after")
-    def _unique_exact_models(self) -> "ModelRegistry":
+    def _unique_exact_models(self) -> ModelRegistry:
         keys = [(entry.adapter, entry.model) for entry in self.models]
         if len(keys) != len(set(keys)):
             raise ValueError("model registry contains a duplicate adapter/model entry")
@@ -662,7 +666,7 @@ class PolicyDecision(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _valid_stage_link(self) -> "PolicyDecision":
+    def _valid_stage_link(self) -> PolicyDecision:
         linked = (
             self.preflight_decision_id is not None,
             self.preflight_decision_digest is not None,
@@ -806,7 +810,7 @@ class GovernanceEvidence(BaseModel):
     @classmethod
     def from_decision(
         cls, request: EvaluationRequest, decision: PolicyDecision
-    ) -> "GovernanceEvidence":
+    ) -> GovernanceEvidence:
         """Bind an admission decision to its original asserted request identity."""
 
         expected_digest = sha256_json(request)
@@ -1476,9 +1480,7 @@ def _json_value(value: Any, *, location: str = "value") -> Any:
         value = asdict(value)
     elif isinstance(value, Enum):
         value = value.value
-    elif isinstance(value, Path):
-        value = str(value)
-    elif isinstance(value, UUID):
+    elif isinstance(value, (Path, UUID)):
         value = str(value)
     elif isinstance(value, (datetime, date)):
         value = value.isoformat()
@@ -1549,12 +1551,8 @@ def write_canonical_json(path: Path | str, value: Any) -> None:
             finally:
                 os.close(directory_fd)
     except BaseException:
-        try:
+        with contextlib.suppress(OSError):
             os.close(descriptor)
-        except OSError:
-            pass
-        try:
+        with contextlib.suppress(FileNotFoundError):
             os.unlink(temporary)
-        except FileNotFoundError:
-            pass
         raise

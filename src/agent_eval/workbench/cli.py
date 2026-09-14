@@ -510,6 +510,7 @@ def producer_artifact(path: Path, project: str = "local"):
 def issue_execution(path: Path, project: str = "local"):
     """Register harness-selected expected candidate identity before submission."""
     from pydantic import TypeAdapter
+
     from ..experiments.models import Identifier, Sha256
 
     value = read_json(path)

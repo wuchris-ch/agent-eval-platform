@@ -5,22 +5,21 @@ from __future__ import annotations
 
 from .base import PROMPT_PATH, AgentAdapter
 from .registry import (
+    BUILTIN_ADAPTER_NAMES,
     ENTRY_POINT_GROUP,
     AdapterMetadata,
-    BUILTIN_ADAPTER_NAMES,
     get_adapter,
     is_builtin_adapter,
     list_adapters,
 )
 
-
 __all__ = [
-    "AdapterMetadata",
-    "AgentAdapter",
     "BUILTIN_ADAPTER_NAMES",
     "ENTRY_POINT_GROUP",
+    "PROMPT_PATH",
+    "AdapterMetadata",
+    "AgentAdapter",
     "get_adapter",
     "is_builtin_adapter",
     "list_adapters",
-    "PROMPT_PATH",
 ]

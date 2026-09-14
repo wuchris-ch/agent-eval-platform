@@ -13,9 +13,10 @@ from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
+from typer.testing import CliRunner
 
-from agent_eval import metrics, paths
 from agent_eval import cli as cli_module
+from agent_eval import metrics, paths
 from agent_eval import state as state_module
 from agent_eval.assessments import (
     Assessment,
@@ -28,7 +29,6 @@ from agent_eval.metrics import RunRecord
 from agent_eval.paths import UnsafeStatePathError, get_state_dir
 from agent_eval.state import inspect_legacy_state, migrate_legacy_state
 from agent_eval.task import list_tasks, load_task
-from typer.testing import CliRunner
 
 
 def _mode(path) -> int:

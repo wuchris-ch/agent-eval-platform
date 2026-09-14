@@ -100,7 +100,7 @@ class AssessmentValue(BaseModel):
         return None
 
     @model_validator(mode="after")
-    def _one_matching_value(self) -> "AssessmentValue":
+    def _one_matching_value(self) -> AssessmentValue:
         fields = {
             "numeric": self.numeric,
             "boolean": self.boolean,
@@ -181,7 +181,7 @@ class Assessment(BaseModel):
         return value.astimezone(UTC)
 
     @model_validator(mode="after")
-    def _consistent_shape(self) -> "Assessment":
+    def _consistent_shape(self) -> Assessment:
         if self.finished_at < self.started_at:
             raise ValueError("assessment finish cannot precede its start")
         if not self.started_at <= self.observed_at <= self.finished_at:
@@ -372,8 +372,7 @@ def derive_assessments(record: Any, task: Any) -> list[Assessment]:
 
     finished = _timestamp(record.finished_at, datetime.now(UTC))
     started = _timestamp(record.started_at, finished)
-    if started > finished:
-        started = finished
+    started = min(started, finished)
     run_id = record.run_id
     harness_version = record.provenance.harness_version
     evaluation_digest = record.provenance.evaluation_spec_digest

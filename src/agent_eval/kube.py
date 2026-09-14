@@ -16,8 +16,8 @@ import tarfile
 import tempfile
 import time
 import uuid
-from copy import deepcopy
 from contextlib import closing, suppress
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -173,8 +173,8 @@ def containerd_image_manifest_identity(
     normalized_ref = _normalize_containerd_image_ref(image_ref)
     if (
         normalized_ref is None
-        or expected_manifest_digest is not None
-        and _IMAGE_DIGEST_RE.fullmatch(expected_manifest_digest) is None
+        or (expected_manifest_digest is not None
+        and _IMAGE_DIGEST_RE.fullmatch(expected_manifest_digest) is None)
     ):
         return None
     try:
@@ -313,8 +313,8 @@ def containerd_image_manifest_identity(
         or media_type not in _CONTAINERD_MANIFEST_MEDIA_TYPES
         or not isinstance(config_digest, str)
         or _IMAGE_DIGEST_RE.fullmatch(config_digest) is None
-        or expected_manifest_digest is not None
-        and manifest_digest != expected_manifest_digest
+        or (expected_manifest_digest is not None
+        and manifest_digest != expected_manifest_digest)
     ):
         return None
     return manifest_digest, config_digest
@@ -736,10 +736,8 @@ class Pod:
                 # tiny TarInfo objects before any validation occurs.
                 with tarfile.open(fileobj=stream, mode="r|*") as archive:
                     seen: set[str] = set()
-                    member_count = 0
                     expanded_bytes = 0
-                    for member in archive:
-                        member_count += 1
+                    for member_count, member in enumerate(archive, start=1):
                         if member_count > MAX_SNAPSHOT_MEMBERS:
                             raise UnsafeArchiveError(
                                 "pod snapshot contains more than "
@@ -1078,12 +1076,10 @@ def _rollback_trial_secret(secret: TrialSecret) -> bool:
     """Best-effort delete plus an independent API absence check."""
 
     for _attempt in range(TRIAL_SECRET_ROLLBACK_ATTEMPTS):
-        try:
+        # A delete timeout can still mean that the API server committed the
+        # deletion, so always perform the independent read below.
+        with suppress(Exception):
             secret.delete()
-        except Exception:
-            # A delete timeout can still mean that the API server committed
-            # the deletion, so always perform the independent read below.
-            pass
         try:
             observed = kubectl(
                 "get",

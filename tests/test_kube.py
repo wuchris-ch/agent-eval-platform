@@ -9,17 +9,17 @@ import pytest
 from pydantic import ValidationError
 
 from agent_eval.kube import (
-    CommandOutputLimitError,
     DEFAULT_SANDBOX_RESOURCES,
     K3S_CLUSTER_DNS_SERVICE_CIDR,
     K3S_POD_CIDR,
     K3S_SERVICE_CIDR,
-    KubeError,
-    Pod,
     PROXY_BLOCKED_IPV4_CIDRS,
     PROXY_BLOCKED_IPV6_CIDRS,
     PROXY_PUBLIC_IPV6_CIDR,
     PROXY_PUBLIC_IPV6_EXCEPT_CIDRS,
+    CommandOutputLimitError,
+    KubeError,
+    Pod,
     SandboxLink,
     TrialSecret,
     UnsafeArchiveError,
@@ -967,7 +967,7 @@ def test_trial_secret_apply_timeout_rolls_back_committed_secret(monkeypatch):
             return subprocess.CompletedProcess(args, 0, stdout=output, stderr=b"")
         raise AssertionError(args)
 
-    monkeypatch.setattr(kube.uuid, "uuid4", lambda: type("ID", (), {"hex": "a" * 32})())
+    monkeypatch.setattr(kube.uuid, "uuid4", type("ID", (), {"hex": "a" * 32}))
     monkeypatch.setattr(kube, "kubectl", fake_kubectl)
 
     with pytest.raises(KubeError, match="rollback confirmed") as captured:
@@ -1010,7 +1010,7 @@ def test_trial_secret_failed_rollback_reports_exact_remediation(monkeypatch):
             )
         raise AssertionError(args)
 
-    monkeypatch.setattr(kube.uuid, "uuid4", lambda: type("ID", (), {"hex": "b" * 32})())
+    monkeypatch.setattr(kube.uuid, "uuid4", type("ID", (), {"hex": "b" * 32}))
     monkeypatch.setattr(kube, "kubectl", fake_kubectl)
 
     with pytest.raises(KubeError, match="rollback could not be confirmed") as captured:

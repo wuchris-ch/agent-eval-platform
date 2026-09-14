@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import os
 import stat
 import subprocess
@@ -386,8 +387,6 @@ def atomic_write_private(path: Path | str, data: bytes) -> None:
     except BaseException:
         if descriptor >= 0:
             os.close(descriptor)
-        try:
+        with contextlib.suppress(FileNotFoundError):
             temporary.unlink()
-        except FileNotFoundError:
-            pass
         raise
