@@ -181,7 +181,9 @@ max-statements = 70
 "src/agent_eval/experiments/cli.py" = ["PLR0913"]
 "src/agent_eval/experiments/executor.py" = ["C901", "PLR0912", "PLR0913"]
 "src/agent_eval/external_review_eval.py" = ["PLR0911", "PLR0913", "PLR0915"]
-"src/agent_eval/governance.py" = ["PLR0912", "PLR0913", "PLR0915", "C901"]
+# evaluate_admission takes one keyword per governed input so every call site
+# names what it is asserting. Its body is now delegated to admission rules.
+"src/agent_eval/governance.py" = ["PLR0913"]
 "src/agent_eval/kube.py" = ["C901", "PLR0911", "PLR0912", "PLR0913"]
 "src/agent_eval/metrics.py" = ["PLR0912"]
 "src/agent_eval/runner.py" = ["PLR0912", "PLR0913", "PLR0915", "C901"]

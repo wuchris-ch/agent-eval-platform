@@ -17,7 +17,7 @@ import math
 import os
 import re
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, is_dataclass
 from datetime import UTC, date, datetime
 from enum import Enum
@@ -1029,152 +1029,17 @@ def _policy_document(bundle: GovernanceBundle) -> dict[str, Any]:
     }
 
 
-def evaluate_admission(
-    request: EvaluationRequest,
-    bundle: GovernanceBundle,
+def _check_request_binding(
     *,
+    request: EvaluationRequest,
+    rules: GovernanceRules,
     actual_task_id: str,
     actual_agent: str,
     actual_model: str,
-    trials: int,
     network_mode: str,
-    agent_timeout_seconds: int,
-    eval_timeout_seconds: int,
-    broker_configured: bool,
-    run_scans: bool,
-    run_judge: bool,
-    scanner_identity_sha256: str | None = None,
-    scanner_promotion_ready: bool = False,
-    task_tree_sha256: str,
-    execution_spec_digest: str,
-    judge_backend: str | None = None,
-    judge_model: str | None = None,
-    decision_stage: Literal["preflight", "execution"] = "preflight",
-    task_image_digest: str | None = None,
-    task_image_ref: str | None = None,
-    task_image_platform: str | None = None,
-    preflight_decision_id: UUID | None = None,
-    preflight_decision_digest: str | None = None,
-    effective_egress_domains: Sequence[str] = (),
-    proxy_image: str | None = None,
-) -> PolicyDecision:
-    """Evaluate admission without side effects, accumulating ordered denials.
-
-    The returned trial and timeout limits are hard execution controls.  Token
-    and cost values are explicitly post-run observation thresholds because the
-    bundled provider CLIs cannot guarantee generation-time interruption.  An
-    ``allowed`` decision is not itself a resource limiter.
-    """
-
-    reasons: list[PolicyReason] = []
-
-    def deny(code: str, message: str) -> None:
-        reasons.append(PolicyReason(code=code, message=message))
-
-    rules = bundle.rules
-
-    if decision_stage not in {"preflight", "execution"}:
-        raise ValueError("decision_stage must be preflight or execution")
-    if decision_stage == "preflight":
-        if preflight_decision_id is not None or preflight_decision_digest is not None:
-            raise ValueError("preflight decisions cannot link another preflight")
-        if any(
-            value is not None
-            for value in (task_image_digest, task_image_ref, task_image_platform)
-        ):
-            deny(
-                "image_digest_unexpected",
-                "Preflight decisions cannot claim a task image identity",
-            )
-    else:
-        if preflight_decision_id is None or (
-            not isinstance(preflight_decision_digest, str)
-            or _SHA256.fullmatch(preflight_decision_digest) is None
-        ):
-            raise ValueError("execution decisions require an exact preflight link")
-        if (
-            not isinstance(task_image_digest, str)
-            or _IMAGE_DIGEST.fullmatch(task_image_digest) is None
-        ):
-            deny(
-                "image_digest_invalid",
-                "Execution decisions require an exact SHA-256 task image digest",
-            )
-        if (
-            not isinstance(task_image_ref, str)
-            or _GOVERNED_IMAGE_REF.fullmatch(task_image_ref) is None
-            or not isinstance(task_image_platform, str)
-            or _PLATFORM.fullmatch(task_image_platform) is None
-        ):
-            deny(
-                "image_identity_invalid",
-                "Execution decisions require an exact governed image reference "
-                "and Linux platform",
-            )
-        elif (
-            isinstance(task_image_digest, str)
-            and _IMAGE_DIGEST.fullmatch(task_image_digest) is not None
-            and task_image_ref
-            != (
-                f"agent-eval/{actual_task_id}:governed-"
-                f"{task_image_digest.removeprefix('sha256:')}"
-            )
-        ):
-            deny(
-                "image_identity_mismatch",
-                "Governed image reference must be derived from the task and digest",
-            )
-
-    if (
-        not isinstance(task_tree_sha256, str)
-        or _SHA256.fullmatch(task_tree_sha256) is None
-        or not isinstance(execution_spec_digest, str)
-        or _SHA256.fullmatch(execution_spec_digest) is None
-    ):
-        deny(
-            "task_evidence_invalid",
-            "Task tree and execution specification digests are required",
-        )
-
-    matched_task = next(
-        (
-            entry
-            for entry in bundle.task_registry.tasks
-            if entry.task_id == actual_task_id
-        ),
-        None,
-    )
-    if matched_task is None:
-        deny(
-            "task_not_registered",
-            "Runtime task has no exact entry in the approved task registry",
-        )
-    else:
-        if matched_task.status != "approved":
-            deny(
-                f"task_{matched_task.status}",
-                f"Registered task status is {matched_task.status}",
-            )
-        if task_tree_sha256 != matched_task.task_tree_sha256:
-            deny(
-                "task_tree_not_approved",
-                "Runtime task tree digest does not match the approved task registry",
-            )
-        if execution_spec_digest not in matched_task.execution_spec_digests:
-            deny(
-                "execution_spec_not_approved",
-                "Runtime execution specification is not approved for this task",
-            )
-        if decision_stage == "execution" and not any(
-            image.platform == task_image_platform
-            and image.reference == task_image_ref
-            and image.manifest_digest == task_image_digest
-            for image in matched_task.approved_images
-        ):
-            deny(
-                "task_image_not_approved",
-                "Runtime task image and platform are not preapproved in the task registry",
-            )
+    deny: Callable[[str, str], None],
+) -> None:
+    """Deny when the runtime differs from the request or policy allowlists."""
 
     if actual_task_id != request.task_id:
         deny("task_mismatch", "Runtime task does not match the authorized request")
@@ -1203,6 +1068,19 @@ def evaluate_admission(
         deny("retention_not_allowed", "Retention class is not allowed by policy")
     if network_mode not in rules.allowed_network_modes:
         deny("network_mode_not_allowed", "Network mode is not allowed by policy")
+
+
+def _check_egress(
+    *,
+    rules: GovernanceRules,
+    network_mode: str,
+    effective_egress_domains: Sequence[str],
+    proxy_image: str | None,
+    deny: Callable[[str, str], None],
+) -> list[str]:
+    """Validate effective egress domains and the proxy image, returning the
+    normalized domain list recorded in the decision."""
+
     normalized_domains: list[str] = []
     domains_valid = True
     for value in effective_egress_domains:
@@ -1238,6 +1116,19 @@ def evaluate_admission(
                 "proxy_image_not_allowed",
                 "The egress proxy image is not allowed by policy",
             )
+    return normalized_domains
+
+
+def _check_scanner_configuration(
+    *,
+    rules: GovernanceRules,
+    run_scans: bool,
+    scanner_identity_sha256: str | None,
+    scanner_promotion_ready: bool,
+    deny: Callable[[str, str], None],
+) -> None:
+    """Deny when the scan phase is missing, unapproved, or not promotion ready."""
+
     if not isinstance(run_scans, bool):
         deny("invalid_scan_configuration", "Scanner configuration must be boolean")
     elif rules.require_scans and not run_scans:
@@ -1266,6 +1157,21 @@ def evaluate_admission(
             "scanner_identity_unexpected",
             "Disabled scanner execution cannot claim an assurance identity",
         )
+
+
+def _check_judge_configuration(
+    *,
+    request: EvaluationRequest,
+    bundle: GovernanceBundle,
+    rules: GovernanceRules,
+    run_scans: bool,
+    run_judge: bool,
+    judge_backend: str | None,
+    judge_model: str | None,
+    deny: Callable[[str, str], None],
+) -> JudgeRegistryEntry | None:
+    """Deny unapproved judge backends and models, returning the matched entry."""
+
     if not isinstance(run_judge, bool):
         deny("invalid_judge_configuration", "Judge configuration must be boolean")
     elif rules.require_judge and not run_judge:
@@ -1326,6 +1232,20 @@ def evaluate_admission(
             "judge_identity_unexpected",
             "Disabled judge execution cannot claim a judge identity",
         )
+    return matched_judge
+
+
+def _check_resource_limits(
+    *,
+    rules: GovernanceRules,
+    trials: int,
+    agent_timeout_seconds: int,
+    eval_timeout_seconds: int,
+    broker_configured: bool,
+    deny: Callable[[str, str], None],
+) -> None:
+    """Deny malformed or out-of-policy trial counts, timeouts, and broker use."""
+
     if not isinstance(broker_configured, bool):
         deny(
             "invalid_broker_configuration",
@@ -1354,6 +1274,18 @@ def evaluate_admission(
         deny("invalid_eval_timeout", "Evaluator timeout must be a positive integer")
     elif eval_timeout_seconds > rules.max_eval_seconds:
         deny("eval_timeout_exceeded", "Evaluator timeout exceeds the policy limit")
+
+
+def _check_model_registry(
+    *,
+    request: EvaluationRequest,
+    bundle: GovernanceBundle,
+    rules: GovernanceRules,
+    actual_agent: str,
+    actual_model: str,
+    deny: Callable[[str, str], None],
+) -> tuple[ModelRegistryEntry | None, list[int], list[float]]:
+    """Deny unapproved models and collect the observation thresholds that apply."""
 
     matched_model = next(
         (
@@ -1391,6 +1323,267 @@ def evaluate_admission(
     if matched_model is not None:
         token_limits.append(matched_model.max_observed_total_tokens)
         cost_limits.append(matched_model.max_observed_cost_usd)
+    return matched_model, token_limits, cost_limits
+
+
+def _check_decision_stage(
+    *,
+    decision_stage: Literal["preflight", "execution"],
+    actual_task_id: str,
+    preflight_decision_id: UUID | None,
+    preflight_decision_digest: str | None,
+    task_image_ref: str | None,
+    task_image_digest: str | None,
+    task_image_platform: str | None,
+    deny: Callable[[str, str], None],
+) -> None:
+    """Check what each decision stage may and must claim.
+
+    A preflight decision cannot name a task image or link another preflight.
+    An execution decision must link its preflight exactly and pin the image
+    it actually ran.
+    """
+
+    if decision_stage not in {"preflight", "execution"}:
+        raise ValueError("decision_stage must be preflight or execution")
+    if decision_stage == "preflight":
+        if preflight_decision_id is not None or preflight_decision_digest is not None:
+            raise ValueError("preflight decisions cannot link another preflight")
+        if any(
+            value is not None
+            for value in (task_image_digest, task_image_ref, task_image_platform)
+        ):
+            deny(
+                "image_digest_unexpected",
+                "Preflight decisions cannot claim a task image identity",
+            )
+    else:
+        if preflight_decision_id is None or (
+            not isinstance(preflight_decision_digest, str)
+            or _SHA256.fullmatch(preflight_decision_digest) is None
+        ):
+            raise ValueError("execution decisions require an exact preflight link")
+        if (
+            not isinstance(task_image_digest, str)
+            or _IMAGE_DIGEST.fullmatch(task_image_digest) is None
+        ):
+            deny(
+                "image_digest_invalid",
+                "Execution decisions require an exact SHA-256 task image digest",
+            )
+        if (
+            not isinstance(task_image_ref, str)
+            or _GOVERNED_IMAGE_REF.fullmatch(task_image_ref) is None
+            or not isinstance(task_image_platform, str)
+            or _PLATFORM.fullmatch(task_image_platform) is None
+        ):
+            deny(
+                "image_identity_invalid",
+                "Execution decisions require an exact governed image reference "
+                "and Linux platform",
+            )
+        elif (
+            isinstance(task_image_digest, str)
+            and _IMAGE_DIGEST.fullmatch(task_image_digest) is not None
+            and task_image_ref
+            != (
+                f"agent-eval/{actual_task_id}:governed-"
+                f"{task_image_digest.removeprefix('sha256:')}"
+            )
+        ):
+            deny(
+                "image_identity_mismatch",
+                "Governed image reference must be derived from the task and digest",
+            )
+
+
+def _match_registered_task(
+    *,
+    bundle: GovernanceBundle,
+    decision_stage: Literal["preflight", "execution"],
+    actual_task_id: str,
+    task_tree_sha256: str,
+    execution_spec_digest: str,
+    task_image_ref: str | None,
+    task_image_digest: str | None,
+    task_image_platform: str | None,
+    deny: Callable[[str, str], None],
+) -> TaskRegistryEntry | None:
+    """Bind the run to an approved task registry entry.
+
+    The entry must be approved and must already cover this exact task tree,
+    execution spec, and, at execution stage, task image.
+    """
+
+    if (
+        not isinstance(task_tree_sha256, str)
+        or _SHA256.fullmatch(task_tree_sha256) is None
+        or not isinstance(execution_spec_digest, str)
+        or _SHA256.fullmatch(execution_spec_digest) is None
+    ):
+        deny(
+            "task_evidence_invalid",
+            "Task tree and execution specification digests are required",
+        )
+
+    matched_task = next(
+        (
+            entry
+            for entry in bundle.task_registry.tasks
+            if entry.task_id == actual_task_id
+        ),
+        None,
+    )
+    if matched_task is None:
+        deny(
+            "task_not_registered",
+            "Runtime task has no exact entry in the approved task registry",
+        )
+    else:
+        if matched_task.status != "approved":
+            deny(
+                f"task_{matched_task.status}",
+                f"Registered task status is {matched_task.status}",
+            )
+        if task_tree_sha256 != matched_task.task_tree_sha256:
+            deny(
+                "task_tree_not_approved",
+                "Runtime task tree digest does not match the approved task registry",
+            )
+        if execution_spec_digest not in matched_task.execution_spec_digests:
+            deny(
+                "execution_spec_not_approved",
+                "Runtime execution specification is not approved for this task",
+            )
+        if decision_stage == "execution" and not any(
+            image.platform == task_image_platform
+            and image.reference == task_image_ref
+            and image.manifest_digest == task_image_digest
+            for image in matched_task.approved_images
+        ):
+            deny(
+                "task_image_not_approved",
+                "Runtime task image and platform are not preapproved in the task registry",
+            )
+    return matched_task
+
+
+def evaluate_admission(
+    request: EvaluationRequest,
+    bundle: GovernanceBundle,
+    *,
+    actual_task_id: str,
+    actual_agent: str,
+    actual_model: str,
+    trials: int,
+    network_mode: str,
+    agent_timeout_seconds: int,
+    eval_timeout_seconds: int,
+    broker_configured: bool,
+    run_scans: bool,
+    run_judge: bool,
+    scanner_identity_sha256: str | None = None,
+    scanner_promotion_ready: bool = False,
+    task_tree_sha256: str,
+    execution_spec_digest: str,
+    judge_backend: str | None = None,
+    judge_model: str | None = None,
+    decision_stage: Literal["preflight", "execution"] = "preflight",
+    task_image_digest: str | None = None,
+    task_image_ref: str | None = None,
+    task_image_platform: str | None = None,
+    preflight_decision_id: UUID | None = None,
+    preflight_decision_digest: str | None = None,
+    effective_egress_domains: Sequence[str] = (),
+    proxy_image: str | None = None,
+) -> PolicyDecision:
+    """Evaluate admission without side effects, accumulating ordered denials.
+
+    The returned trial and timeout limits are hard execution controls.  Token
+    and cost values are explicitly post-run observation thresholds because the
+    bundled provider CLIs cannot guarantee generation-time interruption.  An
+    ``allowed`` decision is not itself a resource limiter.
+    """
+
+    reasons: list[PolicyReason] = []
+
+    def deny(code: str, message: str) -> None:
+        reasons.append(PolicyReason(code=code, message=message))
+
+    rules = bundle.rules
+
+    _check_decision_stage(
+        decision_stage=decision_stage,
+        actual_task_id=actual_task_id,
+        preflight_decision_id=preflight_decision_id,
+        preflight_decision_digest=preflight_decision_digest,
+        task_image_ref=task_image_ref,
+        task_image_digest=task_image_digest,
+        task_image_platform=task_image_platform,
+        deny=deny,
+    )
+    matched_task = _match_registered_task(
+        bundle=bundle,
+        decision_stage=decision_stage,
+        actual_task_id=actual_task_id,
+        task_tree_sha256=task_tree_sha256,
+        execution_spec_digest=execution_spec_digest,
+        task_image_ref=task_image_ref,
+        task_image_digest=task_image_digest,
+        task_image_platform=task_image_platform,
+        deny=deny,
+    )
+
+    _check_request_binding(
+        request=request,
+        rules=rules,
+        actual_task_id=actual_task_id,
+        actual_agent=actual_agent,
+        actual_model=actual_model,
+        network_mode=network_mode,
+        deny=deny,
+    )
+    normalized_domains = _check_egress(
+        rules=rules,
+        network_mode=network_mode,
+        effective_egress_domains=effective_egress_domains,
+        proxy_image=proxy_image,
+        deny=deny,
+    )
+    _check_scanner_configuration(
+        rules=rules,
+        run_scans=run_scans,
+        scanner_identity_sha256=scanner_identity_sha256,
+        scanner_promotion_ready=scanner_promotion_ready,
+        deny=deny,
+    )
+    matched_judge = _check_judge_configuration(
+        request=request,
+        bundle=bundle,
+        rules=rules,
+        run_scans=run_scans,
+        run_judge=run_judge,
+        judge_backend=judge_backend,
+        judge_model=judge_model,
+        deny=deny,
+    )
+    _check_resource_limits(
+        rules=rules,
+        trials=trials,
+        agent_timeout_seconds=agent_timeout_seconds,
+        eval_timeout_seconds=eval_timeout_seconds,
+        broker_configured=broker_configured,
+        deny=deny,
+    )
+
+    matched_model, token_limits, cost_limits = _check_model_registry(
+        request=request,
+        bundle=bundle,
+        rules=rules,
+        actual_agent=actual_agent,
+        actual_model=actual_model,
+        deny=deny,
+    )
 
     effective_limits = EffectiveLimits(
         max_trials=rules.max_trials,
