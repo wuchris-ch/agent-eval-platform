@@ -67,7 +67,11 @@ def test_sandbox_manifest_removes_ambient_cluster_privilege():
     ]
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert {mount["mountPath"] for mount in container["volumeMounts"]} >= {
-        "/workspace", "/tmp", "/home/agent", "/tests", "/results"
+        "/workspace",
+        "/tmp",
+        "/home/agent",
+        "/tests",
+        "/results",
     }
 
 
@@ -472,9 +476,7 @@ def test_containerd_identity_selects_expected_manifest_from_multiarch_index(
     monkeypatch.setattr(kube, "_run_bounded_command", fake_bounded)
 
     assert (
-        kube.containerd_image_manifest_identity(
-            "k3d-agent-eval-server-0", image_ref
-        )
+        kube.containerd_image_manifest_identity("k3d-agent-eval-server-0", image_ref)
         is None
     )
     assert kube.containerd_image_manifest_identity(
@@ -520,9 +522,7 @@ def test_containerd_identity_rejects_malformed_target_json(
     monkeypatch.setattr(kube, "_run_bounded_command", fake_bounded)
 
     assert (
-        kube.containerd_image_manifest_identity(
-            "k3d-agent-eval-server-0", image_ref
-        )
+        kube.containerd_image_manifest_identity("k3d-agent-eval-server-0", image_ref)
         is None
     )
 
@@ -551,7 +551,8 @@ def test_credential_secret_projects_only_declared_env_and_files():
         }
     ]
     credential_volume = next(
-        volume for volume in manifest["spec"]["volumes"]
+        volume
+        for volume in manifest["spec"]["volumes"]
         if volume["name"] == "credentials"
     )
     assert credential_volume["secret"]["items"] == [
@@ -568,9 +569,7 @@ def test_eval_egress_is_empty_and_proxy_egress_is_narrow():
     assert denied["spec"]["policyTypes"] == ["Ingress", "Egress"]
     assert denied["spec"]["ingress"] == []
     assert denied["spec"]["egress"] == []
-    assert denied["spec"]["podSelector"]["matchLabels"] == {
-        "sandbox-id": "eval-one"
-    }
+    assert denied["spec"]["podSelector"]["matchLabels"] == {"sandbox-id": "eval-one"}
     proxy_rules = proxied["spec"]["egress"]
     assert len(proxy_rules) == 1
     assert proxy_rules[0]["to"] == [
@@ -590,11 +589,7 @@ def test_black_box_peer_policies_are_directional_and_port_scoped():
         "egress": [
             {
                 "to": [
-                    {
-                        "podSelector": {
-                            "matchLabels": {"sandbox-id": "submission-5678"}
-                        }
-                    }
+                    {"podSelector": {"matchLabels": {"sandbox-id": "submission-5678"}}}
                 ],
                 "ports": [{"protocol": "TCP", "port": 8080}],
             }
@@ -605,13 +600,7 @@ def test_black_box_peer_policies_are_directional_and_port_scoped():
         "policyTypes": ["Ingress"],
         "ingress": [
             {
-                "from": [
-                    {
-                        "podSelector": {
-                            "matchLabels": {"sandbox-id": "eval-1234"}
-                        }
-                    }
-                ],
+                "from": [{"podSelector": {"matchLabels": {"sandbox-id": "eval-1234"}}}],
                 "ports": [{"protocol": "TCP", "port": 8080}],
             }
         ],
@@ -674,9 +663,7 @@ def test_domain_proxy_config_is_default_deny_with_explicit_suffixes():
     )
     config = manifests[0]["data"]["squid.conf"]
 
-    assert (
-        "acl allowed_domains dstdomain -n .chatgpt.com .openai.com" in config
-    )
+    assert "acl allowed_domains dstdomain -n .chatgpt.com .openai.com" in config
     blocked_acl = next(
         line
         for line in config.splitlines()
@@ -712,9 +699,7 @@ def test_proxy_egress_allows_only_cluster_dns_and_public_web_destinations():
         "to": [
             {
                 "namespaceSelector": {
-                    "matchLabels": {
-                        "kubernetes.io/metadata.name": "kube-system"
-                    }
+                    "matchLabels": {"kubernetes.io/metadata.name": "kube-system"}
                 },
                 "podSelector": {"matchLabels": {"k8s-app": "kube-dns"}},
             },
@@ -840,9 +825,7 @@ def test_pod_snapshot_extracts_regular_files(monkeypatch, tmp_path):
     assert (target / "safe.txt").read_bytes() == content
 
 
-def test_pod_snapshot_streams_with_member_and_expanded_size_caps(
-    monkeypatch, tmp_path
-):
+def test_pod_snapshot_streams_with_member_and_expanded_size_caps(monkeypatch, tmp_path):
     from agent_eval import kube
 
     payload = io.BytesIO()
@@ -895,9 +878,7 @@ def test_copy_to_non_root_volume_does_not_restore_archive_root_metadata(
     assert calls[0][2]
 
 
-def test_copy_to_rejects_oversized_local_tree_before_pod_io(
-    monkeypatch, tmp_path
-):
+def test_copy_to_rejects_oversized_local_tree_before_pod_io(monkeypatch, tmp_path):
     from agent_eval import kube
 
     (tmp_path / "large.bin").write_bytes(b"12345")
@@ -975,12 +956,14 @@ def test_trial_secret_apply_timeout_rolls_back_committed_secret(monkeypatch):
 
     assert applied_manifest is not None
     assert applied_manifest["metadata"]["name"] == f"agent-credential-{'a' * 32}"
-    assert applied_manifest["metadata"]["labels"]["agent-eval-run-sha256"] == (
-        expected_run_digest[:32]
+    assert (
+        applied_manifest["metadata"]["labels"]["agent-eval-run-sha256"]
+        == (expected_run_digest[:32])
     )
-    assert applied_manifest["metadata"]["annotations"][
-        "agent-eval-run-sha256"
-    ] == expected_run_digest
+    assert (
+        applied_manifest["metadata"]["annotations"]["agent-eval-run-sha256"]
+        == expected_run_digest
+    )
     assert existing == set()
     assert [call[0] for call in calls] == ["apply", "delete", "get"]
     assert credential not in str(captured.value)
@@ -1290,8 +1273,7 @@ def test_manifest_uses_custom_resources_without_mutating_them():
                     {
                         "reason": "Unschedulable",
                         "message": (
-                            "0/1 nodes are available: 1 node(s) had "
-                            "untolerated taint"
+                            "0/1 nodes are available: 1 node(s) had untolerated taint"
                         ),
                     }
                 ]
@@ -1318,4 +1300,6 @@ def test_pod_marks_sigkill_as_possible_resource_failure(monkeypatch):
     monkeypatch.setattr("agent_eval.kube.kubectl", fake_kubectl)
 
     evidence = Pod("agent-deadbeef").infrastructure_failure(command_exit_code=137)
-    assert evidence == "command exited 137 (SIGKILL; resource-limit termination possible)"
+    assert (
+        evidence == "command exited 137 (SIGKILL; resource-limit termination possible)"
+    )

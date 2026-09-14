@@ -56,18 +56,22 @@ def _signature(result: dict[str, Any]) -> tuple[Any, ...]:
     if not isinstance(output, dict):
         return (result.get("outcome"), result.get("score"), None)
     findings = output.get("findings")
-    finding_signature = tuple(
-        sorted(
-            (
-                item.get("severity"),
-                item.get("category"),
-                item.get("file"),
-                item.get("line"),
+    finding_signature = (
+        tuple(
+            sorted(
+                (
+                    item.get("severity"),
+                    item.get("category"),
+                    item.get("file"),
+                    item.get("line"),
+                )
+                for item in findings
+                if isinstance(item, dict)
             )
-            for item in findings
-            if isinstance(item, dict)
         )
-    ) if isinstance(findings, list) else ()
+        if isinstance(findings, list)
+        else ()
+    )
     return (
         result.get("outcome"),
         result.get("score"),
@@ -232,16 +236,16 @@ def build_record(
         "",
         "## Per-case results",
         "",
-        "| Case | Kind | " + " | ".join(f"Trial {index}" for index in range(1, rounds + 1)) + " |",
+        "| Case | Kind | "
+        + " | ".join(f"Trial {index}" for index in range(1, rounds + 1))
+        + " |",
         "|---|---|" + "---|" * rounds,
     ]
     for case_id, case_kind in kind_by_id.items():
         case_results = by_case.get(case_id, [])
         cells = [_cell(item) for item in case_results]
         cells.extend(["missing"] * (rounds - len(cells)))
-        lines.append(
-            f"| `{case_id}` | {case_kind} | " + " | ".join(cells) + " |"
-        )
+        lines.append(f"| `{case_id}` | {case_kind} | " + " | ".join(cells) + " |")
     lines.extend(
         [
             "",

@@ -142,24 +142,19 @@ def _open_source_file(root_fd: int, entry: _Entry) -> int:
     if entry.is_directory:
         raise ValueError(f"expected a regular file: {entry.relative}")
     parent_fd = _open_relative_directory(root_fd, entry.relative.parent)
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-        os, "O_NOFOLLOW", 0
-    )
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         try:
             descriptor = os.open(entry.relative.name, flags, dir_fd=parent_fd)
         except OSError as exc:
             raise UnsafeStatePathError(
-                "legacy state file changed or became unsafe: "
-                f"{entry.relative}"
+                f"legacy state file changed or became unsafe: {entry.relative}"
             ) from exc
     finally:
         os.close(parent_fd)
     if _fingerprint(os.fstat(descriptor)) != entry.fingerprint:
         os.close(descriptor)
-        raise RuntimeError(
-            f"legacy state changed during access: {entry.relative}"
-        )
+        raise RuntimeError(f"legacy state changed during access: {entry.relative}")
     return descriptor
 
 
@@ -236,9 +231,10 @@ def _copy_file(root_fd: int, destination: Path, expected: _Entry) -> None:
             )
         destination_fd = os.open(destination, write_flags, 0o600)
         try:
-            with os.fdopen(source_fd, "rb", closefd=False) as source_stream, os.fdopen(
-                destination_fd, "wb", closefd=False
-            ) as destination_stream:
+            with (
+                os.fdopen(source_fd, "rb", closefd=False) as source_stream,
+                os.fdopen(destination_fd, "wb", closefd=False) as destination_stream,
+            ):
                 shutil.copyfileobj(
                     source_stream, destination_stream, length=1024 * 1024
                 )
@@ -258,7 +254,9 @@ def _read_file_stable(root_fd: int, entry: _Entry) -> bytes:
     if entry.is_directory:
         raise ValueError(f"expected a regular file: {entry.relative}")
     if entry.fingerprint[3] > MAX_RESULTS_JSON_BYTES:
-        raise ValueError(f"results.json exceeds the migration size limit: {entry.relative}")
+        raise ValueError(
+            f"results.json exceeds the migration size limit: {entry.relative}"
+        )
     descriptor = _open_source_file(root_fd, entry)
     try:
         if _fingerprint(os.fstat(descriptor)) != entry.fingerprint:
@@ -335,7 +333,9 @@ def _json_object(value: str | bytes, *, location: str) -> dict[str, Any]:
             parse_constant=reject_constant,
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
-        raise ValueError(f"{location} is not strict JSON: {type(exc).__name__}") from exc
+        raise ValueError(
+            f"{location} is not strict JSON: {type(exc).__name__}"
+        ) from exc
     if not isinstance(parsed, dict):
         raise ValueError(f"{location} must contain a JSON object")
     return parsed
@@ -372,9 +372,7 @@ def _read_run_rows(root: Path) -> tuple[_RunRow, ...]:
                 "FROM runs ORDER BY run_id"
             ).fetchall()
     except sqlite3.Error as exc:
-        raise ValueError(
-            f"legacy metrics.db is invalid: {type(exc).__name__}"
-        ) from exc
+        raise ValueError(f"legacy metrics.db is invalid: {type(exc).__name__}") from exc
 
     result: list[_RunRow] = []
     for row in rows:
@@ -444,7 +442,9 @@ def _validate_current_database(root: Path) -> tuple[int, int]:
                         "metrics.db contains an invalid current results record"
                     ) from exc
                 _validate_run_projection(record, row)
-            run_count = int(connection.execute("SELECT COUNT(*) FROM runs").fetchone()[0])
+            run_count = int(
+                connection.execute("SELECT COUNT(*) FROM runs").fetchone()[0]
+            )
             assessment_count = int(
                 connection.execute("SELECT COUNT(*) FROM assessments").fetchone()[0]
             )
@@ -591,7 +591,9 @@ def _validate_run_tree(
         for entry in entries
         if entry.is_directory and len(entry.relative.parts) == 1
     }
-    allowed_directories = run_ids | ({"admissions"} if "admissions" in direct_directories else set())
+    allowed_directories = run_ids | (
+        {"admissions"} if "admissions" in direct_directories else set()
+    )
     if direct_directories != allowed_directories:
         unknown = sorted(direct_directories - allowed_directories)
         missing = sorted(run_ids - direct_directories)
@@ -600,7 +602,9 @@ def _validate_run_tree(
             detail.append("orphan directories: " + ", ".join(unknown))
         if missing:
             detail.append("missing run directories: " + ", ".join(missing))
-        raise ValueError("legacy state does not match metrics.db (" + "; ".join(detail) + ")")
+        raise ValueError(
+            "legacy state does not match metrics.db (" + "; ".join(detail) + ")"
+        )
 
     records: dict[str, Any] = {}
     for row in rows:

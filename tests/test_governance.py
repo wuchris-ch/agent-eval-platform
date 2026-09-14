@@ -91,8 +91,7 @@ def bundle_data(**rule_overrides: object) -> dict[str, object]:
                         {
                             "platform": "linux/amd64",
                             "reference": (
-                                "agent-eval/repair-refund-race:governed-"
-                                + "d" * 64
+                                "agent-eval/repair-refund-race:governed-" + "d" * 64
                             ),
                             "manifest_digest": "sha256:" + "d" * 64,
                             "builder_id": "https://ci.example/builders/task-images",
@@ -239,9 +238,7 @@ def test_execution_denies_an_image_not_preapproved_by_platform_and_digest():
     decision = execution_admission(governance_bundle=governance_bundle)
 
     assert decision.allowed is False
-    assert [reason.code for reason in decision.reasons] == [
-        "task_image_not_approved"
-    ]
+    assert [reason.code for reason in decision.reasons] == ["task_image_not_approved"]
 
 
 def test_execution_continuity_binds_entire_authorization_snapshot():
@@ -578,9 +575,7 @@ def test_admission_requires_exact_approved_task_content_and_execution_spec():
     wrong_execution = admission(execution_spec_digest="e" * 64)
     missing = admission(actual_task_id="unregistered-task")
 
-    assert [reason.code for reason in wrong_tree.reasons] == [
-        "task_tree_not_approved"
-    ]
+    assert [reason.code for reason in wrong_tree.reasons] == ["task_tree_not_approved"]
     assert [reason.code for reason in wrong_execution.reasons] == [
         "execution_spec_not_approved"
     ]
@@ -594,9 +589,7 @@ def test_task_registry_digest_is_independent_and_task_status_fails_closed():
     changed = admission(governance_bundle=GovernanceBundle.model_validate(data))
     blocked_data = bundle_data()
     blocked_data["task_registry"]["tasks"][0]["status"] = "blocked"  # type: ignore[index]
-    blocked = admission(
-        governance_bundle=GovernanceBundle.model_validate(blocked_data)
-    )
+    blocked = admission(governance_bundle=GovernanceBundle.model_validate(blocked_data))
 
     assert first.task_registry_digest != changed.task_registry_digest
     assert first.policy_digest == changed.policy_digest

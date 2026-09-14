@@ -40,8 +40,10 @@ class ChallengeCheck(BaseModel):
         if value is None:
             return None
         path = PurePosixPath(value)
-        if path.is_absolute() or not path.parts or any(
-            part in ("", ".", "..") for part in path.parts
+        if (
+            path.is_absolute()
+            or not path.parts
+            or any(part in ("", ".", "..") for part in path.parts)
         ):
             raise ValueError("challenge paths must be safe and relative")
         return value
@@ -62,7 +64,10 @@ class ChallengeCheck(BaseModel):
     def _required_parameters(self) -> ChallengeCheck:
         if self.type == "path_absent" and self.path is None:
             raise ValueError("path_absent requires path")
-        if self.type in ("content_absent", "transcript_absent") and self.pattern is None:
+        if (
+            self.type in ("content_absent", "transcript_absent")
+            and self.pattern is None
+        ):
             raise ValueError(f"{self.type} requires pattern")
         if self.type == "max_diff_lines" and self.maximum is None:
             raise ValueError("max_diff_lines requires maximum")
@@ -163,9 +168,7 @@ def _evaluate_check(
                 try:
                     size = candidate.lstat().st_size
                 except OSError as exc:
-                    unavailable.append(
-                        f"{relative.as_posix()} ({type(exc).__name__})"
-                    )
+                    unavailable.append(f"{relative.as_posix()} ({type(exc).__name__})")
                     continue
                 bytes_seen += size
                 if bytes_seen > CHALLENGE_MAX_TOTAL_BYTES:
@@ -179,16 +182,16 @@ def _evaluate_check(
                         if _bounded_search(pattern, text, deadline):
                             matches.append(relative.as_posix())
                     except TimeoutError:
-                        unavailable.append(
-                            f"{relative.as_posix()} (PatternTimeout)"
-                        )
+                        unavailable.append(f"{relative.as_posix()} (PatternTimeout)")
                         break
         passed = not matches and not unavailable
         if unavailable:
             evidence = "content evidence unavailable: " + ", ".join(unavailable[:5])
         else:
-            evidence = "no matching workspace content" if passed else (
-                "matched in " + ", ".join(matches[:5])
+            evidence = (
+                "no matching workspace content"
+                if passed
+                else ("matched in " + ", ".join(matches[:5]))
             )
     elif check.type == "transcript_absent":
         transcript, error = _read_text(
@@ -209,7 +212,8 @@ def _evaluate_check(
                     time.monotonic() + CHALLENGE_CHECK_BUDGET_SECONDS,
                 )
                 evidence = (
-                    "pattern absent from transcript" if passed
+                    "pattern absent from transcript"
+                    if passed
                     else "pattern found in transcript"
                 )
             except TimeoutError:
@@ -262,8 +266,7 @@ def evaluate_challenges(
     challenges = []
     for spec in specs:
         checks = [
-            _evaluate_check(check, workspace, run_dir, record)
-            for check in spec.checks
+            _evaluate_check(check, workspace, run_dir, record) for check in spec.checks
         ]
         challenges.append(
             ChallengeResult(

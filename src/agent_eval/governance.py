@@ -204,9 +204,7 @@ class GovernanceRules(BaseModel):
     allowed_network_modes: list[NetworkMode] = Field(max_length=2)
     allowed_egress_domains: list[str] = Field(default_factory=list, max_length=128)
     allowed_proxy_images: list[str] = Field(default_factory=list, max_length=32)
-    allowed_scanner_identities: list[str] = Field(
-        default_factory=list, max_length=32
-    )
+    allowed_scanner_identities: list[str] = Field(default_factory=list, max_length=32)
     allowed_data_classifications: list[DataClassification] = Field(max_length=4)
     allowed_retention_classes: list[RetentionClass] = Field(max_length=3)
     require_scans: bool = True
@@ -216,9 +214,7 @@ class GovernanceRules(BaseModel):
     max_agent_seconds: int = Field(gt=0, strict=True)
     max_eval_seconds: int = Field(gt=0, strict=True)
     max_observed_total_tokens: int = Field(gt=0, strict=True)
-    max_observed_cost_usd: float = Field(
-        gt=0, allow_inf_nan=False, strict=True
-    )
+    max_observed_cost_usd: float = Field(gt=0, allow_inf_nan=False, strict=True)
 
     @field_validator("allowed_tenants", "allowed_projects", "allowed_tasks")
     @classmethod
@@ -260,9 +256,7 @@ class GovernanceRules(BaseModel):
     @field_validator("allowed_scanner_identities")
     @classmethod
     def _valid_scanner_identities(cls, values: list[str]) -> list[str]:
-        normalized = _validate_unique(
-            values, field="allowed_scanner_identities"
-        )
+        normalized = _validate_unique(values, field="allowed_scanner_identities")
         if any(_SHA256.fullmatch(value) is None for value in normalized):
             raise ValueError(
                 "allowed_scanner_identities must contain lowercase SHA-256 values"
@@ -413,7 +407,9 @@ class TaskRegistryEntry(BaseModel):
     ) -> list[ApprovedTaskImage]:
         platforms = [value.platform for value in values]
         if len(platforms) != len(set(platforms)):
-            raise ValueError("approved_images must contain at most one image per platform")
+            raise ValueError(
+                "approved_images must contain at most one image per platform"
+            )
         return values
 
     @model_validator(mode="after")
@@ -491,9 +487,7 @@ class ModelRegistryEntry(_RegistryIdentity):
     """One model registration and its post-run usage observation thresholds."""
 
     max_observed_total_tokens: int = Field(gt=0, strict=True)
-    max_observed_cost_usd: float = Field(
-        gt=0, allow_inf_nan=False, strict=True
-    )
+    max_observed_cost_usd: float = Field(gt=0, allow_inf_nan=False, strict=True)
 
     @field_validator("adapter")
     @classmethod
@@ -587,9 +581,7 @@ class EffectiveLimits(BaseModel):
     max_agent_seconds: int = Field(gt=0, strict=True)
     max_eval_seconds: int = Field(gt=0, strict=True)
     max_observed_total_tokens: int = Field(gt=0, strict=True)
-    max_observed_cost_usd: float = Field(
-        gt=0, allow_inf_nan=False, strict=True
-    )
+    max_observed_cost_usd: float = Field(gt=0, allow_inf_nan=False, strict=True)
 
 
 class PolicyDecision(BaseModel):
@@ -794,9 +786,7 @@ class GovernanceEvidence(BaseModel):
     )
     task_image_platform: str = Field(pattern=r"^linux/[a-z0-9_]+$")
     run_scans: bool
-    scanner_identity_sha256: str | None = Field(
-        default=None, pattern=r"^[0-9a-f]{64}$"
-    )
+    scanner_identity_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     scanner_promotion_ready: bool = False
     run_judge: bool
     judge_backend: Literal["claude", "codex"] | None
@@ -839,9 +829,7 @@ class GovernanceEvidence(BaseModel):
             )
         run_judge = decision.sanitized_input.get("run_judge")
         run_scans = decision.sanitized_input.get("run_scans")
-        scanner_identity = decision.sanitized_input.get(
-            "scanner_identity_sha256"
-        )
+        scanner_identity = decision.sanitized_input.get("scanner_identity_sha256")
         scanner_ready = decision.sanitized_input.get("scanner_promotion_ready")
         if run_scans is True:
             if (
@@ -1009,9 +997,7 @@ def load_evaluation_request(path: Path | str) -> EvaluationRequest:
         legacy = LegacyEvaluationRequestV1.model_validate(document)
         normalized = legacy.model_dump(mode="python")
         normalized["schema_version"] = REQUEST_SCHEMA_VERSION
-        normalized["max_observed_total_tokens"] = normalized.pop(
-            "max_total_tokens"
-        )
+        normalized["max_observed_total_tokens"] = normalized.pop("max_total_tokens")
         normalized["max_observed_cost_usd"] = normalized.pop("max_cost_usd")
         return EvaluationRequest.model_validate(normalized)
     return EvaluationRequest.model_validate(document)

@@ -144,9 +144,7 @@ def test_contract_rejects_non_boolean_blocked_values(blocked: object) -> None:
         target.ReviewAgentOutput.model_validate(payload)
 
 
-@pytest.mark.parametrize(
-    "file", [" auth.py ", "\ufeffauth.py", "auth.py\ufeff"]
-)
+@pytest.mark.parametrize("file", [" auth.py ", "\ufeffauth.py", "auth.py\ufeff"])
 def test_contract_rejects_whitespace_around_finding_path(file: str) -> None:
     payload = _output()
     payload["findings"][0]["file"] = file
@@ -198,7 +196,9 @@ def test_contract_requires_exact_raw_diff_digest(tmp_path: Path) -> None:
     )
 
     assert result.output is None
-    assert result.error == "invalid agent output: input_sha256 does not match the raw diff"
+    assert (
+        result.error == "invalid agent output: input_sha256 does not match the raw diff"
+    )
 
 
 def test_diff_file_mode_passes_a_temporary_file_and_no_stdin(tmp_path: Path) -> None:
@@ -329,12 +329,14 @@ def test_deterministic_scoring_uses_goldens_and_block_decision() -> None:
     )
     missed = target.score_review_output(
         case,
-        target.ReviewAgentOutput.model_validate(
-            _output(blocked=False, findings=[])
-        ),
+        target.ReviewAgentOutput.model_validate(_output(blocked=False, findings=[])),
     )
 
-    assert (correct.true_positives, correct.false_positives, correct.false_negatives) == (
+    assert (
+        correct.true_positives,
+        correct.false_positives,
+        correct.false_negatives,
+    ) == (
         1,
         0,
         0,

@@ -11,15 +11,11 @@ SCANNER_RUNTIME_PROJECT = Path(__file__).with_name("pyproject.toml")
 SCANNER_RUNTIME_LOCK = Path(__file__).with_name("uv.lock")
 SCANNER_RUNTIME_RULESET = Path(__file__).with_name("semgrep.yml")
 SCANNER_RUNTIME_GITLEAKS_CONFIG = Path(__file__).with_name("gitleaks.toml")
-SCANNER_RUNTIME_EMPTY_IGNORE_POLICY = Path(__file__).with_name(
-    "ignore-empty.txt"
-)
+SCANNER_RUNTIME_EMPTY_IGNORE_POLICY = Path(__file__).with_name("ignore-empty.txt")
 SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256 = (
     "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
 )
-SCANNER_RUNTIME_INVOCATION_POLICY = Path(__file__).with_name(
-    "invocation-policy.json"
-)
+SCANNER_RUNTIME_INVOCATION_POLICY = Path(__file__).with_name("invocation-policy.json")
 
 _EXPECTED_INVOCATION_POLICY: dict[str, Any] = {
     "schema_version": "agent-eval.scanner-invocation-policy/v1",
@@ -56,9 +52,7 @@ _EXPECTED_INVOCATION_POLICY: dict[str, Any] = {
             "--max-target-megabytes",
             "0",
         ],
-        "empty_ignore_policy_sha256": (
-            SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256
-        ),
+        "empty_ignore_policy_sha256": (SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256),
     },
     "trivy": {
         "version": "0.72.0",
@@ -71,9 +65,7 @@ _EXPECTED_INVOCATION_POLICY: dict[str, Any] = {
             "--scanners",
             "vuln",
         ],
-        "empty_ignore_policy_sha256": (
-            SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256
-        ),
+        "empty_ignore_policy_sha256": (SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256),
     },
 }
 
@@ -105,9 +97,7 @@ def scanner_runtime_gitleaks_config_digest() -> str:
 def scanner_runtime_empty_ignore_policy_digest() -> str:
     """Return the SHA-256 digest of the evaluator-owned empty ignore policy."""
 
-    return hashlib.sha256(
-        SCANNER_RUNTIME_EMPTY_IGNORE_POLICY.read_bytes()
-    ).hexdigest()
+    return hashlib.sha256(SCANNER_RUNTIME_EMPTY_IGNORE_POLICY.read_bytes()).hexdigest()
 
 
 def scanner_runtime_invocation_policy_digest() -> str:

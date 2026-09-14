@@ -62,7 +62,9 @@ def task_search_paths() -> tuple[Path, ...]:
 
     configured = _configured_directory(TASKS_DIR_ENV)
     candidates = (
-        (configured, BUNDLED_TASKS_DIR) if configured is not None else (BUNDLED_TASKS_DIR,)
+        (configured, BUNDLED_TASKS_DIR)
+        if configured is not None
+        else (BUNDLED_TASKS_DIR,)
     )
     result: list[Path] = []
     seen: set[str] = set()
@@ -298,13 +300,9 @@ def ensure_private_file(path: Path | str, *, create: bool = True) -> Path:
     metadata = _metadata(target)
     if metadata is not None:
         if stat.S_ISLNK(metadata.st_mode):
-            raise UnsafeStatePathError(
-                f"state file must not be a symlink: {target}"
-            )
+            raise UnsafeStatePathError(f"state file must not be a symlink: {target}")
         if not stat.S_ISREG(metadata.st_mode):
-            raise UnsafeStatePathError(
-                f"state file must be a regular file: {target}"
-            )
+            raise UnsafeStatePathError(f"state file must be a regular file: {target}")
     elif not create:
         raise FileNotFoundError(target)
 
@@ -314,13 +312,13 @@ def ensure_private_file(path: Path | str, *, create: bool = True) -> Path:
     try:
         descriptor = os.open(target, flags, 0o600)
     except OSError as exc:
-        raise UnsafeStatePathError(f"could not open state file safely: {target}") from exc
+        raise UnsafeStatePathError(
+            f"could not open state file safely: {target}"
+        ) from exc
     try:
         opened = os.fstat(descriptor)
         if not stat.S_ISREG(opened.st_mode):
-            raise UnsafeStatePathError(
-                f"state file must be a regular file: {target}"
-            )
+            raise UnsafeStatePathError(f"state file must be a regular file: {target}")
         if stat.S_IMODE(opened.st_mode) != 0o600:
             os.fchmod(descriptor, 0o600)
     finally:

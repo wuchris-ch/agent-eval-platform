@@ -385,9 +385,7 @@ def test_parse_junit_missing_is_infra_error(tmp_path):
         ),
     ],
 )
-def test_parse_junit_rejects_invalid_structure_and_counts(
-    tmp_path, contents, error
-):
+def test_parse_junit_rejects_invalid_structure_and_counts(tmp_path, contents, error):
     junit = tmp_path / "junit.xml"
     junit.write_text(contents)
 
@@ -418,8 +416,7 @@ def test_parse_junit_fails_closed_for_unreadable_or_unicode_invalid_artifacts(
 def test_parse_junit_fails_closed_for_unknown_xml_encoding(tmp_path):
     junit = tmp_path / "junit.xml"
     junit.write_bytes(
-        b'<?xml version="1.0" encoding="x-unknown"?>'
-        b'<testsuite tests="1"/>'
+        b'<?xml version="1.0" encoding="x-unknown"?><testsuite tests="1"/>'
     )
 
     result = parse_junit(junit, command_exit_code=0)
@@ -451,9 +448,7 @@ def test_parse_junit_requires_successful_command_and_a_passed_test(tmp_path):
     assert not all_skipped.resolved
 
 
-def test_parse_junit_rejects_symlink_and_oversized_artifacts(
-    monkeypatch, tmp_path
-):
+def test_parse_junit_rejects_symlink_and_oversized_artifacts(monkeypatch, tmp_path):
     target = tmp_path / "target.xml"
     target.write_text('<testsuite tests="1"/>')
     linked = tmp_path / "junit.xml"
@@ -489,15 +484,14 @@ def test_parse_junit_rejects_symlink_and_oversized_artifacts(
             "MAX_JUNIT_FAILURES",
             1,
             '<testsuite tests="2" failures="1"><testcase name="one">'
-            "<failure/></testcase><testcase name=\"two\"><failure/>"
+            '<failure/></testcase><testcase name="two"><failure/>'
             "</testcase></testsuite>",
             "failed testcase elements exceed",
         ),
         (
             "MAX_JUNIT_IDENTITY_CHARS",
             3,
-            '<testsuite tests="1"><testcase classname="case" name="long"/>'
-            "</testsuite>",
+            '<testsuite tests="1"><testcase classname="case" name="long"/></testsuite>',
             "testcase 'classname' exceeds",
         ),
     ],
@@ -546,8 +540,7 @@ def test_parse_coverage_rejects_symlink_oversize_and_duplicate_keys(
     monkeypatch.setattr(evaluator_tests, "MAX_COVERAGE_BYTES", 1_024)
     duplicate = tmp_path / "duplicate.json"
     duplicate.write_text(
-        '{"totals": {"percent_covered": 10}, '
-        '"totals": {"percent_covered": 90}}'
+        '{"totals": {"percent_covered": 10}, "totals": {"percent_covered": 90}}'
     )
     duplicate_result = parse_coverage_artifact(duplicate)
     assert "duplicate JSON key" in (duplicate_result.integrity_error or "")
@@ -592,14 +585,26 @@ def test_claude_transcript_parsing(tmp_path):
     transcript = tmp_path / "transcript.jsonl"
     events = [
         {"type": "system", "subtype": "init", "model": "claude-haiku-4-5"},
-        {"type": "assistant", "message": {"content": [
-            {"type": "text", "text": "editing"},
-            {"type": "tool_use", "name": "Edit", "input": {}}]}},
-        {"type": "assistant", "message": {"content": [
-            {"type": "tool_use", "name": "Bash", "input": {}}]}},
-        {"type": "result", "subtype": "success", "num_turns": 4,
-         "total_cost_usd": 0.0123,
-         "usage": {"input_tokens": 1000, "output_tokens": 250}},
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {"type": "text", "text": "editing"},
+                    {"type": "tool_use", "name": "Edit", "input": {}},
+                ]
+            },
+        },
+        {
+            "type": "assistant",
+            "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {}}]},
+        },
+        {
+            "type": "result",
+            "subtype": "success",
+            "num_turns": 4,
+            "total_cost_usd": 0.0123,
+            "usage": {"input_tokens": 1000, "output_tokens": 250},
+        },
     ]
     transcript.write_text("\n".join(json.dumps(e) for e in events))
     m = ClaudeCodeAdapter().parse_transcript(transcript)
@@ -623,11 +628,20 @@ def test_codex_transcript_parsing(tmp_path):
     transcript = tmp_path / "transcript.jsonl"
     events = [
         {"type": "thread.started", "thread_id": "t1"},
-        {"type": "item.completed", "item": {"type": "command_execution", "command": "ls"}},
+        {
+            "type": "item.completed",
+            "item": {"type": "command_execution", "command": "ls"},
+        },
         {"type": "item.completed", "item": {"type": "file_change"}},
         {"type": "item.completed", "item": {"type": "agent_message", "text": "done"}},
-        {"type": "turn.completed", "usage": {"input_tokens": 900, "cached_input_tokens": 100,
-                                             "output_tokens": 200}},
+        {
+            "type": "turn.completed",
+            "usage": {
+                "input_tokens": 900,
+                "cached_input_tokens": 100,
+                "output_tokens": 200,
+            },
+        },
     ]
     transcript.write_text("\n".join(json.dumps(e) for e in events))
     m = CodexAdapter().parse_transcript(transcript)

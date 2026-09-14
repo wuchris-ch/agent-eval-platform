@@ -12,15 +12,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-AssessmentSource = Literal[
-    "test", "scanner", "judge", "challenge", "policy", "outcome"
-]
+AssessmentSource = Literal["test", "scanner", "judge", "challenge", "policy", "outcome"]
 AssessmentStatus = Literal[
     "observed", "passed", "failed", "error", "skipped", "unavailable"
 ]
-AssessmentDirection = Literal[
-    "higher_is_better", "lower_is_better", "neutral"
-]
+AssessmentDirection = Literal["higher_is_better", "lower_is_better", "neutral"]
 AssessmentValueType = Literal["numeric", "boolean", "categorical", "text"]
 
 _SAFE_ID = re.compile(r"^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$")
@@ -109,7 +105,9 @@ class AssessmentValue(BaseModel):
         }
         populated = [name for name, value in fields.items() if value is not None]
         if populated != [self.type]:
-            raise ValueError("assessment value type must match its only populated value")
+            raise ValueError(
+                "assessment value type must match its only populated value"
+            )
         return self
 
 
@@ -132,9 +130,7 @@ class Assessment(BaseModel):
 
     model_config = _strict_model()
 
-    schema_version: Literal["agent-eval.assessment/v1"] = (
-        "agent-eval.assessment/v1"
-    )
+    schema_version: Literal["agent-eval.assessment/v1"] = "agent-eval.assessment/v1"
     assessment_id: str = Field(pattern=r"^[0-9a-f]{64}$")
     run_id: str
     name: str
@@ -189,14 +185,17 @@ class Assessment(BaseModel):
         if self.range_min is not None and self.range_max is not None:
             if self.range_min > self.range_max:
                 raise ValueError("assessment range minimum exceeds maximum")
-        numeric = self.value.numeric if self.value and self.value.type == "numeric" else None
+        numeric = (
+            self.value.numeric if self.value and self.value.type == "numeric" else None
+        )
         if numeric is not None:
             if self.range_min is not None and numeric < self.range_min:
                 raise ValueError("numeric assessment is below its declared range")
             if self.range_max is not None and numeric > self.range_max:
                 raise ValueError("numeric assessment is above its declared range")
         elif any(
-            item is not None for item in (self.range_min, self.range_max, self.threshold)
+            item is not None
+            for item in (self.range_min, self.range_max, self.threshold)
         ):
             raise ValueError("range and threshold require a numeric assessment")
         if self.threshold is not None:
@@ -259,9 +258,7 @@ def _identity_text(value: object | None) -> str | None:
 def _scanner_config_digest(record: Any, scanner: str) -> str | None:
     config = record.scans.scanner_configs.get(scanner)
     assurance = record.scans.scanner_assurance
-    assurance_identity = (
-        assurance.identity_sha256 if assurance is not None else None
-    )
+    assurance_identity = assurance.identity_sha256 if assurance is not None else None
     if config is None and assurance_identity is None:
         return None
     return _digest_json(
@@ -345,9 +342,7 @@ def _assessment(
         observed_at=finished_at,
         error=error,
     )
-    return draft.model_copy(
-        update={"assessment_id": expected_assessment_id(draft)}
-    )
+    return draft.model_copy(update={"assessment_id": expected_assessment_id(draft)})
 
 
 def _bind_dataset(assessment: Assessment, dataset: Any | None) -> Assessment:
@@ -362,9 +357,7 @@ def _bind_dataset(assessment: Assessment, dataset: Any | None) -> Assessment:
         }
     )
     bound = Assessment.model_validate(payload)
-    return bound.model_copy(
-        update={"assessment_id": expected_assessment_id(bound)}
-    )
+    return bound.model_copy(update={"assessment_id": expected_assessment_id(bound)})
 
 
 def derive_assessments(record: Any, task: Any) -> list[Assessment]:
@@ -693,9 +686,7 @@ def derive_assessments(record: Any, task: Any) -> list[Assessment]:
                 ),
                 value=_categorical(
                     outcome_status,
-                    known_values=frozenset(
-                        {"accepted", "rejected", "infra_error"}
-                    ),
+                    known_values=frozenset({"accepted", "rejected", "infra_error"}),
                 ),
                 evaluator=EvaluatorIdentity(
                     name="outcome",

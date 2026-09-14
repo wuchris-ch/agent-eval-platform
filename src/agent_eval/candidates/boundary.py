@@ -158,9 +158,7 @@ def execute(
         from datetime import datetime
 
         started = datetime.fromisoformat(state["StartedAt"].replace("Z", "+00:00"))
-        if (
-            datetime.now(UTC) - started
-        ).total_seconds() > suite.timeout_seconds:
+        if (datetime.now(UTC) - started).total_seconds() > suite.timeout_seconds:
             docker("kill", name)
             existing = inspect(name)
             if existing["State"]["Running"]:

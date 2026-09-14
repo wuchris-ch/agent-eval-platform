@@ -568,11 +568,7 @@ def _event_digest(event: AuditEvent) -> str:
 
 
 def _utc_timestamp() -> str:
-    return (
-        datetime.now(UTC)
-        .isoformat(timespec="microseconds")
-        .replace("+00:00", "Z")
-    )
+    return datetime.now(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 class AuditChain:

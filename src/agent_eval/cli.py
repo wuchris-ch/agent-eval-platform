@@ -204,8 +204,10 @@ def state_migrate(
 def tasks_list() -> None:
     """List available tasks."""
     for task in list_tasks():
-        console.print(f"[bold]{task.id}[/bold]  ({task.language}, "
-                      f"tags: {', '.join(task.tags) or '-'})")
+        console.print(
+            f"[bold]{task.id}[/bold]  ({task.language}, "
+            f"tags: {', '.join(task.tags) or '-'})"
+        )
 
 
 @tasks_app.command("validate")
@@ -216,11 +218,15 @@ def tasks_validate(task_id: str) -> None:
     record = validate_task(task)
     c = record.correctness
     if c.resolved:
-        console.print(f"[green]task {task_id} valid[/green]: oracle passes "
-                      f"{c.passed}/{c.total} hidden tests")
+        console.print(
+            f"[green]task {task_id} valid[/green]: oracle passes "
+            f"{c.passed}/{c.total} hidden tests"
+        )
     else:
-        console.print(f"[red]task {task_id} INVALID[/red]: {c.passed}/{c.total} passed, "
-                      f"failures: {c.failures or c.infra_error}")
+        console.print(
+            f"[red]task {task_id} INVALID[/red]: {c.passed}/{c.total} passed, "
+            f"failures: {c.failures or c.infra_error}"
+        )
         console.print(f"see {record.run_dir}/eval-output.txt")
         raise typer.Exit(1)
 
@@ -404,35 +410,54 @@ def _metric(value: float | None) -> str:
 @app.command("benchmark-review")
 def benchmark_review(
     manifest: Path = typer.Option(
-        ..., "--manifest", exists=True, dir_okay=False,
+        ...,
+        "--manifest",
+        exists=True,
+        dir_okay=False,
         help="Gold-labeled review benchmark YAML manifest.",
     ),
     reviews: Path = typer.Option(
-        ..., "--reviews", file_okay=False,
+        ...,
+        "--reviews",
+        file_okay=False,
         help="Directory containing <case-id>.json reviewer outputs.",
     ),
     out: Path = typer.Option(
-        None, "--out", dir_okay=False,
+        None,
+        "--out",
+        dir_okay=False,
         help="Write item-level benchmark results as JSON.",
     ),
     min_precision: float = typer.Option(
-        None, "--min-precision", min=0.0, max=1.0,
+        None,
+        "--min-precision",
+        min=0.0,
+        max=1.0,
         help="Fail if aggregate precision is below this value.",
     ),
     min_recall: float = typer.Option(
-        None, "--min-recall", min=0.0, max=1.0,
+        None,
+        "--min-recall",
+        min=0.0,
+        max=1.0,
         help="Fail if aggregate recall is below this value.",
     ),
     min_critical_recall: float = typer.Option(
-        None, "--min-critical-recall", min=0.0, max=1.0,
+        None,
+        "--min-critical-recall",
+        min=0.0,
+        max=1.0,
         help="Fail if blocker/major recall is below this value.",
     ),
     max_fp_per_case: float = typer.Option(
-        None, "--max-fp-per-case", min=0.0,
+        None,
+        "--max-fp-per-case",
+        min=0.0,
         help="Fail if average false positives per case exceeds this value.",
     ),
     fail_on_missing: bool = typer.Option(
-        True, "--fail-on-missing/--allow-missing",
+        True,
+        "--fail-on-missing/--allow-missing",
         help="Fail the regression gate when a case has no complete reviewer output.",
     ),
 ) -> None:
@@ -473,10 +498,7 @@ def benchmark_review(
     table.add_row("clean-case accuracy", _metric(metrics.clean_case_accuracy))
     console.print(table)
 
-    unavailable = [
-        case.case_id for case in result.cases
-        if case.status != "scored"
-    ]
+    unavailable = [case.case_id for case in result.cases if case.status != "scored"]
     if unavailable:
         console.print(
             f"[yellow]{len(unavailable)} missing or incomplete reviewer "
@@ -517,8 +539,7 @@ def benchmark_review(
         )
         if failed:
             failures.append(
-                f"{name} {_metric(value)} does not meet "
-                f"{direction} {threshold:.3f}"
+                f"{name} {_metric(value)} does not meet {direction} {threshold:.3f}"
             )
     if failures:
         for failure in failures:
@@ -529,7 +550,10 @@ def benchmark_review(
 @app.command("benchmark-experiment")
 def benchmark_experiment(
     experiment: Path = typer.Option(
-        ..., "--experiment", exists=True, dir_okay=False,
+        ...,
+        "--experiment",
+        exists=True,
+        dir_okay=False,
         help="Versioned repeated reviewer experiment YAML.",
     ),
     out: Path = typer.Option(None, "--out", dir_okay=False),
@@ -548,7 +572,18 @@ def benchmark_experiment(
         console.print(f"[red]could not run reviewer experiment: {exc}[/red]")
         raise typer.Exit(1) from None
     table = Table(title="Reviewer experiment", show_edge=False)
-    for column in ("system", "mode", "trials", "F1", "FP/case", "latency", "tokens", "cost", "stable", "budget"):
+    for column in (
+        "system",
+        "mode",
+        "trials",
+        "F1",
+        "FP/case",
+        "latency",
+        "tokens",
+        "cost",
+        "stable",
+        "budget",
+    ):
         table.add_column(column)
     for system in result.systems:
         stats = system.statistics
@@ -594,40 +629,95 @@ def doctor() -> None:
     import shutil as sh
 
     checks = [
-        ("git", sh.which("git") is not None, "task and corpus versioning", "xcode-select --install"),
-        ("uv", sh.which("uv") is not None, "locked ruff + semgrep runtime",
-         "brew install uv"),
-        ("codex CLI", sh.which("codex") is not None, "codex agent target + task judge",
-         "npm i -g @openai/codex && codex login"),
-        ("codex login", (Path.home() / ".codex" / "auth.json").is_file(),
-         "codex auth inside sandbox pods", "codex login"),
-        ("ANTHROPIC_API_KEY", bool(os.environ.get("ANTHROPIC_API_KEY")),
-         "reusable claude fallback + claude judge", "export ANTHROPIC_API_KEY=..."),
-        ("MODEL_GATEWAY_API_KEY", bool(os.environ.get("MODEL_GATEWAY_API_KEY")),
-         "optional DeepEval GEval judge", "export MODEL_GATEWAY_API_KEY=..."),
-        ("AGENT_EVAL_JUDGE_MODEL", bool(os.environ.get("AGENT_EVAL_JUDGE_MODEL")),
-         "optional DeepEval GEval judge", "export AGENT_EVAL_JUDGE_MODEL=..."),
-        ("credential broker", bool(os.environ.get("AGENT_EVAL_CREDENTIAL_COMMAND")),
-         "provider-minted per-trial credentials (recommended)",
-         "export AGENT_EVAL_CREDENTIAL_COMMAND='broker-command'"),
-        ("docker", sh.which("docker") is not None, "agent benchmark mode (k3s)",
-         "brew install colima docker && colima start"),
-        ("kubectl", sh.which("kubectl") is not None, "agent benchmark mode (k3s)",
-         "brew install kubectl"),
-        ("k3d", sh.which("k3d") is not None, "agent benchmark mode (k3s)",
-         "brew install k3d"),
-        ("gitleaks", sh.which("gitleaks") is not None,
-         "secret gate for task evaluation",
-         "brew install gitleaks"),
-        ("trivy", sh.which("trivy") is not None, "dependency vuln scanning (optional)",
-         "brew install trivy"),
+        (
+            "git",
+            sh.which("git") is not None,
+            "task and corpus versioning",
+            "xcode-select --install",
+        ),
+        (
+            "uv",
+            sh.which("uv") is not None,
+            "locked ruff + semgrep runtime",
+            "brew install uv",
+        ),
+        (
+            "codex CLI",
+            sh.which("codex") is not None,
+            "codex agent target + task judge",
+            "npm i -g @openai/codex && codex login",
+        ),
+        (
+            "codex login",
+            (Path.home() / ".codex" / "auth.json").is_file(),
+            "codex auth inside sandbox pods",
+            "codex login",
+        ),
+        (
+            "ANTHROPIC_API_KEY",
+            bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "reusable claude fallback + claude judge",
+            "export ANTHROPIC_API_KEY=...",
+        ),
+        (
+            "MODEL_GATEWAY_API_KEY",
+            bool(os.environ.get("MODEL_GATEWAY_API_KEY")),
+            "optional DeepEval GEval judge",
+            "export MODEL_GATEWAY_API_KEY=...",
+        ),
+        (
+            "AGENT_EVAL_JUDGE_MODEL",
+            bool(os.environ.get("AGENT_EVAL_JUDGE_MODEL")),
+            "optional DeepEval GEval judge",
+            "export AGENT_EVAL_JUDGE_MODEL=...",
+        ),
+        (
+            "credential broker",
+            bool(os.environ.get("AGENT_EVAL_CREDENTIAL_COMMAND")),
+            "provider-minted per-trial credentials (recommended)",
+            "export AGENT_EVAL_CREDENTIAL_COMMAND='broker-command'",
+        ),
+        (
+            "docker",
+            sh.which("docker") is not None,
+            "agent benchmark mode (k3s)",
+            "brew install colima docker && colima start",
+        ),
+        (
+            "kubectl",
+            sh.which("kubectl") is not None,
+            "agent benchmark mode (k3s)",
+            "brew install kubectl",
+        ),
+        (
+            "k3d",
+            sh.which("k3d") is not None,
+            "agent benchmark mode (k3s)",
+            "brew install k3d",
+        ),
+        (
+            "gitleaks",
+            sh.which("gitleaks") is not None,
+            "secret gate for task evaluation",
+            "brew install gitleaks",
+        ),
+        (
+            "trivy",
+            sh.which("trivy") is not None,
+            "dependency vuln scanning (optional)",
+            "brew install trivy",
+        ),
     ]
     table = Table(title="agent-eval doctor")
     for col in ("check", "status", "unlocks", "fix"):
         table.add_column(col)
     for name, ok, unlocks, fix in checks:
-        table.add_row(name, "[green]ok[/green]" if ok else "[red]missing[/red]",
-                      unlocks, "" if ok else fix)
+        table.add_row(
+            name,
+            "[green]ok[/green]" if ok else "[red]missing[/red]",
+            unlocks,
+            "" if ok else fix,
+        )
     console.print(table)
     console.print(
         "\n`agent-eval eval-review-agent` needs a separately installed target "
@@ -650,8 +740,9 @@ def evaluate(
     """Evaluate an already-produced workspace (eval-only mode)."""
     task = load_task(task_id)
     cluster_mod.ensure_cluster()
-    record = evaluate_workspace(task, workspace.resolve(),
-                                run_scans=scan, run_judge=judge)
+    record = evaluate_workspace(
+        task, workspace.resolve(), run_scans=scan, run_judge=judge
+    )
     print_run_detail(record.run_id)
     print_runs_table(task_id, limit=5)
     if gate and (record.outcome is None or not record.outcome.accepted):
@@ -766,9 +857,7 @@ def run(
             governance_request = load_evaluation_request(governance_request_path)
             governance_bundle = load_governance_bundle(governance_policy_path)
             selected_model = model or governance_request.model
-            effective_domains, proxy_image = _governance_network_evidence(
-                task, agent
-            )
+            effective_domains, proxy_image = _governance_network_evidence(task, agent)
             effective_judge = judge and task.judge.enabled
             judge_backend, judge_model = _governance_judge_evidence(
                 task, run_judge=effective_judge
@@ -920,8 +1009,7 @@ def compare(
     ]
     if not include_controls:
         records = [
-            record for record in records
-            if record.agent not in {"external", "oracle"}
+            record for record in records if record.agent not in {"external", "oracle"}
         ]
     if not records:
         console.print("[yellow]no runs recorded yet[/yellow]")
@@ -929,8 +1017,17 @@ def compare(
     result = compare_agents(records)
     table = Table(title="Coding-agent comparison", show_edge=False)
     for column in (
-        "cohort", "agent/model", "n", "resolved", "accepted", "95% CI", "infra",
-        "time p50/p95", "tokens p50", "cost p50", "judge p50",
+        "cohort",
+        "agent/model",
+        "n",
+        "resolved",
+        "accepted",
+        "95% CI",
+        "infra",
+        "time p50/p95",
+        "tokens p50",
+        "cost p50",
+        "judge p50",
     ):
         table.add_column(column)
     for summary in result.summaries:
@@ -955,10 +1052,7 @@ def compare(
                 if summary.accepted_rate is not None
                 else "n/a"
             ),
-            (
-                f"{interval.lower:.1%}..{interval.upper:.1%}"
-                if interval else "n/a"
-            ),
+            (f"{interval.lower:.1%}..{interval.upper:.1%}" if interval else "n/a"),
             f"{summary.infrastructure_failure_rate:.1%}",
             f"{_metric(summary.wall_time_s.median)}/{_metric(summary.wall_time_s.p95)}",
             _metric(summary.total_tokens.median),
@@ -1654,9 +1748,7 @@ def verify_run(
                             f"{label} digest evidence"
                         )
         if disk_record.correctness.evaluation_mode != "isolated-black-box":
-            failures.append(
-                "governed correctness evidence is not isolated-black-box"
-            )
+            failures.append("governed correctness evidence is not isolated-black-box")
         scanner_error = _governed_scanner_assurance_error(
             disk_record,
             require_evidence=(
@@ -1875,12 +1967,8 @@ def verify_run(
 
     recomputed_assessments = derive_assessments(disk_record, effective_task)
     if [
-        assessment.model_dump(mode="json")
-        for assessment in disk_record.assessments
-    ] != [
-        assessment.model_dump(mode="json")
-        for assessment in recomputed_assessments
-    ]:
+        assessment.model_dump(mode="json") for assessment in disk_record.assessments
+    ] != [assessment.model_dump(mode="json") for assessment in recomputed_assessments]:
         failures.append(
             "normalized assessment envelope does not recompute from run evidence"
         )
@@ -1906,7 +1994,9 @@ def verify_run(
 def report(
     task_id: str = typer.Option(None, "--task"),
     run_id: str = typer.Option(None, "--run"),
-    markdown: Path = typer.Option(None, "--markdown", help="Write a markdown report here."),
+    markdown: Path = typer.Option(
+        None, "--markdown", help="Write a markdown report here."
+    ),
     limit: int = typer.Option(50, "--limit"),
 ) -> None:
     """Show recorded runs, one run's full results, or export markdown."""

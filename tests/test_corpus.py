@@ -98,9 +98,7 @@ def test_reproducer_environment_does_not_forward_host_secrets(monkeypatch, tmp_p
         ),
     ]
 
-    returncode, output, error = corpus_module._run_reproducer_command(
-        command, tmp_path
-    )
+    returncode, output, error = corpus_module._run_reproducer_command(command, tmp_path)
 
     assert returncode == 0, (output, error)
     assert error is None
@@ -117,9 +115,7 @@ def test_reproducer_output_is_bounded(monkeypatch, tmp_path, stream, program):
     monkeypatch.setattr(corpus_module, "REPRODUCER_OUTPUT_LIMIT_BYTES", 128)
     command = [sys.executable, "-c", program]
 
-    returncode, output, error = corpus_module._run_reproducer_command(
-        command, tmp_path
-    )
+    returncode, output, error = corpus_module._run_reproducer_command(command, tmp_path)
 
     assert returncode is None
     assert len(output.encode("utf-8")) <= corpus_module.REPRODUCER_DETAIL_LIMIT_BYTES
@@ -130,9 +126,7 @@ def test_reproducer_timeout_is_enforced(monkeypatch, tmp_path):
     monkeypatch.setattr(corpus_module, "REPRODUCER_TIMEOUT_SECONDS", 0.05)
     command = [sys.executable, "-c", "import time; time.sleep(5)"]
 
-    returncode, output, error = corpus_module._run_reproducer_command(
-        command, tmp_path
-    )
+    returncode, output, error = corpus_module._run_reproducer_command(command, tmp_path)
 
     assert returncode is None
     assert output == ""
@@ -159,9 +153,7 @@ def test_reproducer_failure_terminates_process_group_once(monkeypatch, tmp_path)
     assert calls == 1
 
 
-def test_reproducer_timeout_kills_descendants_after_leader_exits(
-    monkeypatch, tmp_path
-):
+def test_reproducer_timeout_kills_descendants_after_leader_exits(monkeypatch, tmp_path):
     monkeypatch.setattr(corpus_module, "REPRODUCER_TIMEOUT_SECONDS", 1)
     pid_file = tmp_path / "child.pid"
     child_program = "import time; time.sleep(30)"
@@ -254,7 +246,9 @@ def test_corpus_rejects_rehashed_diff_that_does_not_match_base_and_head(tmp_path
     diff = copied / "cases" / "auth-bypass" / "change.diff"
     old_digest = corpus_module._sha256(diff)
     diff.write_text(
-        diff.read_text(encoding="utf-8").replace("+    return True", "+    return False"),
+        diff.read_text(encoding="utf-8").replace(
+            "+    return True", "+    return False"
+        ),
         encoding="utf-8",
     )
     manifest = copied / "corpus.yaml"
@@ -431,9 +425,7 @@ def test_corpus_rejects_diff_outside_case_subtree_even_after_mutation(tmp_path):
         validate_corpus(manifest, execute=False)
 
 
-def test_corpus_does_not_execute_when_static_validation_fails(
-    monkeypatch, tmp_path
-):
+def test_corpus_does_not_execute_when_static_validation_fails(monkeypatch, tmp_path):
     copied = tmp_path / "corpus"
     shutil.copytree(CORPUS.parent, copied)
     target = copied / "cases" / "auth-bypass" / "head" / "auth.py"
@@ -477,7 +469,9 @@ def test_corpus_rejects_unlisted_case_files(tmp_path):
     result = validate_corpus(copied / "corpus.yaml", execute=False)
 
     assert not result.valid
-    assert any("unlisted artifact" in error and "helper.py" in error for error in result.errors)
+    assert any(
+        "unlisted artifact" in error and "helper.py" in error for error in result.errors
+    )
 
 
 def test_corpus_rejects_symlinks_in_case_subtree(tmp_path):
@@ -502,9 +496,7 @@ def test_corpus_rejects_symlinked_cases_ancestor(tmp_path):
     result = validate_corpus(copied / "corpus.yaml", execute=False)
 
     assert not result.valid
-    assert any(
-        "symlink is not allowed: cases" in error for error in result.errors
-    )
+    assert any("symlink is not allowed: cases" in error for error in result.errors)
 
 
 def test_faulty_case_requires_nonzero_head_exit(tmp_path):

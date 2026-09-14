@@ -128,9 +128,7 @@ def _create_runtime() -> _OtelRuntime:
         resource_attributes["deployment.environment.name"] = environment
     resource = modules["Resource"](attributes=resource_attributes)
     provider = modules["TracerProvider"](resource=resource)
-    provider.add_span_processor(
-        modules["BatchSpanProcessor"](exporter_type())
-    )
+    provider.add_span_processor(modules["BatchSpanProcessor"](exporter_type()))
     tracer = provider.get_tracer(
         "agent_eval.observability",
         __version__,

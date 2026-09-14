@@ -40,9 +40,7 @@ def _expected(
 
 def _write_predictions(reviews_dir, case_id: str, findings: list[dict]) -> None:
     reviews_dir.mkdir(exist_ok=True)
-    (reviews_dir / f"{case_id}.json").write_text(
-        json.dumps({"findings": findings})
-    )
+    (reviews_dir / f"{case_id}.json").write_text(json.dumps({"findings": findings}))
 
 
 def test_strict_matching_uses_severity_before_pairing_overlapping_findings():
@@ -95,9 +93,7 @@ cases:
     with pytest.raises(ValidationError, match="greater than or equal to 0"):
         BenchmarkCase(id="bad-lines", changed_lines=-1)
     with pytest.raises(ValidationError, match="duplicate case ids"):
-        BenchmarkManifest(
-            cases=[BenchmarkCase(id="same"), BenchmarkCase(id="same")]
-        )
+        BenchmarkManifest(cases=[BenchmarkCase(id="same"), BenchmarkCase(id="same")])
     with pytest.raises(ValidationError, match="letters, digits"):
         BenchmarkCase(id="../outside")
 
@@ -278,9 +274,7 @@ cases:
 
 
 @pytest.mark.parametrize("duplicate_source", ["manifest", "prediction"])
-def test_benchmark_cli_rejects_duplicate_mapping_keys(
-    tmp_path, duplicate_source
-):
+def test_benchmark_cli_rejects_duplicate_mapping_keys(tmp_path, duplicate_source):
     manifest = tmp_path / "benchmark.yaml"
     line_start = (
         "        line_start: 81\n        line_start: 12"
@@ -382,9 +376,7 @@ def test_benchmark_cli_rejects_non_repository_paths(
             }
         )
     )
-    prediction_path = (
-        invalid_path if invalid_source == "prediction" else "src/app.py"
-    )
+    prediction_path = invalid_path if invalid_source == "prediction" else "src/app.py"
     reviews = tmp_path / "reviews"
     _write_predictions(
         reviews,

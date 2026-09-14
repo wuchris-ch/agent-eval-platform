@@ -322,8 +322,7 @@ class _StreamingJSONUnescaper:
                     continue
                 break
             if any(
-                byte not in _ASCII_HEX
-                for byte in candidate[cursor + 2 : cursor + 6]
+                byte not in _ASCII_HEX for byte in candidate[cursor + 2 : cursor + 6]
             ):
                 output.append(candidate[cursor])
                 cursor += 1
@@ -339,12 +338,9 @@ class _StreamingJSONUnescaper:
                         continue
                     break
                 low_start = cursor + 6
-                if (
-                    candidate[low_start : low_start + 2] != b"\\u"
-                    or any(
-                        byte not in _ASCII_HEX
-                        for byte in candidate[low_start + 2 : low_start + 6]
-                    )
+                if candidate[low_start : low_start + 2] != b"\\u" or any(
+                    byte not in _ASCII_HEX
+                    for byte in candidate[low_start + 2 : low_start + 6]
                 ):
                     output.extend(candidate[cursor : cursor + 6])
                     cursor += 6
@@ -354,11 +350,7 @@ class _StreamingJSONUnescaper:
                     output.extend(candidate[cursor : cursor + 6])
                     cursor += 6
                     continue
-                codepoint = (
-                    0x10000
-                    + ((codepoint - 0xD800) << 10)
-                    + (low - 0xDC00)
-                )
+                codepoint = 0x10000 + ((codepoint - 0xD800) << 10) + (low - 0xDC00)
                 consumed = 12
             elif 0xDC00 <= codepoint <= 0xDFFF:
                 output.extend(candidate[cursor : cursor + 6])
@@ -572,8 +564,7 @@ class CredentialRedactor:
             for _ in range(MAX_JSON_ESCAPE_DECODE_ROUNDS + 1)
         ]
         decoders = [
-            _StreamingJSONUnescaper()
-            for _ in range(MAX_JSON_ESCAPE_DECODE_ROUNDS + 1)
+            _StreamingJSONUnescaper() for _ in range(MAX_JSON_ESCAPE_DECODE_ROUNDS + 1)
         ]
         read_bytes = max(chunk_bytes, self.maximum_pattern_bytes)
 
@@ -654,7 +645,11 @@ class CredentialMaterial:
             if not _SECRET_KEY.fullmatch(key):
                 raise ValueError(f"invalid Kubernetes Secret key {key!r}")
             pure = PurePosixPath(path)
-            if pure.is_absolute() or len(pure.parts) != 1 or pure.name in ("", ".", ".."):
+            if (
+                pure.is_absolute()
+                or len(pure.parts) != 1
+                or pure.name in ("", ".", "..")
+            ):
                 raise ValueError("credential file paths must be safe basenames")
 
     @property
@@ -783,7 +778,9 @@ def _from_broker(
         env_keys.append(key)
     for index, (path, value) in enumerate(raw_files.items()):
         if not isinstance(path, str) or not isinstance(value, str) or not value:
-            raise ValueError("credential broker files must map names to non-empty strings")
+            raise ValueError(
+                "credential broker files must map names to non-empty strings"
+            )
         secret_key = f"broker-file-{index}"
         values[secret_key] = value
         file_items[secret_key] = path
@@ -814,9 +811,7 @@ def load_trial_credentials(
 
     broker = os.environ.get("AGENT_EVAL_CREDENTIAL_COMMAND")
     if broker:
-        return _from_broker(
-            broker, agent, minimum_ttl_seconds=minimum_ttl_seconds
-        )
+        return _from_broker(broker, agent, minimum_ttl_seconds=minimum_ttl_seconds)
 
     if agent == "claude-code":
         key = os.environ.get("ANTHROPIC_API_KEY")

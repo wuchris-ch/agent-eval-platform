@@ -526,9 +526,7 @@ def load_experiment(path: str | Path) -> ExperimentSpec:
     benchmark = _resolve_inside(root, spec.benchmark)
     if not benchmark.is_file():
         raise ValueError(f"benchmark file not found: {spec.benchmark}")
-    benchmark_bytes = _stable_file_bytes(
-        benchmark, maximum_bytes=MAX_BENCHMARK_BYTES
-    )
+    benchmark_bytes = _stable_file_bytes(benchmark, maximum_bytes=MAX_BENCHMARK_BYTES)
     if hashlib.sha256(benchmark_bytes).hexdigest() != spec.benchmark_sha256:
         raise ValueError("benchmark SHA-256 does not match the experiment spec")
     manifest = parse_manifest_bytes(benchmark_bytes)

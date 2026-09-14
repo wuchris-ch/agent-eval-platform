@@ -38,9 +38,11 @@ class CodexAdapter:
             raise RuntimeError("projected Codex credential is unavailable in the pod")
 
     def build_command(self, model: str | None = None) -> str:
-        cmd = (f'codex exec --json --skip-git-repo-check '
-               f"--dangerously-bypass-approvals-and-sandbox "
-               f'-C /workspace "$(cat {PROMPT_PATH})"')
+        cmd = (
+            f"codex exec --json --skip-git-repo-check "
+            f"--dangerously-bypass-approvals-and-sandbox "
+            f'-C /workspace "$(cat {PROMPT_PATH})"'
+        )
         if model:
             cmd = cmd.replace("codex exec", f"codex exec -m {shlex.quote(model)}", 1)
         return cmd

@@ -171,10 +171,9 @@ def containerd_image_manifest_identity(
     """Resolve a node ref to one Linux manifest and its config digest."""
 
     normalized_ref = _normalize_containerd_image_ref(image_ref)
-    if (
-        normalized_ref is None
-        or (expected_manifest_digest is not None
-        and _IMAGE_DIGEST_RE.fullmatch(expected_manifest_digest) is None)
+    if normalized_ref is None or (
+        expected_manifest_digest is not None
+        and _IMAGE_DIGEST_RE.fullmatch(expected_manifest_digest) is None
     ):
         return None
     try:
@@ -313,8 +312,10 @@ def containerd_image_manifest_identity(
         or media_type not in _CONTAINERD_MANIFEST_MEDIA_TYPES
         or not isinstance(config_digest, str)
         or _IMAGE_DIGEST_RE.fullmatch(config_digest) is None
-        or (expected_manifest_digest is not None
-        and manifest_digest != expected_manifest_digest)
+        or (
+            expected_manifest_digest is not None
+            and manifest_digest != expected_manifest_digest
+        )
     ):
         return None
     return manifest_digest, config_digest
@@ -407,25 +408,19 @@ def _run_bounded_command(
     """Run a host command with disk-backed, size-bounded stdout and stderr."""
 
     with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
-        process = subprocess.Popen(
-            command, stdin=stdin, stdout=stdout, stderr=stderr
-        )
+        process = subprocess.Popen(command, stdin=stdin, stdout=stdout, stderr=stderr)
         deadline = time.monotonic() + timeout if timeout is not None else None
         while process.poll() is None:
             size = os.fstat(stdout.fileno()).st_size + os.fstat(stderr.fileno()).st_size
             if size > MAX_COMMAND_OUTPUT_BYTES:
                 process.kill()
                 process.wait()
-                captured = _bounded_output(
-                    (stdout, stderr), MAX_COMMAND_OUTPUT_BYTES
-                )
+                captured = _bounded_output((stdout, stderr), MAX_COMMAND_OUTPUT_BYTES)
                 raise CommandOutputLimitError(*captured)
             if deadline is not None and time.monotonic() >= deadline:
                 process.kill()
                 process.wait()
-                captured = _bounded_output(
-                    (stdout, stderr), MAX_COMMAND_OUTPUT_BYTES
-                )
+                captured = _bounded_output((stdout, stderr), MAX_COMMAND_OUTPUT_BYTES)
                 raise subprocess.TimeoutExpired(
                     command, timeout, output=captured[0], stderr=captured[1]
                 )
@@ -518,9 +513,7 @@ def _local_archive_stream(local_dir: Path):
         return None
     archive = tempfile.TemporaryFile()
     stderr = tempfile.TemporaryFile()
-    command = [
-        "tar", "--no-xattrs", "-C", str(local_dir), "-cf", "-", *entries
-    ]
+    command = ["tar", "--no-xattrs", "-C", str(local_dir), "-cf", "-", *entries]
     process = subprocess.Popen(
         command,
         stdout=archive,
@@ -546,9 +539,7 @@ def _local_archive_stream(local_dir: Path):
             if time.monotonic() >= deadline:
                 process.kill()
                 process.wait()
-                raise UnsafeArchiveError(
-                    "local transfer archive timed out after 300s"
-                )
+                raise UnsafeArchiveError("local transfer archive timed out after 300s")
             time.sleep(0.05)
         if os.fstat(archive.fileno()).st_size > MAX_SNAPSHOT_BYTES:
             raise UnsafeArchiveError(
@@ -557,15 +548,12 @@ def _local_archive_stream(local_dir: Path):
         stderr_size = os.fstat(stderr.fileno()).st_size
         if stderr_size > MAX_ARCHIVE_STDERR_BYTES:
             raise UnsafeArchiveError(
-                "local transfer tar stderr exceeds "
-                f"{MAX_ARCHIVE_STDERR_BYTES} bytes"
+                f"local transfer tar stderr exceeds {MAX_ARCHIVE_STDERR_BYTES} bytes"
             )
         if process.returncode != 0:
             stderr.seek(max(0, stderr_size - 2000))
             detail = stderr.read(2000).decode(errors="replace")
-            raise UnsafeArchiveError(
-                f"could not archive local transfer tree: {detail}"
-            )
+            raise UnsafeArchiveError(f"could not archive local transfer tree: {detail}")
         archive.seek(0)
         return archive
     except BaseException:
@@ -584,8 +572,20 @@ def _pod_archive_stream(pod_name: str, remote_dir: str):
     archive = tempfile.TemporaryFile()
     stderr = tempfile.TemporaryFile()
     command = [
-        "kubectl", "--context", KUBE_CONTEXT, "-n", NAMESPACE,
-        "exec", pod_name, "--", "tar", "-C", remote_dir, "-cf", "-", ".",
+        "kubectl",
+        "--context",
+        KUBE_CONTEXT,
+        "-n",
+        NAMESPACE,
+        "exec",
+        pod_name,
+        "--",
+        "tar",
+        "-C",
+        remote_dir,
+        "-cf",
+        "-",
+        ".",
     ]
     process = subprocess.Popen(command, stdout=archive, stderr=stderr)
     deadline = time.monotonic() + 300
@@ -612,8 +612,7 @@ def _pod_archive_stream(pod_name: str, remote_dir: str):
         returncode = process.returncode
         if os.fstat(stderr.fileno()).st_size > MAX_ARCHIVE_STDERR_BYTES:
             raise KubeError(
-                "pod snapshot capture stderr exceeds "
-                f"{MAX_ARCHIVE_STDERR_BYTES} bytes"
+                f"pod snapshot capture stderr exceeds {MAX_ARCHIVE_STDERR_BYTES} bytes"
             )
         if returncode != 0:
             size = os.fstat(stderr.fileno()).st_size
@@ -623,9 +622,7 @@ def _pod_archive_stream(pod_name: str, remote_dir: str):
                 f"could not capture pod snapshot (exit {returncode}): {detail}"
             )
         if os.fstat(archive.fileno()).st_size > MAX_SNAPSHOT_BYTES:
-            raise UnsafeArchiveError(
-                f"pod snapshot exceeds {MAX_SNAPSHOT_BYTES} bytes"
-            )
+            raise UnsafeArchiveError(f"pod snapshot exceeds {MAX_SNAPSHOT_BYTES} bytes")
         archive.seek(0)
         return archive
     except BaseException:
@@ -638,8 +635,12 @@ def _pod_archive_stream(pod_name: str, remote_dir: str):
         stderr.close()
 
 
-def kubectl(*args: str, input: bytes | None = None, timeout: int | None = None,
-            check: bool = True) -> subprocess.CompletedProcess:
+def kubectl(
+    *args: str,
+    input: bytes | None = None,
+    timeout: int | None = None,
+    check: bool = True,
+) -> subprocess.CompletedProcess:
     cmd = ["kubectl", "--context", KUBE_CONTEXT, "-n", NAMESPACE, *args]
     proc = subprocess.run(cmd, input=input, capture_output=True, timeout=timeout)
     if check and proc.returncode != 0:
@@ -687,8 +688,13 @@ class Pod:
     network_policy_name: str | None = None
 
     def wait_ready(self, timeout: int = 300) -> None:
-        kubectl("wait", "--for=condition=Ready", f"pod/{self.name}",
-                f"--timeout={timeout}s", timeout=timeout + 30)
+        kubectl(
+            "wait",
+            "--for=condition=Ready",
+            f"pod/{self.name}",
+            f"--timeout={timeout}s",
+            timeout=timeout + 30,
+        )
 
     def ip_address(self) -> str:
         """Return the validated current pod IP without using cluster DNS."""
@@ -709,16 +715,27 @@ class Pod:
         with closing(archive):
             self.exec(f"mkdir -p {remote_dir}", timeout=60)
             command = [
-                "kubectl", "--context", KUBE_CONTEXT, "-n", NAMESPACE,
-                "exec", "-i", self.name, "--", "tar",
-                "--no-same-owner", "--no-same-permissions", "--touch",
-                "-C", remote_dir, "-xf", "-",
+                "kubectl",
+                "--context",
+                KUBE_CONTEXT,
+                "-n",
+                NAMESPACE,
+                "exec",
+                "-i",
+                self.name,
+                "--",
+                "tar",
+                "--no-same-owner",
+                "--no-same-permissions",
+                "--touch",
+                "-C",
+                remote_dir,
+                "-xf",
+                "-",
             ]
             proc = _run_bounded_command(command, 300, stdin=archive)
             if proc.returncode != 0:
-                detail = (proc.stderr or proc.stdout).decode(
-                    errors="replace"
-                )[-2000:]
+                detail = (proc.stderr or proc.stdout).decode(errors="replace")[-2000:]
                 raise KubeError(
                     "could not copy local tree into pod "
                     f"(exit {proc.returncode}): {detail}"
@@ -762,16 +779,14 @@ class Pod:
                         normalized = os.path.normpath(member.name)
                         if normalized in seen:
                             raise UnsafeArchiveError(
-                                "pod snapshot contains duplicate path "
-                                f"{normalized!r}"
+                                f"pod snapshot contains duplicate path {normalized!r}"
                             )
                         seen.add(normalized)
                         try:
                             tarfile.data_filter(member, temporary)
                         except (tarfile.FilterError, OSError) as exc:
                             raise UnsafeArchiveError(
-                                "pod snapshot contains an unsafe archive "
-                                f"member: {exc}"
+                                f"pod snapshot contains an unsafe archive member: {exc}"
                             ) from exc
                         archive.extract(member, temporary, filter="data")
             if local_dir.is_symlink() or local_dir.is_file():
@@ -782,26 +797,44 @@ class Pod:
         except (tarfile.TarError, OSError) as exc:
             if isinstance(exc, UnsafeArchiveError):
                 raise
-            raise UnsafeArchiveError("pod snapshot is not a valid safe tar archive") from exc
+            raise UnsafeArchiveError(
+                "pod snapshot is not a valid safe tar archive"
+            ) from exc
         finally:
             shutil.rmtree(temporary, ignore_errors=True)
 
-    def exec(self, command: str, timeout: int | None = None,
-             env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
+    def exec(
+        self,
+        command: str,
+        timeout: int | None = None,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess:
         """Run a shell command in the pod. Returns the completed process; the
         returncode is the remote command's exit code."""
         prefix = ""
         if env:
-            prefix = " ".join(
-                f"{key}={shlex.quote(value)}" for key, value in env.items()
-            ) + " "
+            prefix = (
+                " ".join(f"{key}={shlex.quote(value)}" for key, value in env.items())
+                + " "
+            )
         host_command = [
-            "kubectl", "--context", KUBE_CONTEXT, "-n", NAMESPACE,
-            "exec", self.name, "--", "sh", "-c", prefix + command,
+            "kubectl",
+            "--context",
+            KUBE_CONTEXT,
+            "-n",
+            NAMESPACE,
+            "exec",
+            self.name,
+            "--",
+            "sh",
+            "-c",
+            prefix + command,
         ]
         return _run_bounded_command(host_command, timeout)
 
-    def infrastructure_failure(self, command_exit_code: int | None = None) -> str | None:
+    def infrastructure_failure(
+        self, command_exit_code: int | None = None
+    ) -> str | None:
         try:
             proc = kubectl(
                 "get", "pod", self.name, "-o", "json", check=False, timeout=30
@@ -817,11 +850,11 @@ class Pod:
             for container in status.get("containerStatuses", []) or []:
                 for state_name in ("state", "lastState"):
                     waiting = container.get(state_name, {}).get("waiting", {})
-                    candidates.append(
-                        (waiting.get("reason"), waiting.get("message"))
-                    )
+                    candidates.append((waiting.get("reason"), waiting.get("message")))
                     terminated = container.get(state_name, {}).get("terminated", {})
-                    candidates.append((terminated.get("reason"), terminated.get("message")))
+                    candidates.append(
+                        (terminated.get("reason"), terminated.get("message"))
+                    )
             for condition in status.get("conditions", []) or []:
                 candidates.append((condition.get("reason"), condition.get("message")))
             for reason, message in candidates:
@@ -924,9 +957,7 @@ class Pod:
         last_slash = normalized_ref.rfind("/")
         last_colon = normalized_ref.rfind(":")
         repository = (
-            normalized_ref[:last_colon]
-            if last_colon > last_slash
-            else normalized_ref
+            normalized_ref[:last_colon] if last_colon > last_slash else normalized_ref
         )
         expected_repo_digest = f"{repository}@{manifest_digest}"
         return (
@@ -944,7 +975,11 @@ class Pod:
 
     def delete(self) -> None:
         kubectl(
-            "delete", "pod", self.name, "--ignore-not-found", "--wait=true",
+            "delete",
+            "pod",
+            self.name,
+            "--ignore-not-found",
+            "--wait=true",
             timeout=60,
         )
         if self.network_policy_name:
@@ -963,7 +998,10 @@ class TrialSecret:
 
     def delete(self) -> None:
         kubectl(
-            "delete", "secret", self.name, "--ignore-not-found",
+            "delete",
+            "secret",
+            self.name,
+            "--ignore-not-found",
             "--wait=true",
             timeout=30,
         )
@@ -1022,8 +1060,11 @@ class EgressProxy:
 
     def wait_ready(self, timeout: int = 180) -> None:
         kubectl(
-            "wait", "--for=condition=Ready", f"pod/{self.name}",
-            f"--timeout={timeout}s", timeout=timeout + 30,
+            "wait",
+            "--for=condition=Ready",
+            f"pod/{self.name}",
+            f"--timeout={timeout}s",
+            timeout=timeout + 30,
         )
 
     def logs(self) -> str:
@@ -1052,7 +1093,10 @@ class EgressProxy:
         for resource in ("service", "pod", "configmap"):
             try:
                 kubectl(
-                    "delete", resource, self.name, "--ignore-not-found",
+                    "delete",
+                    resource,
+                    self.name,
+                    "--ignore-not-found",
                     "--wait=true" if resource == "pod" else "--wait=false",
                     timeout=60,
                 )
@@ -1063,8 +1107,11 @@ class EgressProxy:
         if pod_deleted:
             try:
                 kubectl(
-                    "delete", "networkpolicy", self.name,
-                    "--ignore-not-found", timeout=60,
+                    "delete",
+                    "networkpolicy",
+                    self.name,
+                    "--ignore-not-found",
+                    timeout=60,
                 )
             except (KubeError, subprocess.TimeoutExpired) as exc:
                 failures.append(f"networkpolicy: {type(exc).__name__}: {exc}")
@@ -1130,9 +1177,7 @@ def create_trial_secret(material, *, run_id: str | None = None) -> TrialSecret:
     }
     failure_type: str | None = None
     try:
-        kubectl(
-            "apply", "-f", "-", input=json.dumps(manifest).encode(), timeout=30
-        )
+        kubectl("apply", "-f", "-", input=json.dumps(manifest).encode(), timeout=30)
     except Exception as exc:
         failure_type = type(exc).__name__
     if failure_type is not None:
@@ -1267,8 +1312,7 @@ def egress_proxy_manifests(
             "metadata": {"name": name, "labels": labels},
             "spec": {
                 "selector": {"proxy-id": name},
-                "ports": [{"name": "proxy", "port": PROXY_PORT,
-                           "targetPort": "proxy"}],
+                "ports": [{"name": "proxy", "port": PROXY_PORT, "targetPort": "proxy"}],
             },
         },
         {
@@ -1281,11 +1325,7 @@ def egress_proxy_manifests(
                 "ingress": [
                     {
                         "from": [
-                            {
-                                "podSelector": {
-                                    "matchLabels": {"egress-proxy": name}
-                                }
-                            }
+                            {"podSelector": {"matchLabels": {"egress-proxy": name}}}
                         ],
                         "ports": [{"protocol": "TCP", "port": PROXY_PORT}],
                     }
@@ -1299,15 +1339,9 @@ def egress_proxy_manifests(
                                         "kubernetes.io/metadata.name": "kube-system"
                                     }
                                 },
-                                "podSelector": {
-                                    "matchLabels": {"k8s-app": "kube-dns"}
-                                },
+                                "podSelector": {"matchLabels": {"k8s-app": "kube-dns"}},
                             },
-                            {
-                                "ipBlock": {
-                                    "cidr": K3S_CLUSTER_DNS_SERVICE_CIDR
-                                }
-                            },
+                            {"ipBlock": {"cidr": K3S_CLUSTER_DNS_SERVICE_CIDR}},
                         ],
                         "ports": [
                             {"protocol": "UDP", "port": 53},
@@ -1333,9 +1367,7 @@ def egress_proxy_manifests(
                             {
                                 "ipBlock": {
                                     "cidr": PROXY_PUBLIC_IPV6_CIDR,
-                                    "except": list(
-                                        PROXY_PUBLIC_IPV6_EXCEPT_CIDRS
-                                    ),
+                                    "except": list(PROXY_PUBLIC_IPV6_EXCEPT_CIDRS),
                                 }
                             }
                         ],
@@ -1355,9 +1387,7 @@ def create_egress_proxy(image: str, allowed_domains: list[str]) -> EgressProxy:
     manifests = egress_proxy_manifests(name, image, allowed_domains)
     try:
         for manifest in manifests:
-            kubectl(
-                "apply", "-f", "-", input=json.dumps(manifest).encode(), timeout=60
-            )
+            kubectl("apply", "-f", "-", input=json.dumps(manifest).encode(), timeout=60)
         service = kubectl("get", "service", name, "-o", "json", timeout=30)
         cluster_ip = json.loads(service.stdout)["spec"]["clusterIP"]
         ipaddress.ip_address(cluster_ip)
@@ -1451,11 +1481,7 @@ def black_box_link_policy_manifests(
             "ingress": [
                 {
                     "from": [
-                        {
-                            "podSelector": {
-                                "matchLabels": {"sandbox-id": evaluator_name}
-                            }
-                        }
+                        {"podSelector": {"matchLabels": {"sandbox-id": evaluator_name}}}
                     ],
                     "ports": peer_port,
                 }
@@ -1472,12 +1498,8 @@ def create_black_box_link(
 ) -> SandboxLink:
     """Apply the two additive policies for an isolated black-box evaluation."""
 
-    manifests = black_box_link_policy_manifests(
-        evaluator_name, submission_name, port
-    )
-    link = SandboxLink(
-        tuple(manifest["metadata"]["name"] for manifest in manifests)
-    )
+    manifests = black_box_link_policy_manifests(evaluator_name, submission_name, port)
+    link = SandboxLink(tuple(manifest["metadata"]["name"] for manifest in manifests))
     try:
         for manifest in manifests:
             kubectl(

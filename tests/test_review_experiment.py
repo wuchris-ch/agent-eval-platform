@@ -201,9 +201,10 @@ def test_repeated_single_reviewers_have_statistics_pairs_budgets_and_frontier(
 
     assert [point.system_id for point in result.efficiency_frontier] == ["improved"]
     assert result.efficiency_frontier[0].budget_eligible is True
-    assert result.benchmark_sha256 == hashlib.sha256(
-        (tmp_path / "benchmark.yaml").read_bytes()
-    ).hexdigest()
+    assert (
+        result.benchmark_sha256
+        == hashlib.sha256((tmp_path / "benchmark.yaml").read_bytes()).hexdigest()
+    )
     json.dumps(result.model_dump(mode="json"))
 
 

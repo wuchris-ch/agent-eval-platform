@@ -13,9 +13,7 @@ def test_cluster_exists_parses_compact_k3d_json(monkeypatch):
     monkeypatch.setattr(
         cluster.subprocess,
         "run",
-        lambda *args, **kwargs: _completed(
-            [{"name": "agent-eval", "serversCount": 1}]
-        ),
+        lambda *args, **kwargs: _completed([{"name": "agent-eval", "serversCount": 1}]),
     )
 
     assert cluster.cluster_exists()
@@ -91,9 +89,7 @@ def test_cluster_up_creates_with_digest_pinned_k3s_image(monkeypatch):
 def test_cluster_up_rejects_existing_cluster_with_different_node_image(monkeypatch):
     existing = {
         "name": "agent-eval",
-        "nodes": [
-            {"name": "server", "role": "server", "image": "sha256:" + "0" * 64}
-        ],
+        "nodes": [{"name": "server", "role": "server", "image": "sha256:" + "0" * 64}],
     }
     monkeypatch.setattr(cluster, "_cluster_record", lambda: existing)
     monkeypatch.setattr(

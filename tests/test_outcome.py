@@ -81,9 +81,7 @@ def test_configured_missing_evidence_fails_closed():
 def test_infrastructure_failure_is_distinct_from_rejection():
     correctness = EvalTestResults(infra_error="eval pod OOMKilled")
 
-    outcome = evaluate_outcome(
-        _record(correctness=correctness), AcceptancePolicy()
-    )
+    outcome = evaluate_outcome(_record(correctness=correctness), AcceptancePolicy())
 
     assert outcome.status == "infra_error"
     assert outcome.reasons == ["eval pod OOMKilled"]

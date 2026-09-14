@@ -97,9 +97,7 @@ def register(store, mode="good", *, world=None):
 
 def launch(store, mode="good", world=None):
     request = register(store, mode, world=world)
-    return service.launch_experiment(
-        store, "local", request, actor="test", key=mode
-    )
+    return service.launch_experiment(store, "local", request, actor="test", key=mode)
 
 
 def test_complete_product_workflow_and_regrade(store, tmp_path):

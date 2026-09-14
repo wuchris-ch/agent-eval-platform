@@ -90,9 +90,7 @@ def _open_bounded_regular_file(
         if (before.st_dev, before.st_ino) != (opened.st_dev, opened.st_ino):
             raise _ArtifactIntegrityError(f"{label} changed while it was opened")
         if opened.st_size > maximum_bytes:
-            raise _ArtifactIntegrityError(
-                f"{label} exceeds {maximum_bytes} bytes"
-            )
+            raise _ArtifactIntegrityError(f"{label} exceeds {maximum_bytes} bytes")
 
         raw = os.fdopen(fd, "rb")
         fd = -1
@@ -194,8 +192,7 @@ def _parse_junit_stream(
             element_count += 1
             if element_count > MAX_JUNIT_XML_ELEMENTS:
                 raise _ArtifactIntegrityError(
-                    "junit xml contains more than "
-                    f"{MAX_JUNIT_XML_ELEMENTS} elements"
+                    f"junit xml contains more than {MAX_JUNIT_XML_ELEMENTS} elements"
                 )
             if len(stack) > MAX_JUNIT_XML_DEPTH:
                 raise _ArtifactIntegrityError(
@@ -205,9 +202,7 @@ def _parse_junit_stream(
             if len(stack) == 1:
                 root_name = name
                 if root_name not in {"testsuite", "testsuites"}:
-                    raise ValueError(
-                        "root must be <testsuite> or <testsuites>"
-                    )
+                    raise ValueError("root must be <testsuite> or <testsuites>")
                 if root_name == "testsuites":
                     maxima = {
                         "tests": MAX_JUNIT_CASES,
@@ -231,9 +226,9 @@ def _parse_junit_stream(
                         )
 
             if name == "testsuite":
-                valid_position = (
-                    len(stack) == 1 and root_name == "testsuite"
-                ) or (len(stack) == 2 and root_name == "testsuites")
+                valid_position = (len(stack) == 1 and root_name == "testsuite") or (
+                    len(stack) == 2 and root_name == "testsuites"
+                )
                 if not valid_position:
                     raise ValueError("nested test suites are not supported")
                 suite_count += 1
@@ -262,14 +257,10 @@ def _parse_junit_stream(
                     )
                 if results.total + total > MAX_JUNIT_CASES:
                     raise _ArtifactIntegrityError(
-                        "junit test count exceeds the limit of "
-                        f"{MAX_JUNIT_CASES}"
+                        f"junit test count exceeds the limit of {MAX_JUNIT_CASES}"
                     )
                 if (
-                    results.failed
-                    + results.errors
-                    + failed_count
-                    + error_count
+                    results.failed + results.errors + failed_count + error_count
                     > MAX_JUNIT_FAILURES
                 ):
                     raise _ArtifactIntegrityError(
@@ -286,8 +277,7 @@ def _parse_junit_stream(
                 observed_cases += 1
                 if observed_cases > MAX_JUNIT_CASES:
                     raise _ArtifactIntegrityError(
-                        "junit testcase elements exceed the limit of "
-                        f"{MAX_JUNIT_CASES}"
+                        f"junit testcase elements exceed the limit of {MAX_JUNIT_CASES}"
                     )
                 for field in ("classname", "name"):
                     if len(element.get(field, "")) > MAX_JUNIT_IDENTITY_CHARS:
@@ -375,9 +365,7 @@ def parse_junit(
             maximum_bytes=MAX_JUNIT_BYTES,
             label="junit.xml",
         ) as stream:
-            return _parse_junit_stream(
-                stream, command_exit_code=command_exit_code
-            )
+            return _parse_junit_stream(stream, command_exit_code=command_exit_code)
     except FileNotFoundError:
         return failed(f"junit xml not produced at {junit_path.name}")
     except _ArtifactIntegrityError as exc:
@@ -450,9 +438,7 @@ def parse_coverage_artifact(coverage_json_path: Path) -> CoverageArtifactResult:
     except (json.JSONDecodeError, OverflowError, TypeError, ValueError) as exc:
         detail = str(exc).replace("\n", " ")[:200]
         return CoverageArtifactResult(
-            integrity_error=(
-                f"coverage json invalid: {type(exc).__name__}: {detail}"
-            )
+            integrity_error=(f"coverage json invalid: {type(exc).__name__}: {detail}")
         )
 
 
