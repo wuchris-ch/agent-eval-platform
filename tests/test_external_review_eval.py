@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -21,7 +22,6 @@ from agent_eval.review_benchmark import (
     BenchmarkManifest,
     ExpectedFinding,
 )
-
 
 DIFF = b"""diff --git a/auth.py b/auth.py
 --- a/auth.py
@@ -144,9 +144,7 @@ def test_contract_rejects_non_boolean_blocked_values(blocked: object) -> None:
         target.ReviewAgentOutput.model_validate(payload)
 
 
-@pytest.mark.parametrize(
-    "file", [" auth.py ", "\ufeffauth.py", "auth.py\ufeff"]
-)
+@pytest.mark.parametrize("file", [" auth.py ", "\ufeffauth.py", "auth.py\ufeff"])
 def test_contract_rejects_whitespace_around_finding_path(file: str) -> None:
     payload = _output()
     payload["findings"][0]["file"] = file
@@ -198,7 +196,9 @@ def test_contract_requires_exact_raw_diff_digest(tmp_path: Path) -> None:
     )
 
     assert result.output is None
-    assert result.error == "invalid agent output: input_sha256 does not match the raw diff"
+    assert (
+        result.error == "invalid agent output: input_sha256 does not match the raw diff"
+    )
 
 
 def test_diff_file_mode_passes_a_temporary_file_and_no_stdin(tmp_path: Path) -> None:
@@ -287,10 +287,8 @@ def test_successful_agent_cannot_leave_a_background_descendant(tmp_path: Path) -
         time.sleep(0.75)
         assert not survived.exists()
     finally:
-        try:
+        with contextlib.suppress(ProcessLookupError):
             os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
 
 
 @pytest.mark.parametrize("timeout", [float("nan"), float("inf"), float("-inf"), 0])
@@ -331,12 +329,14 @@ def test_deterministic_scoring_uses_goldens_and_block_decision() -> None:
     )
     missed = target.score_review_output(
         case,
-        target.ReviewAgentOutput.model_validate(
-            _output(blocked=False, findings=[])
-        ),
+        target.ReviewAgentOutput.model_validate(_output(blocked=False, findings=[])),
     )
 
-    assert (correct.true_positives, correct.false_positives, correct.false_negatives) == (
+    assert (
+        correct.true_positives,
+        correct.false_positives,
+        correct.false_negatives,
+    ) == (
         1,
         0,
         0,

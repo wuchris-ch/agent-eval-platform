@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import re
@@ -46,7 +47,11 @@ _HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(?P<start>\d+)(?:,(?P<count>\d+))? @@")
 
 def _safe_relative(value: str) -> str:
     path = PurePosixPath(value)
-    if path.is_absolute() or not path.parts or any(part in ("", ".", "..") for part in path.parts):
+    if (
+        path.is_absolute()
+        or not path.parts
+        or any(part in ("", ".", "..") for part in path.parts)
+    ):
         raise ValueError("must be a safe relative path")
     return value
 
@@ -110,16 +115,16 @@ def _scan_corpus_tree(root: Path) -> CorpusInventory:
                 if file_count > MAX_CORPUS_FILES:
                     raise ValueError("corpus exceeds the safe file-count limit")
                 if item_metadata.st_size > MAX_CORPUS_FILE_BYTES:
-                    raise ValueError(f"corpus file exceeds the safe size limit: {relative}")
+                    raise ValueError(
+                        f"corpus file exceeds the safe size limit: {relative}"
+                    )
                 if total_bytes > MAX_CORPUS_TOTAL_BYTES:
                     raise ValueError("corpus exceeds the safe total-byte limit")
                 inventory[relative] = ("file", _fingerprint(item_metadata))
     return inventory
 
 
-def _read_corpus_file_stable(
-    path: Path, expected: FileFingerprint
-) -> bytes:
+def _read_corpus_file_stable(path: Path, expected: FileFingerprint) -> bytes:
     flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     descriptor = os.open(path, flags)
     try:
@@ -231,12 +236,10 @@ class CorpusCase(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _case_paths_and_polarity_are_bound(self) -> "CorpusCase":
+    def _case_paths_and_polarity_are_bound(self) -> CorpusCase:
         prefix = ("cases", self.id)
         if PurePosixPath(self.diff).parts[:2] != prefix:
-            raise ValueError(
-                f"diff must stay beneath the case subtree cases/{self.id}"
-            )
+            raise ValueError(f"diff must stay beneath the case subtree cases/{self.id}")
 
         base_parts = PurePosixPath(self.reproducer.base_cwd).parts
         head_parts = PurePosixPath(self.reproducer.head_cwd).parts
@@ -244,13 +247,11 @@ class CorpusCase(BaseModel):
         head_prefix = (*prefix, "head")
         if base_parts[:3] != base_prefix:
             raise ValueError(
-                "reproducer base_cwd must stay beneath "
-                f"cases/{self.id}/base"
+                f"reproducer base_cwd must stay beneath cases/{self.id}/base"
             )
         if head_parts[:3] != head_prefix:
             raise ValueError(
-                "reproducer head_cwd must stay beneath "
-                f"cases/{self.id}/head"
+                f"reproducer head_cwd must stay beneath cases/{self.id}/head"
             )
         if base_parts[3:] != head_parts[3:]:
             raise ValueError(
@@ -260,9 +261,7 @@ class CorpusCase(BaseModel):
         if self.reproducer.expected_base_exit != 0:
             raise ValueError("reproducer expected_base_exit must be zero")
         if self.kind == "faulty" and self.reproducer.expected_head_exit == 0:
-            raise ValueError(
-                "faulty case expected_head_exit must be nonzero"
-            )
+            raise ValueError("faulty case expected_head_exit must be nonzero")
         if self.kind == "clean" and self.reproducer.expected_head_exit != 0:
             raise ValueError("clean case expected_head_exit must be zero")
         return self
@@ -291,7 +290,7 @@ class CorpusManifest(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def _unique_cases(self) -> "CorpusManifest":
+    def _unique_cases(self) -> CorpusManifest:
         ids = [case.id for case in self.cases]
         if len(ids) != len(set(ids)):
             raise ValueError("corpus contains duplicate case ids")
@@ -397,10 +396,8 @@ def _terminate_reproducer(process: subprocess.Popen[bytes]) -> None:
         os.killpg(process.pid, signal.SIGKILL)
     except OSError:
         if process.poll() is None:
-            try:
+            with contextlib.suppress(OSError):
                 process.kill()
-            except OSError:
-                pass
     process.wait()
 
 
@@ -432,7 +429,7 @@ def _run_reproducer_command(
     assert process.stdout is not None
     assert process.stderr is not None
     streams = {"stdout": process.stdout, "stderr": process.stderr}
-    totals = {name: 0 for name in streams}
+    totals = dict.fromkeys(streams, 0)
     tails = {name: bytearray() for name in streams}
     selector = selectors.DefaultSelector()
     for name, stream in streams.items():
@@ -445,10 +442,7 @@ def _run_reproducer_command(
         while selector.get_map():
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                failure = (
-                    "timed out after "
-                    f"{REPRODUCER_TIMEOUT_SECONDS:g} second(s)"
-                )
+                failure = f"timed out after {REPRODUCER_TIMEOUT_SECONDS:g} second(s)"
                 break
 
             for key, _ in selector.select(timeout=min(remaining, 0.1)):
@@ -480,9 +474,7 @@ def _run_reproducer_command(
         _terminate_reproducer(process)
 
     output = b"\n".join(tails[name] for name in ("stdout", "stderr") if tails[name])
-    detail = output[-REPRODUCER_DETAIL_LIMIT_BYTES:].decode(
-        "utf-8", errors="replace"
-    )
+    detail = output[-REPRODUCER_DETAIL_LIMIT_BYTES:].decode("utf-8", errors="replace")
     if failure is not None:
         return None, detail, failure
     return process.wait(), detail, None
@@ -687,9 +679,7 @@ def _validate_case_artifacts(root: Path, case: CorpusCase) -> list[str]:
     prefix = ("cases", case.id)
     declared = set(case.artifact_sha256)
     declared_in_case = {
-        relative
-        for relative in declared
-        if PurePosixPath(relative).parts[:2] == prefix
+        relative for relative in declared if PurePosixPath(relative).parts[:2] == prefix
     }
 
     for relative in sorted(declared - declared_in_case):
@@ -744,8 +734,7 @@ def _validate_corpus_snapshot(
             added = _added_lines(diff_path.read_text(encoding="utf-8"))
         for finding in benchmark_case.expected_findings:
             if not any(
-                path == finding.file
-                and finding.line_start <= line <= finding.line_end
+                path == finding.file and finding.line_start <= line <= finding.line_end
                 for path, line in added
             ):
                 errors.append(

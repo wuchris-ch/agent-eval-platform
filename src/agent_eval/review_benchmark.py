@@ -110,10 +110,9 @@ def _validate_repository_relative_file(path: str) -> str:
         candidate.startswith("/")
         or _URI_OR_DRIVE_PREFIX.match(candidate)
         or normalized in ("", ".")
-        or normalized.startswith("/")
+        or normalized.startswith(("/", "../"))
         or _URI_OR_DRIVE_PREFIX.match(normalized)
         or normalized == ".."
-        or normalized.startswith("../")
     ):
         raise ValueError("must be a repository-relative path")
     return path
@@ -473,10 +472,7 @@ def _is_candidate(
         predicted.line is not None
         and _normalize_file(predicted.file) == _normalize_file(expected.file)
         and predicted.category == expected.category
-        and (
-            not require_exact_severity
-            or predicted.severity == expected.severity
-        )
+        and (not require_exact_severity or predicted.severity == expected.severity)
         and expected.line_start <= predicted.line <= expected.line_end
     )
 
@@ -493,8 +489,7 @@ def _maximum_matching(
         index for index, _ in sorted(enumerate(expected), key=_expected_sort_key)
     ]
     prediction_order = [
-        index
-        for index, _ in sorted(enumerate(predictions), key=_prediction_sort_key)
+        index for index, _ in sorted(enumerate(predictions), key=_prediction_sort_key)
     ]
     adjacency = {
         expected_index: [
@@ -517,9 +512,7 @@ def _maximum_matching(
                 continue
             seen_predictions.add(prediction_index)
             current_expected = prediction_to_expected.get(prediction_index)
-            if current_expected is None or augment(
-                current_expected, seen_predictions
-            ):
+            if current_expected is None or augment(current_expected, seen_predictions):
                 prediction_to_expected[prediction_index] = expected_index
                 return True
         return False
@@ -629,10 +622,7 @@ def _wilson_interval(successes: int, total: int) -> WilsonInterval | None:
     center = (proportion + z_squared / (2 * total)) / denominator
     margin = (
         _WILSON_Z_95
-        * sqrt(
-            proportion * (1 - proportion) / total
-            + z_squared / (4 * total**2)
-        )
+        * sqrt(proportion * (1 - proportion) / total + z_squared / (4 * total**2))
         / denominator
     )
     return WilsonInterval(
@@ -667,9 +657,7 @@ def _aggregate(cases: list[CaseResult]) -> AggregateMetrics:
     high_matched = 0
     severity_correct = 0
     for case in cases:
-        matches_by_expected_id = {
-            match.expected_id: match for match in case.matches
-        }
+        matches_by_expected_id = {match.expected_id: match for match in case.matches}
         for result in case.expected_results:
             if result.finding.severity in _HIGH_SEVERITIES:
                 high_expected += 1
@@ -683,8 +671,7 @@ def _aggregate(cases: list[CaseResult]) -> AggregateMetrics:
 
     clean_cases = [case for case in cases if case.expected_count == 0]
     clean_cases_correct = sum(
-        case.status == "scored" and case.prediction_count == 0
-        for case in clean_cases
+        case.status == "scored" and case.prediction_count == 0 for case in clean_cases
     )
 
     return AggregateMetrics(
@@ -715,9 +702,7 @@ def _aggregate(cases: list[CaseResult]) -> AggregateMetrics:
         clean_case_accuracy=_rate(clean_cases_correct, len(clean_cases)),
         clean_case_denominator=len(clean_cases),
         clean_cases_correct=clean_cases_correct,
-        precision_wilson_95=_wilson_interval(
-            true_positives, precision_denominator
-        ),
+        precision_wilson_95=_wilson_interval(true_positives, precision_denominator),
         recall_wilson_95=_wilson_interval(true_positives, recall_denominator),
     )
 
@@ -744,7 +729,5 @@ def score_benchmark(
             predictions = []
             status = "missing_prediction"
             note = "prediction file not found; scored as zero findings"
-        cases.append(
-            _score_case(case, prediction_file, predictions, status, note)
-        )
+        cases.append(_score_case(case, prediction_file, predictions, status, note))
     return BenchmarkResult(cases=cases, metrics=_aggregate(cases))

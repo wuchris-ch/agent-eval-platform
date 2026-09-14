@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 from fnmatch import fnmatchcase
-from functools import lru_cache
+from functools import cache
 from pathlib import Path, PurePosixPath
 
 from ..limits import read_stable_bounded_file
@@ -42,7 +42,7 @@ def _matches(path: str, pattern: str) -> bool:
     parts = PurePosixPath(path).parts
     patterns = PurePosixPath(pattern).parts
 
-    @lru_cache(maxsize=None)
+    @cache
     def match(path_index: int, pattern_index: int) -> bool:
         if pattern_index == len(patterns):
             return path_index == len(parts)

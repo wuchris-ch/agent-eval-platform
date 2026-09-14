@@ -413,9 +413,7 @@ def test_complete_record_persists_before_exporter_failure(
     export_calls = []
 
     def failing_export(completed: RunRecord) -> None:
-        rows = metrics.load_assessments(
-            completed.run_id, dataset_id="agent-eval/test"
-        )
+        rows = metrics.load_assessments(completed.run_id, dataset_id="agent-eval/test")
         assert rows
         export_calls.append(completed.outcome.status)
         raise RuntimeError("collector unavailable")
@@ -468,8 +466,7 @@ def test_legacy_database_migrates_assessments_in_order(tmp_path, monkeypatch) ->
             )
         ]
         columns = {
-            row["name"]
-            for row in conn.execute("PRAGMA table_info(assessments)")
+            row["name"] for row in conn.execute("PRAGMA table_info(assessments)")
         }
     assert versions == [1, 2, 3]
     assert {"dataset_id", "dataset_revision", "dataset_item_id"} <= columns

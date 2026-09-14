@@ -364,7 +364,9 @@ def invoke_review_agent(
         if b"\x00" in encoded_feedback:
             return AgentInvocation(latency_ms=0, error="invalid retry feedback")
     if len(diff) > MAX_DIFF_BYTES:
-        return AgentInvocation(latency_ms=0, error="raw diff exceeded the safe byte limit")
+        return AgentInvocation(
+            latency_ms=0, error="raw diff exceeded the safe byte limit"
+        )
     environment = _child_environment(feedback)
 
     temporary_path: str | None = None
@@ -374,7 +376,9 @@ def invoke_review_agent(
     stdin_file.seek(0)
     stdin: Any = stdin_file
     if diff_file_flag is not None:
-        descriptor, temporary_path = tempfile.mkstemp(prefix="agent-eval-", suffix=".diff")
+        descriptor, temporary_path = tempfile.mkstemp(
+            prefix="agent-eval-", suffix=".diff"
+        )
         try:
             with os.fdopen(descriptor, "wb") as stream:
                 stream.write(diff)
@@ -441,9 +445,7 @@ def invoke_review_agent(
             Path(temporary_path).unlink(missing_ok=True)
 
 
-def score_review_output(
-    case: BenchmarkCase, output: ReviewAgentOutput
-) -> FindingScore:
+def score_review_output(case: BenchmarkCase, output: ReviewAgentOutput) -> FindingScore:
     """Combine exact finding matching with the explicit block decision."""
 
     predictions = [
@@ -471,8 +473,7 @@ def score_review_output(
     denominator = 2 * tp + fp + fn
     finding_f1 = (2 * tp / denominator) if denominator else 1.0
     expected_blocked = any(
-        finding.severity in {"blocker", "major"}
-        for finding in case.expected_findings
+        finding.severity in {"blocker", "major"} for finding in case.expected_findings
     )
     verdict_correct = output.blocked is expected_blocked
     score = (finding_f1 + float(verdict_correct)) / 2
@@ -552,8 +553,13 @@ def trial_span_attributes(
     final_attempt = result.corrected_attempt or result.first_attempt
     if result.first_attempt.score is not None:
         attributes["agent_eval.first_attempt.score"] = result.first_attempt.score
-    if result.corrected_attempt is not None and result.corrected_attempt.score is not None:
-        attributes["agent_eval.corrected_attempt.score"] = result.corrected_attempt.score
+    if (
+        result.corrected_attempt is not None
+        and result.corrected_attempt.score is not None
+    ):
+        attributes["agent_eval.corrected_attempt.score"] = (
+            result.corrected_attempt.score
+        )
     if final_attempt.deterministic is not None:
         attributes.update(
             {
@@ -626,9 +632,7 @@ def _one_attempt(
     deterministic = score_review_output(case, invocation.output)
     try:
         judged = (
-            judge.score(case, invocation.output, diff)
-            if judge is not None
-            else None
+            judge.score(case, invocation.output, diff) if judge is not None else None
         )
     except Exception as exc:
         failed = invocation.model_copy(
@@ -753,7 +757,9 @@ def evaluate_external_review_agent(
                         diff_file_flag=diff_file_flag,
                         judge=judge,
                     )
-                    retry_invocation, retry_deterministic, retry_judged, retry_score = retry
+                    retry_invocation, retry_deterministic, retry_judged, retry_score = (
+                        retry
+                    )
                     corrected_attempt = _attempt_result(
                         2,
                         retry_invocation,
@@ -807,7 +813,9 @@ def evaluate_external_review_agent(
     accepted = sum(result.outcome == "accepted" for result in results)
     rejected = sum(result.outcome == "rejected" for result in results)
     infra_errors = sum(result.outcome == "infra_error" for result in results)
-    average = sum(result.score or 0 for result in results) / len(results) if results else 0
+    average = (
+        sum(result.score or 0 for result in results) / len(results) if results else 0
+    )
     latencies = [result.latency_ms for result in results]
     return CohortSummary(
         corpus_id=corpus.corpus_id,
@@ -859,7 +867,9 @@ class DeepEvalGEvalJudge:
             def get_model_name(self) -> str:
                 return model
 
-            def generate(self, prompt: str, schema: type[BaseModel] | None = None) -> Any:
+            def generate(
+                self, prompt: str, schema: type[BaseModel] | None = None
+            ) -> Any:
                 return self._generate(prompt, schema)
 
             async def a_generate(
@@ -874,9 +884,7 @@ class DeepEvalGEvalJudge:
                 text = response.choices[0].message.content or ""
                 return schema.model_validate_json(text) if schema else text.strip()
 
-            def _generate(
-                self, prompt: str, schema: type[BaseModel] | None
-            ) -> Any:
+            def _generate(self, prompt: str, schema: type[BaseModel] | None) -> Any:
                 full = _schema_prompt(prompt, schema)
                 response = self._sync.chat.completions.create(
                     model=model,
@@ -911,7 +919,9 @@ class DeepEvalGEvalJudge:
                 finding.severity in {"blocker", "major"}
                 for finding in case.expected_findings
             ),
-            "findings": [finding.model_dump(mode="json") for finding in case.expected_findings],
+            "findings": [
+                finding.model_dump(mode="json") for finding in case.expected_findings
+            ],
         }
         test_case = self._test_case_type(
             input=diff.decode("utf-8", errors="replace"),

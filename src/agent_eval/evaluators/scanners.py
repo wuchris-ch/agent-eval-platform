@@ -6,17 +6,20 @@ the run. Scanner artifacts are kept under the configured state root at
 from __future__ import annotations
 
 import ast
+import contextlib
 import hashlib
 import json
 import os
 import re
-import signal
 import shutil
-import subprocess
+import signal
 import stat
+import subprocess
 import tempfile
 import threading
 import time
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO
@@ -166,12 +169,8 @@ def _scanner_runtime_state_root() -> Path:
 
 
 def _scanner_identity_root() -> Path:
-    runtime_root = ensure_private_directory(
-        _scanner_runtime_state_root(), parents=True
-    )
-    return ensure_private_directory(
-        runtime_root / scanner_runtime_environment_digest()
-    )
+    runtime_root = ensure_private_directory(_scanner_runtime_state_root(), parents=True)
+    return ensure_private_directory(runtime_root / scanner_runtime_environment_digest())
 
 
 def _scanner_subprocess_environment() -> dict[str, str]:
@@ -241,9 +240,7 @@ def _executable_sha256(path: str) -> str | None:
         resolved = Path(path).resolve(strict=True)
     except (OSError, RuntimeError):
         return None
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-        os, "O_NOFOLLOW", 0
-    )
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(resolved, flags)
     except OSError:
@@ -279,9 +276,7 @@ def _verified_empty_ignore_policy_sha256() -> str | None:
         return None
     if not stat.S_ISREG(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
         return None
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-        os, "O_NOFOLLOW", 0
-    )
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(path, flags)
     except OSError:
@@ -290,8 +285,7 @@ def _verified_empty_ignore_policy_sha256() -> str | None:
         opened = os.fstat(descriptor)
         if (
             not stat.S_ISREG(opened.st_mode)
-            or (opened.st_dev, opened.st_ino)
-            != (metadata.st_dev, metadata.st_ino)
+            or (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino)
             or opened.st_size != metadata.st_size
             or stat.S_IMODE(opened.st_mode) != stat.S_IMODE(metadata.st_mode)
         ):
@@ -315,11 +309,7 @@ def _verified_empty_ignore_policy_sha256() -> str | None:
     finally:
         os.close(descriptor)
     actual = digest.hexdigest()
-    return (
-        actual
-        if actual == SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256
-        else None
-    )
+    return actual if actual == SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256 else None
 
 
 def _external_scanner_policy_arguments(name: str) -> list[str] | None:
@@ -341,9 +331,7 @@ def _external_scanner_policy_arguments(name: str) -> list[str] | None:
     ]
 
 
-def _stage_gitleaks_workspace(
-    workspace: Path, destination: Path
-) -> dict[str, str]:
+def _stage_gitleaks_workspace(workspace: Path, destination: Path) -> dict[str, str]:
     """Create a private bounded snapshot with scanner skip names neutralized."""
 
     entry_count = 0
@@ -355,8 +343,8 @@ def _stage_gitleaks_workspace(
         | getattr(os, "O_DIRECTORY", 0)
         | getattr(os, "O_NOFOLLOW", 0)
     )
-    read_flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-        os, "O_NOFOLLOW", 0
+    read_flags = (
+        os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     )
     write_flags = (
         os.O_WRONLY
@@ -378,9 +366,7 @@ def _stage_gitleaks_workspace(
         if not stat.S_ISDIR(opened_directory.st_mode):
             raise ValueError("Gitleaks staging input is not a directory")
         with os.scandir(source_descriptor) as scanned_entries:
-            entries = sorted(
-                scanned_entries, key=lambda entry: os.fsencode(entry.name)
-            )
+            entries = sorted(scanned_entries, key=lambda entry: os.fsencode(entry.name))
         directory_names = {entry.name for entry in entries}
         if any(
             staged in directory_names
@@ -389,15 +375,12 @@ def _stage_gitleaks_workspace(
             raise ValueError("external scanner staging control name collides")
         for entry in entries:
             relative = relative_directory / entry.name
-            staged_name = _EXTERNAL_SCANNER_CONTROL_RENAMES.get(
-                entry.name, entry.name
-            )
+            staged_name = _EXTERNAL_SCANNER_CONTROL_RENAMES.get(entry.name, entry.name)
             if staged_name != entry.name:
                 renamed_controls[staged_name] = entry.name
             staged_relative = relative_directory / staged_name
             if (
-                len(os.fsencode(relative.as_posix()))
-                > _MAX_GITLEAKS_STAGE_PATH_BYTES
+                len(os.fsencode(relative.as_posix())) > _MAX_GITLEAKS_STAGE_PATH_BYTES
                 or len(os.fsencode(staged_relative.as_posix()))
                 > _MAX_GITLEAKS_STAGE_PATH_BYTES
             ):
@@ -418,8 +401,7 @@ def _stage_gitleaks_workspace(
                         not stat.S_ISDIR(child.st_mode)
                         or (child.st_dev, child.st_ino)
                         != (metadata.st_dev, metadata.st_ino)
-                        or stat.S_IMODE(child.st_mode)
-                        != stat.S_IMODE(metadata.st_mode)
+                        or stat.S_IMODE(child.st_mode) != stat.S_IMODE(metadata.st_mode)
                     ):
                         raise ValueError("Gitleaks staging input changed")
                     copy_directory(child_descriptor, target, relative)
@@ -432,9 +414,7 @@ def _stage_gitleaks_workspace(
             if total_bytes > _MAX_GITLEAKS_STAGE_BYTES:
                 raise ValueError("Gitleaks staging byte limit exceeded")
 
-            source_file = os.open(
-                entry.name, read_flags, dir_fd=source_descriptor
-            )
+            source_file = os.open(entry.name, read_flags, dir_fd=source_descriptor)
             target_file = None
             try:
                 opened = os.fstat(source_file)
@@ -443,8 +423,7 @@ def _stage_gitleaks_workspace(
                     or (opened.st_dev, opened.st_ino)
                     != (metadata.st_dev, metadata.st_ino)
                     or opened.st_size != metadata.st_size
-                    or stat.S_IMODE(opened.st_mode)
-                    != stat.S_IMODE(metadata.st_mode)
+                    or stat.S_IMODE(opened.st_mode) != stat.S_IMODE(metadata.st_mode)
                 ):
                     raise ValueError("Gitleaks staging input changed")
                 target_file = os.open(target, write_flags, 0o600)
@@ -467,8 +446,7 @@ def _stage_gitleaks_workspace(
                 if (
                     copied != metadata.st_size
                     or staged.st_size != metadata.st_size
-                    or (closed.st_dev, closed.st_ino)
-                    != (opened.st_dev, opened.st_ino)
+                    or (closed.st_dev, closed.st_ino) != (opened.st_dev, opened.st_ino)
                     or closed.st_size != opened.st_size
                     or closed.st_mtime_ns != opened.st_mtime_ns
                     or closed.st_ctime_ns != opened.st_ctime_ns
@@ -489,20 +467,19 @@ def _stage_gitleaks_workspace(
 
     try:
         workspace_metadata = workspace.lstat()
-        if (
-            not stat.S_ISDIR(workspace_metadata.st_mode)
-            or stat.S_ISLNK(workspace_metadata.st_mode)
+        if not stat.S_ISDIR(workspace_metadata.st_mode) or stat.S_ISLNK(
+            workspace_metadata.st_mode
         ):
             raise ValueError("Gitleaks workspace must be a regular directory")
         destination.mkdir(mode=0o700)
         workspace_descriptor = os.open(workspace, directory_flags)
         try:
             opened_workspace = os.fstat(workspace_descriptor)
-            if (
-                (opened_workspace.st_dev, opened_workspace.st_ino)
-                != (workspace_metadata.st_dev, workspace_metadata.st_ino)
-                or stat.S_IMODE(opened_workspace.st_mode)
-                != stat.S_IMODE(workspace_metadata.st_mode)
+            if (opened_workspace.st_dev, opened_workspace.st_ino) != (
+                workspace_metadata.st_dev,
+                workspace_metadata.st_ino,
+            ) or stat.S_IMODE(opened_workspace.st_mode) != stat.S_IMODE(
+                workspace_metadata.st_mode
             ):
                 raise ValueError("Gitleaks workspace changed")
             copy_directory(workspace_descriptor, destination, Path())
@@ -532,11 +509,11 @@ def _normalize_staged_gitleaks_findings(
             relative = candidate.relative_to(staged_root)
         except ValueError:
             return False
-        if not relative.parts or any(part in ("", ".", "..") for part in relative.parts):
+        if not relative.parts or any(
+            part in ("", ".", "..") for part in relative.parts
+        ):
             return False
-        relative = Path(
-            *(renamed_controls.get(part, part) for part in relative.parts)
-        )
+        relative = Path(*(renamed_controls.get(part, part) for part in relative.parts))
         finding["File"] = relative.as_posix()
     return True
 
@@ -573,9 +550,7 @@ def _scanner_environment_content_digest() -> str | None:
         root_metadata = root.lstat()
     except OSError:
         return None
-    if not stat.S_ISDIR(root_metadata.st_mode) or stat.S_ISLNK(
-        root_metadata.st_mode
-    ):
+    if not stat.S_ISDIR(root_metadata.st_mode) or stat.S_ISLNK(root_metadata.st_mode):
         return None
 
     digest = hashlib.sha256()
@@ -600,8 +575,7 @@ def _scanner_environment_content_digest() -> str | None:
                 digest.update(b"d")
                 with os.scandir(path) as entries:
                     children = sorted(
-                        (Path(entry.path), relative / entry.name)
-                        for entry in entries
+                        (Path(entry.path), relative / entry.name) for entry in entries
                     )
                 pending.extend(reversed(children))
                 continue
@@ -620,8 +594,8 @@ def _scanner_environment_content_digest() -> str | None:
                 return None
             digest.update(b"f")
             digest.update(metadata.st_size.to_bytes(8, "big"))
-            flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-                os, "O_NOFOLLOW", 0
+            flags = (
+                os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
             )
             descriptor = os.open(path, flags)
             try:
@@ -631,8 +605,7 @@ def _scanner_environment_content_digest() -> str | None:
                     or (opened.st_dev, opened.st_ino)
                     != (metadata.st_dev, metadata.st_ino)
                     or opened.st_size != metadata.st_size
-                    or stat.S_IMODE(opened.st_mode)
-                    != stat.S_IMODE(metadata.st_mode)
+                    or stat.S_IMODE(opened.st_mode) != stat.S_IMODE(metadata.st_mode)
                 ):
                     return None
                 while True:
@@ -675,6 +648,8 @@ def _scanner_environment_executable(name: str) -> str | None:
     except (OSError, RuntimeError, ValueError):
         return None
     return str(resolved) if resolved.is_file() else None
+
+
 @dataclass
 class _BoundedBuffer:
     limit: int
@@ -698,20 +673,16 @@ class _BoundedBuffer:
         except OSError:
             self.error = True
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 stream.close()
-            except OSError:
-                pass
 
 
 def _terminate_process_group(proc: subprocess.Popen[bytes]) -> None:
     try:
         os.killpg(proc.pid, signal.SIGTERM)
     except (OSError, ProcessLookupError):
-        try:
+        with contextlib.suppress(OSError, ProcessLookupError):
             proc.terminate()
-        except (OSError, ProcessLookupError):
-            pass
     try:
         proc.wait(timeout=_TERMINATION_GRACE_SECONDS)
         return
@@ -720,14 +691,10 @@ def _terminate_process_group(proc: subprocess.Popen[bytes]) -> None:
     try:
         os.killpg(proc.pid, signal.SIGKILL)
     except (OSError, ProcessLookupError):
-        try:
+        with contextlib.suppress(OSError, ProcessLookupError):
             proc.kill()
-        except (OSError, ProcessLookupError):
-            pass
-    try:
+    with contextlib.suppress(subprocess.TimeoutExpired):
         proc.wait(timeout=_TERMINATION_GRACE_SECONDS)
-    except subprocess.TimeoutExpired:
-        pass
 
 
 def _execute_bounded(
@@ -779,10 +746,8 @@ def _execute_bounded(
     if any(thread.is_alive() for thread in threads):
         _terminate_process_group(proc)
         for stream in (proc.stdout, proc.stderr):
-            try:
+            with contextlib.suppress(OSError):
                 stream.close()
-            except OSError:
-                pass
         for thread in threads:
             thread.join(timeout=_STREAM_JOIN_SECONDS)
     if timed_out:
@@ -807,9 +772,7 @@ def _execute_bounded(
 
 
 def _installed_version(command: list[str]) -> str | None:
-    proc, status, _output = _execute_bounded(
-        command, timeout=_VERSION_TIMEOUT
-    )
+    proc, status, _output = _execute_bounded(command, timeout=_VERSION_TIMEOUT)
     if proc is None or status != "ok":
         return None
     output = (proc.stdout or proc.stderr).strip().splitlines()
@@ -828,12 +791,8 @@ def _workspace_source_path(workspace: Path, raw_path: object) -> Path | None:
     return candidate
 
 
-def _read_regular_file_bounded(
-    path: Path, *, maximum: int
-) -> tuple[bytes | None, str]:
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-        os, "O_NOFOLLOW", 0
-    )
+def _read_regular_file_bounded(path: Path, *, maximum: int) -> tuple[bytes | None, str]:
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(path, flags)
     except OSError:
@@ -861,9 +820,7 @@ def _read_regular_file_bounded(
 
 
 def _read_source_lines_bounded(path: Path) -> tuple[list[str] | None, str, int]:
-    content, status = _read_regular_file_bounded(
-        path, maximum=_MAX_SOURCE_FILE_BYTES
-    )
+    content, status = _read_regular_file_bounded(path, maximum=_MAX_SOURCE_FILE_BYTES)
     if content is None:
         return None, status, 0
     try:
@@ -936,9 +893,7 @@ def _looks_like_python_source(path: Path) -> bool:
         return False
     if path.name in _EVALUATOR_SCREENING_FILES:
         return False
-    content, status = _read_regular_file_bounded(
-        path, maximum=_MAX_SOURCE_FILE_BYTES
-    )
+    content, status = _read_regular_file_bounded(path, maximum=_MAX_SOURCE_FILE_BYTES)
     if status == "truncated":
         raise ValueError(
             f"unknown scanner source exceeds classification limit: {path.name}"
@@ -986,7 +941,8 @@ def _looks_like_python_source(path: Path) -> bool:
 
 def _python_scan_targets(workspace: Path) -> tuple[Path, ...]:
     return tuple(
-        path for path in _workspace_regular_files(workspace)
+        path
+        for path in _workspace_regular_files(workspace)
         if _looks_like_python_source(path)
     )
 
@@ -1145,9 +1101,7 @@ def _all_line_identities(lines: list[str]) -> tuple[tuple[str, str], ...]:
         occurrence = occurrences.get(normalized, 0) + 1
         occurrences[normalized] = occurrence
         digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-        identities.append(
-            (f"{digest[:16]}:{occurrence}", f"{digest}:{occurrence}")
-        )
+        identities.append((f"{digest[:16]}:{occurrence}", f"{digest}:{occurrence}"))
     return tuple(identities)
 
 
@@ -1241,8 +1195,13 @@ def _redacted_gitleaks_identities_bounded(
                 "|".join(re.escape(segment) for segment in selected_segments)
             )
 
-            def redact(match: re.Match[str]) -> str:
-                redacted_segments.add(match.group(0))
+            # Bind the per-file accumulator at definition time so the closure
+            # can never observe a later loop iteration's set.
+            def redact(
+                match: re.Match[str],
+                sink: set[str] = redacted_segments,
+            ) -> str:
+                sink.add(match.group(0))
                 return _REDACTED_SECRET
 
             redacted_lines = [pattern.sub(redact, line) for line in source_lines]
@@ -1378,8 +1337,10 @@ def _trivy_database_content_digest(cache_dir: Path) -> str | None:
                     or total_bytes > _MAX_TRIVY_DB_BYTES
                 ):
                     return None
-                flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-                    os, "O_NOFOLLOW", 0
+                flags = (
+                    os.O_RDONLY
+                    | getattr(os, "O_CLOEXEC", 0)
+                    | getattr(os, "O_NOFOLLOW", 0)
                 )
                 descriptor = os.open(entry.path, flags)
                 try:
@@ -1420,9 +1381,7 @@ def scanner_assurance_identity(
         "runtime_bundle_sha256": scanner_runtime_digest(),
         "runtime_project_sha256": scanner_runtime_project_digest(),
         "runtime_lock_sha256": scanner_runtime_lock_digest(),
-        "runtime_environment_sha256": (
-            results.scanner_runtime_environment_sha256
-        ),
+        "runtime_environment_sha256": (results.scanner_runtime_environment_sha256),
         "semgrep_ruleset_sha256": scanner_runtime_ruleset_digest(),
         "gitleaks_config_sha256": scanner_runtime_gitleaks_config_digest(),
         "scanner_executable_sha256": executable_hashes,
@@ -1449,15 +1408,9 @@ def scanner_preflight_assurance_identity() -> ScannerAssuranceIdentity:
     }
     results = ScanResults(
         scanner_runtime_lock_sha256=scanner_runtime_lock_digest(),
-        scanner_runtime_environment_sha256=(
-            _scanner_environment_content_digest()
-        ),
+        scanner_runtime_environment_sha256=(_scanner_environment_content_digest()),
         scanner_status={
-            name: (
-                "ok"
-                if observed == SCANNER_REQUIRED_VERSIONS[name]
-                else "error"
-            )
+            name: ("ok" if observed == SCANNER_REQUIRED_VERSIONS[name] else "error")
             for name, observed in runtime_versions.items()
         },
         scanner_versions=runtime_versions,
@@ -1500,9 +1453,7 @@ def scanner_preflight_assurance_identity() -> ScannerAssuranceIdentity:
             version, database = _trivy_version_identity(trivy, cache_dir)
             if database is not None:
                 database = database.model_copy(
-                    update={
-                        "content_sha256": _trivy_database_content_digest(cache_dir)
-                    }
+                    update={"content_sha256": _trivy_database_content_digest(cache_dir)}
                 )
         except (OSError, RuntimeError, ValueError):
             version, database = None, None
@@ -1589,18 +1540,151 @@ def _run(
     return proc, status
 
 
-def run_scanners(workspace: Path, run_dir: Path,
-                 language: str | None = "python") -> ScanResults:
-    results = ScanResults(
-        scanner_runtime_lock_sha256=scanner_runtime_lock_digest()
-    )
+@dataclass(frozen=True, slots=True)
+class ScannerContext:
+    """Inputs shared by every scanner in a single scan phase."""
+
+    workspace: Path
+    scans_dir: Path
+    language: str | None
+    python_targets: tuple[Path, ...] | None
+
+
+@dataclass(frozen=True, slots=True)
+class _RegisteredScanner:
+    """One scanner and the call that records its findings."""
+
+    name: str
+    run: Callable[[ScannerContext, ScanResults], None]
+
+
+# The registry is closed on purpose. Scanner identity is attested and checked
+# against `allowed_scanner_identities` in the governance bundle, so admitting
+# scanners through entry points, the way agent adapters are admitted, would let
+# an installed package change what a passing scan phase means. Adding a scanner
+# is a deliberate change here plus a policy update.
+#
+# Order is the merge order, which fixes the order of findings and of the
+# scanner_* dictionaries in the persisted record.
+_SCANNER_REGISTRY: tuple[_RegisteredScanner, ...] = (
+    _RegisteredScanner(
+        "ruff",
+        lambda context, results: _lint(
+            context.language,
+            context.workspace,
+            context.scans_dir,
+            results,
+            targets=context.python_targets,
+        ),
+    ),
+    _RegisteredScanner(
+        "semgrep",
+        lambda context, results: _semgrep(
+            context.workspace,
+            context.scans_dir,
+            results,
+            targets=context.python_targets,
+        ),
+    ),
+    _RegisteredScanner(
+        "gitleaks",
+        lambda context, results: _gitleaks(
+            context.workspace, context.scans_dir, results
+        ),
+    ),
+    _RegisteredScanner(
+        "trivy",
+        lambda context, results: _trivy(context.workspace, context.scans_dir, results),
+    ),
+)
+
+# Scalar verdicts, each owned by exactly one scanner.
+_SCANNER_RESULT_SCALARS = (
+    "lint_errors",
+    "sec_findings_high",
+    "sec_findings_medium",
+    "sec_findings_low",
+    "secrets_found",
+    "vulns",
+    "trivy_db",
+)
+# Evidence maps keyed by scanner name, so entries never collide.
+_SCANNER_RESULT_MAPS = (
+    "scanner_status",
+    "scanner_versions",
+    "scanner_configs",
+    "scanner_executable_sha256",
+)
+
+
+def _merge_scanner_results(target: ScanResults, source: ScanResults) -> None:
+    """Fold one scanner's findings into the phase result.
+
+    Scanners write disjoint scalars and disjoint keys of the shared maps, so a
+    merge in registry order reproduces the insertion order that sequential
+    execution produced.
+    """
+
+    for name in _SCANNER_RESULT_MAPS:
+        getattr(target, name).update(getattr(source, name))
+    target.findings.extend(source.findings)
+    for name in _SCANNER_RESULT_SCALARS:
+        value = getattr(source, name)
+        if value is not None:
+            setattr(target, name, value)
+
+
+def _scanner_worker_count() -> int:
+    """Resolve the scan-phase worker count, defaulting to full concurrency."""
+
+    configured = os.environ.get("AGENT_EVAL_SCANNER_WORKERS", "").strip()
+    if not configured:
+        return len(_SCANNER_REGISTRY)
+    try:
+        requested = int(configured)
+    except ValueError:
+        return len(_SCANNER_REGISTRY)
+    return max(1, min(requested, len(_SCANNER_REGISTRY)))
+
+
+def _execute_scanners(context: ScannerContext) -> list[ScanResults]:
+    """Run every registered scanner and return results in registry order.
+
+    Scanners are independent: each reads the workspace, shells out to its own
+    tool, and writes artifacts under a distinct name in `scans_dir`. Running
+    them concurrently turns the phase cost from the sum of the tools into the
+    slowest one. Each scanner fills a private result so no shared object is
+    mutated from more than one thread.
+
+    Exceptions surface in registry order, matching sequential execution.
+    """
+
+    workers = _scanner_worker_count()
+
+    def run_one(scanner: _RegisteredScanner) -> ScanResults:
+        partial = ScanResults()
+        scanner.run(context, partial)
+        return partial
+
+    if workers == 1:
+        return [run_one(scanner) for scanner in _SCANNER_REGISTRY]
+
+    with ThreadPoolExecutor(
+        max_workers=workers, thread_name_prefix="agent-eval-scan"
+    ) as pool:
+        futures = [pool.submit(run_one, scanner) for scanner in _SCANNER_REGISTRY]
+        return [future.result() for future in futures]
+
+
+def run_scanners(
+    workspace: Path, run_dir: Path, language: str | None = "python"
+) -> ScanResults:
+    results = ScanResults(scanner_runtime_lock_sha256=scanner_runtime_lock_digest())
     scans_dir = run_dir / "scans"
     scans_dir.mkdir(parents=True, exist_ok=True)
 
     uv_executable = _resolved_executable("uv")
-    uv_before = (
-        _executable_sha256(uv_executable) if uv_executable is not None else None
-    )
+    uv_before = _executable_sha256(uv_executable) if uv_executable is not None else None
     environment_digest_before = _scanner_environment_content_digest()
     environment_executables_before = {
         name: _scanner_environment_executable(name)
@@ -1614,24 +1698,15 @@ def run_scanners(workspace: Path, run_dir: Path,
         python_targets = _python_scan_targets(workspace)
     except (OSError, RuntimeError, ValueError):
         python_targets = None
-    _lint(
-        language,
-        workspace,
-        scans_dir,
-        results,
-        targets=python_targets,
+    context = ScannerContext(
+        workspace=workspace,
+        scans_dir=scans_dir,
+        language=language,
+        python_targets=python_targets,
     )
-    _semgrep(
-        workspace,
-        scans_dir,
-        results,
-        targets=python_targets,
-    )
-    _gitleaks(workspace, scans_dir, results)
-    _trivy(workspace, scans_dir, results)
-    uv_after = (
-        _executable_sha256(uv_executable) if uv_executable is not None else None
-    )
+    for partial in _execute_scanners(context):
+        _merge_scanner_results(results, partial)
+    uv_after = _executable_sha256(uv_executable) if uv_executable is not None else None
     results.scanner_executable_sha256["uv"] = (
         uv_before if uv_before is not None and uv_before == uv_after else None
     )
@@ -1689,9 +1764,7 @@ def _lint(
             results.scanner_status["ruff"] = "error"
             return
     try:
-        policy_arguments = scanner_runtime_invocation_policy()["ruff"][
-            "arguments"
-        ]
+        policy_arguments = scanner_runtime_invocation_policy()["ruff"]["arguments"]
     except (KeyError, RuntimeError, TypeError):
         results.scanner_status["ruff"] = "error"
         return
@@ -1766,9 +1839,7 @@ def _semgrep(
             results.scanner_status["semgrep"] = "error"
             return
     try:
-        policy_arguments = scanner_runtime_invocation_policy()["semgrep"][
-            "arguments"
-        ]
+        policy_arguments = scanner_runtime_invocation_policy()["semgrep"]["arguments"]
     except (KeyError, RuntimeError, TypeError):
         results.scanner_status["semgrep"] = "error"
         return
@@ -1857,10 +1928,7 @@ def _semgrep(
         isinstance(finding, dict)
         and isinstance(finding.get("extra", {}), dict)
         and isinstance(finding.get("extra", {}).get("severity", "INFO"), str)
-        and (
-            finding.get("start") is None
-            or isinstance(finding.get("start"), dict)
-        )
+        and (finding.get("start") is None or isinstance(finding.get("start"), dict))
         for finding in findings
     ):
         results.scanner_status["semgrep"] = "error"
@@ -1928,9 +1996,7 @@ def _gitleaks(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
         results.scanner_status["gitleaks"] = "error"
         return
     executable_before = _executable_sha256(executable)
-    results.scanner_versions["gitleaks"] = _installed_version(
-        [executable, "version"]
-    )
+    results.scanner_versions["gitleaks"] = _installed_version([executable, "version"])
     staged_workspace = None
     renamed_controls: dict[str, str] = {}
     try:
@@ -1940,9 +2006,7 @@ def _gitleaks(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
         ) as temporary:
             os.chmod(temporary, 0o700, follow_symlinks=False)
             staged_workspace = Path(temporary) / "workspace"
-            renamed_controls = _stage_gitleaks_workspace(
-                workspace, staged_workspace
-            )
+            renamed_controls = _stage_gitleaks_workspace(workspace, staged_workspace)
             proc, status = _run(
                 [
                     executable,
@@ -2031,15 +2095,10 @@ def _gitleaks(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
         rule, rule_truncated = _bounded_string(
             raw_finding.get("RuleID") or "secret", _MAX_RULE_CHARS
         )
-        path, path_truncated = _bounded_string(
-            raw_finding.get("File"), _MAX_PATH_CHARS
-        )
+        path, path_truncated = _bounded_string(raw_finding.get("File"), _MAX_PATH_CHARS)
         line, line_truncated = _bounded_line(raw_finding.get("StartLine"))
         retained_truncated = (
-            retained_truncated
-            or rule_truncated
-            or path_truncated
-            or line_truncated
+            retained_truncated or rule_truncated or path_truncated or line_truncated
         )
         finding = {
             "tool": "gitleaks",
@@ -2059,8 +2118,7 @@ def _gitleaks(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
             json.dumps(retained_findings, indent=2) + "\n"
         )
         (scans_dir / "gitleaks.log").write_text(
-            f"exit_code={proc.returncode} "
-            f"redacted_findings={len(retained_findings)}\n"
+            f"exit_code={proc.returncode} redacted_findings={len(retained_findings)}\n"
         )
     except OSError:
         results.scanner_status["gitleaks"] = "error"
@@ -2081,20 +2139,14 @@ def _trivy(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
         return
     executable_before = _executable_sha256(executable)
     try:
-        cache_dir = ensure_private_directory(
-            _scanner_identity_root() / "trivy-cache"
-        )
+        cache_dir = ensure_private_directory(_scanner_identity_root() / "trivy-cache")
     except (OSError, RuntimeError, ValueError):
         results.scanner_status["trivy"] = "error"
         return
-    version_before, database_before = _trivy_version_identity(
-        executable, cache_dir
-    )
+    version_before, database_before = _trivy_version_identity(executable, cache_dir)
     if database_before is not None:
         database_before = database_before.model_copy(
-            update={
-                "content_sha256": _trivy_database_content_digest(cache_dir)
-            }
+            update={"content_sha256": _trivy_database_content_digest(cache_dir)}
         )
     results.scanner_versions["trivy"] = version_before
     results.trivy_db = database_before
@@ -2115,9 +2167,7 @@ def _trivy(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
         ) as temporary:
             os.chmod(temporary, 0o700, follow_symlinks=False)
             staged_workspace = Path(temporary) / "workspace"
-            renamed_controls = _stage_gitleaks_workspace(
-                workspace, staged_workspace
-            )
+            renamed_controls = _stage_gitleaks_workspace(workspace, staged_workspace)
             proc, status = _run(
                 [
                     executable,
@@ -2136,9 +2186,7 @@ def _trivy(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
     version_after, database_after = _trivy_version_identity(executable, cache_dir)
     if database_after is not None:
         database_after = database_after.model_copy(
-            update={
-                "content_sha256": _trivy_database_content_digest(cache_dir)
-            }
+            update={"content_sha256": _trivy_database_content_digest(cache_dir)}
         )
     executable_after = _executable_sha256(executable)
     ignore_policy_after = _verified_empty_ignore_policy_sha256()
@@ -2155,9 +2203,7 @@ def _trivy(workspace: Path, scans_dir: Path, results: ScanResults) -> None:
         f"invocation-policy-sha256={scanner_runtime_invocation_policy_digest()}"
     )
     if database_after is not None and executable_before is not None:
-        database_digest = _canonical_json_sha256(
-            database_after.model_dump(mode="json")
-        )
+        database_digest = _canonical_json_sha256(database_after.model_dump(mode="json"))
         results.scanner_configs["trivy"] = (
             "filesystem-vulnerability-db; "
             f"empty-ignore-policy-sha256={ignore_policy_before}; "

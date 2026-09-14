@@ -18,9 +18,11 @@ class ClaudeCodeAdapter:
     env = {"IS_SANDBOX": "1"}
 
     def build_command(self, model: str | None = None) -> str:
-        cmd = (f'claude -p "$(cat {PROMPT_PATH})" '
-               f"--output-format stream-json --verbose "
-               f"--dangerously-skip-permissions")
+        cmd = (
+            f'claude -p "$(cat {PROMPT_PATH})" '
+            f"--output-format stream-json --verbose "
+            f"--dangerously-skip-permissions"
+        )
         if model:
             cmd += f" --model {shlex.quote(model)}"
         return cmd
@@ -43,8 +45,11 @@ class ClaudeCodeAdapter:
                 metrics.model = event.get("model")
             elif etype == "assistant":
                 content = (event.get("message") or {}).get("content") or []
-                tool_calls += sum(1 for block in content
-                                  if isinstance(block, dict) and block.get("type") == "tool_use")
+                tool_calls += sum(
+                    1
+                    for block in content
+                    if isinstance(block, dict) and block.get("type") == "tool_use"
+                )
             elif etype == "result":
                 usage = event.get("usage") or {}
                 metrics.tokens_in = usage.get("input_tokens")

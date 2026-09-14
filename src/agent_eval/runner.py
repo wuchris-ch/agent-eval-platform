@@ -21,21 +21,22 @@ import time
 import uuid
 from contextlib import suppress
 from dataclasses import dataclass
-from importlib.metadata import PackageNotFoundError, version as package_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 from pydantic import BaseModel
 from rich.console import Console
 
 from . import cluster as cluster_mod
-from .audit import AuditChain
+from .assessments import Assessment, derive_assessments, expected_assessment_id
 from .attestation import (
     capture_git_state,
     create_attestation,
     hash_tree,
     sha256_file,
 )
-from .assessments import Assessment, derive_assessments, expected_assessment_id
+from .audit import AuditChain
 from .cluster import build_and_import_image, build_image_with_metadata
 from .credentials import (
     CredentialRedactionError,
@@ -43,21 +44,6 @@ from .credentials import (
     load_trial_credentials,
 )
 from .evaluators.tests import TestResults, parse_coverage_artifact, parse_junit
-from .kube import (
-    CommandOutputLimitError,
-    KubeError,
-    MAX_SNAPSHOT_BYTES,
-    MAX_SNAPSHOT_MEMBERS,
-    Pod,
-    UnsafeArchiveError,
-    containerd_image_manifest_identity,
-    create_black_box_link,
-    create_egress_proxy,
-    create_sandbox_pod,
-    create_trial_secret,
-    ensure_namespace,
-    runtime_class_name,
-)
 from .governance import (
     EvaluationRequest,
     GovernanceBundle,
@@ -67,6 +53,21 @@ from .governance import (
     sha256_json,
     validate_execution_continuity,
     write_canonical_json,
+)
+from .kube import (
+    MAX_SNAPSHOT_BYTES,
+    MAX_SNAPSHOT_MEMBERS,
+    CommandOutputLimitError,
+    KubeError,
+    Pod,
+    UnsafeArchiveError,
+    containerd_image_manifest_identity,
+    create_black_box_link,
+    create_egress_proxy,
+    create_sandbox_pod,
+    create_trial_secret,
+    ensure_namespace,
+    runtime_class_name,
 )
 from .metrics import DiffStats, RunRecord, now_iso, prepare_run_dir, save_run
 from .observability import export_run_assessments
@@ -182,9 +183,7 @@ def _governance_judge_evidence(
     return task.judge.backend, task.judge.model
 
 
-def _governance_scanner_evidence(
-    *, run_scans: bool
-) -> tuple[str | None, bool]:
+def _governance_scanner_evidence(*, run_scans: bool) -> tuple[str | None, bool]:
     """Inspect the exact local scanner stack admitted to a governed run."""
 
     if not isinstance(run_scans, bool):
@@ -252,8 +251,9 @@ def _snapshot_governed_task(
     return snapshot
 
 
-def _sandbox_infra_error(phase: str, pod: Pod,
-                         command_exit_code: int | None = None) -> str | None:
+def _sandbox_infra_error(
+    phase: str, pod: Pod, command_exit_code: int | None = None
+) -> str | None:
     evidence = pod.infrastructure_failure(command_exit_code)
     if evidence is None:
         return None
@@ -370,8 +370,8 @@ def _credential_hits_in_tree(
                 if stop_after_first:
                     return hits
                 continue
-            flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-                os, "O_NOFOLLOW", 0
+            flags = (
+                os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
             )
             try:
                 descriptor = os.open(entry.path, flags)
@@ -439,9 +439,7 @@ def _redact_run_record(
         if isinstance(value, dict):
             redacted_mapping: dict[object, object] = {}
             for key, item in value.items():
-                safe_key = (
-                    redactor.redact_text(key) if isinstance(key, str) else key
-                )
+                safe_key = redactor.redact_text(key) if isinstance(key, str) else key
                 if safe_key in redacted_mapping:
                     raise CredentialRedactionError(
                         "credential redaction produced duplicate record fields"
@@ -833,9 +831,7 @@ def _image_digest(tag: str) -> str | None:
 
 def _tool_version(command: list[str]) -> str | None:
     try:
-        proc = subprocess.run(
-            command, capture_output=True, text=True, timeout=20
-        )
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=20)
     except (OSError, subprocess.TimeoutExpired):
         return None
     if proc.returncode != 0:
@@ -976,9 +972,7 @@ def _contain_durable_agent_artifacts(
                 shutil.rmtree(artifact)
             else:
                 artifact.unlink()
-    return (
-        "credential containment failed: unsafe durable agent artifact was removed"
-    )
+    return "credential containment failed: unsafe durable agent artifact was removed"
 
 
 def _persist_run(
@@ -1046,9 +1040,7 @@ def _persist_run(
         detail = str(exc)[:500]
         if credential_redactor is not None:
             detail = credential_redactor.redact_text(detail)
-        console.print(
-            f"[yellow]could not create run attestation: {detail}[/yellow]"
-        )
+        console.print(f"[yellow]could not create run attestation: {detail}[/yellow]")
         return f"attestation creation failed: {type(exc).__name__}: {detail}"
 
 
@@ -1236,9 +1228,7 @@ def _complete_record(
                     record.efficiency.infra_error += f"; {judge_identity_error}"
             else:
                 record.efficiency.infra_error = judge_identity_error
-        scanner_error = _governed_scanner_assurance_error(
-            record, require_evidence=True
-        )
+        scanner_error = _governed_scanner_assurance_error(record, require_evidence=True)
         if scanner_error is not None:
             if record.efficiency.infra_error:
                 if scanner_error not in record.efficiency.infra_error:
@@ -1354,10 +1344,8 @@ def _complete_record(
         # normalized record above. The immediately preceding redaction pass is
         # therefore the final boundary before this corrective save.
         save_run(record)
-    try:
+    with suppress(Exception):
         export_run_assessments(record)
-    except Exception:
-        pass
     return record
 
 
@@ -1382,9 +1370,7 @@ def _governed_task(task: Task, decision: PolicyDecision) -> Task:
     current_cost = governed.acceptance.max_cost_usd
     governed.acceptance.max_cost_usd = min(
         limits.max_observed_cost_usd,
-        current_cost
-        if current_cost is not None
-        else limits.max_observed_cost_usd,
+        current_cost if current_cost is not None else limits.max_observed_cost_usd,
     )
     return governed
 
@@ -1445,9 +1431,7 @@ def _validate_governance_decision(
         or matched_task.task_tree_sha256 != task_tree_digest
         or execution_spec_digest not in matched_task.execution_spec_digests
     ):
-        raise ValueError(
-            "governance task registry does not match runtime evidence"
-        )
+        raise ValueError("governance task registry does not match runtime evidence")
     matched = decision.matched_model
     if (
         matched is None
@@ -1460,9 +1444,7 @@ def _validate_governance_decision(
     judge_backend, judge_model = _governance_judge_evidence(
         task, run_judge=effective_run_judge
     )
-    scanner_identity, scanner_ready = _governance_scanner_evidence(
-        run_scans=run_scans
-    )
+    scanner_identity, scanner_ready = _governance_scanner_evidence(run_scans=run_scans)
     matched_judge = decision.matched_judge
     if effective_run_judge:
         if (
@@ -1644,9 +1626,7 @@ def _finalize_execution_decision(
         task, run_judge=effective_run_judge
     )
     domains, proxy_image = _governance_network_evidence(task, agent)
-    scanner_identity, scanner_ready = _governance_scanner_evidence(
-        run_scans=run_scans
-    )
+    scanner_identity, scanner_ready = _governance_scanner_evidence(run_scans=run_scans)
     task_tree_digest, execution_spec_digest = _governance_task_evidence(
         task, run_scans=run_scans, run_judge=effective_run_judge
     )
@@ -1718,7 +1698,9 @@ def prepare_governed_execution(
         task_image_ref=None,
         task_image_platform=None,
     )
-    with tempfile.TemporaryDirectory(prefix="agent-eval-governed-snapshot-") as temporary:
+    with tempfile.TemporaryDirectory(
+        prefix="agent-eval-governed-snapshot-"
+    ) as temporary:
         snapshot = _snapshot_governed_task(
             task,
             Path(temporary),
@@ -1788,9 +1770,7 @@ def _delete_with_retries(resource: object, label: str, attempts: int = 3) -> str
                 time.sleep(0.1 * (2**attempt))
     assert last_error is not None
     resource_name = getattr(resource, "name", None)
-    resource_detail = (
-        f"; resource={str(resource_name)[:253]}" if resource_name else ""
-    )
+    resource_detail = f"; resource={str(resource_name)[:253]}" if resource_name else ""
     cleanup_command = getattr(resource, "cleanup_command", None)
     remediation = (
         f"; remediation={cleanup_command}"
@@ -1839,17 +1819,13 @@ def _judge_credential_screen_error(
         metadata = diff_path.lstat()
         if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
             return (
-                "judge skipped: exact projected-credential inspection did not "
-                "complete"
+                "judge skipped: exact projected-credential inspection did not complete"
             )
         if metadata.st_size > DIFF_MAX_BYTES:
             return (
-                "judge skipped: exact projected-credential inspection did not "
-                "complete"
+                "judge skipped: exact projected-credential inspection did not complete"
             )
-        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(
-            os, "O_NOFOLLOW", 0
-        )
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
         descriptor = os.open(diff_path, flags)
         try:
             opened = os.fstat(descriptor)
@@ -1874,9 +1850,7 @@ def _judge_credential_screen_error(
             if descriptor >= 0:
                 os.close(descriptor)
     except (CredentialRedactionError, OSError):
-        return (
-            "judge skipped: exact projected-credential inspection did not complete"
-        )
+        return "judge skipped: exact projected-credential inspection did not complete"
     return None
 
 
@@ -1903,7 +1877,7 @@ def _workspace_safety_error(workspace: Path) -> str | None:
                 return f"workspace path {relative} is unreadable: {type(exc).__name__}"
             if stat.S_ISLNK(metadata.st_mode):
                 return f"workspace symlink {relative} is not allowed"
-            elif stat.S_ISDIR(metadata.st_mode):
+            if stat.S_ISDIR(metadata.st_mode):
                 if error := visit(Path(entry.path)):
                     return error
             elif not stat.S_ISREG(metadata.st_mode):
@@ -2424,12 +2398,8 @@ def _run_isolated_black_box_eval_phase(
                 )
                 address = submission.ip_address()
                 host = f"[{address}]" if ":" in address else address
-                submission_url = (
-                    f"http://{host}:{configuration.submission_port}"
-                )
-                started = submission.exec(
-                    "touch /tmp/agent-eval-start", timeout=30
-                )
+                submission_url = f"http://{host}:{configuration.submission_port}"
+                started = submission.exec("touch /tmp/agent-eval-start", timeout=30)
                 if started.returncode != 0:
                     error = _sandbox_infra_error(
                         "submission", submission, started.returncode
@@ -2525,9 +2495,7 @@ def run_eval_phase(
         "image_pull_policy": image_pull_policy,
     }
     if task.evaluation.mode == "isolated-black-box":
-        return _run_isolated_black_box_eval_phase(
-            task, workspace, run_dir, **arguments
-        )
+        return _run_isolated_black_box_eval_phase(task, workspace, run_dir, **arguments)
     return _run_cooperative_eval_phase(task, workspace, run_dir, **arguments)
 
 
@@ -3066,11 +3034,10 @@ def _run_agent_trial_impl(
             decision=execution_decision,
         )
         task = _governed_task(task, execution_decision)
+    elif rebuild:
+        ensure_image(task, rebuild=True)
     else:
-        if rebuild:
-            ensure_image(task, rebuild=True)
-        else:
-            ensure_image(task)
+        ensure_image(task)
 
     record = RunRecord(
         run_id=new_run_id(task, adapter.name),
@@ -3350,9 +3317,7 @@ def _run_agent_trial_impl(
                 try:
                     pod.copy_dir_from("/workspace", staged_workspace)
                 except UnsafeArchiveError as exc:
-                    snapshot_integrity_error = (
-                        f"unsafe agent workspace archive: {exc}"
-                    )
+                    snapshot_integrity_error = f"unsafe agent workspace archive: {exc}"
                 else:
                     try:
                         credential_hits = (
@@ -3444,20 +3409,16 @@ def _run_agent_trial_impl(
                     credential_redactor,
                 )
             except Exception:
-                proxy_log_error = (
-                    "egress proxy log could not be safely persisted"
-                )
+                proxy_log_error = "egress proxy log could not be safely persisted"
                 if record.efficiency.infra_error:
                     record.efficiency.infra_error += f"; {proxy_log_error}"
                 else:
                     record.efficiency.infra_error = proxy_log_error
         cleanup_errors = []
-        if pod:
-            if error := _delete_with_retries(pod, "agent pod"):
-                cleanup_errors.append(error)
-        if proxy:
-            if error := _delete_with_retries(proxy, "egress proxy"):
-                cleanup_errors.append(error)
+        if pod and (error := _delete_with_retries(pod, "agent pod")):
+            cleanup_errors.append(error)
+        if proxy and (error := _delete_with_retries(proxy, "egress proxy")):
+            cleanup_errors.append(error)
         if secret:
             if error := _delete_with_retries(secret, "credential Secret"):
                 cleanup_errors.append(error)
@@ -3629,5 +3590,6 @@ def validate_task(task: Task) -> RunRecord:
         oracle_ws = Path(tmp) / "workspace"
         shutil.copytree(task.workspace_dir, oracle_ws)
         shutil.copytree(task.solution_dir, oracle_ws, dirs_exist_ok=True)
-        return evaluate_workspace(task, oracle_ws, agent="oracle",
-                                  run_scans=False, run_judge=False)
+        return evaluate_workspace(
+            task, oracle_ws, agent="oracle", run_scans=False, run_judge=False
+        )

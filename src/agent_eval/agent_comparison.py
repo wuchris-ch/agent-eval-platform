@@ -8,7 +8,8 @@ import math
 import re
 import statistics
 from collections import Counter, defaultdict
-from typing import Callable, Literal
+from collections.abc import Callable
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -108,9 +109,11 @@ def _wilson(successes: int, total: int) -> Interval:
     z2 = _Z_95**2
     denominator = 1 + z2 / total
     center = (proportion + z2 / (2 * total)) / denominator
-    margin = _Z_95 * math.sqrt(
-        proportion * (1 - proportion) / total + z2 / (4 * total**2)
-    ) / denominator
+    margin = (
+        _Z_95
+        * math.sqrt(proportion * (1 - proportion) / total + z2 / (4 * total**2))
+        / denominator
+    )
     return Interval(
         lower=max(0.0, center - margin),
         upper=min(1.0, center + margin),
@@ -131,8 +134,12 @@ def _percentile(values: list[float], percentile: float) -> float | None:
     return ordered[low] + (ordered[high] - ordered[low]) * (rank - low)
 
 
-def _distribution(records: list[RunRecord], getter: Callable[[RunRecord], float | int | None]) -> Distribution:
-    values = [float(value) for record in records if (value := getter(record)) is not None]
+def _distribution(
+    records: list[RunRecord], getter: Callable[[RunRecord], float | int | None]
+) -> Distribution:
+    values = [
+        float(value) for record in records if (value := getter(record)) is not None
+    ]
     total = len(records)
     return Distribution(
         observed=len(values),
@@ -168,9 +175,7 @@ def _agent_implementation_identity(record: RunRecord) -> str | None:
 
     if record.agent in _HARNESS_BOUND_ADAPTERS:
         return f"harness-bound:{record.agent}"
-    distribution = record.provenance.tool_versions.get(
-        "agent-adapter-distribution"
-    )
+    distribution = record.provenance.tool_versions.get("agent-adapter-distribution")
     version = record.provenance.tool_versions.get("agent-adapter-version")
     digest = record.provenance.tool_versions.get("agent-adapter-sha256")
     if (
@@ -216,7 +221,7 @@ def _cohort(record: RunRecord) -> EvaluationCohort:
     missing.extend(name for name, value in git_values.items() if value is None)
     missing = sorted(set(missing))
     if missing:
-        identity = f"legacy-unbound\0{record.run_id}".encode("utf-8")
+        identity = f"legacy-unbound\0{record.run_id}".encode()
         binding: Literal["bound", "legacy-unbound"] = "legacy-unbound"
     else:
         identity = json.dumps(
@@ -271,10 +276,7 @@ def _has_correctness_evidence(record: RunRecord) -> bool:
 def _summarize(records: list[RunRecord], cohort: EvaluationCohort) -> AgentSummary:
     first = records[0]
     total = len(records)
-    evaluable = [
-        record for record in records
-        if _has_correctness_evidence(record)
-    ]
+    evaluable = [record for record in records if _has_correctness_evidence(record)]
     resolved = sum(record.correctness.resolved for record in evaluable)
     accepted_values = [_accepted(record) for record in records]
     accepted_observed = [value for value in accepted_values if value is not None]
@@ -292,14 +294,13 @@ def _summarize(records: list[RunRecord], cohort: EvaluationCohort) -> AgentSumma
         legacy_incomplete_count=total - len(evaluable),
         resolved=resolved,
         resolved_rate=resolved / len(evaluable) if evaluable else None,
-        resolved_wilson_95=(
-            _wilson(resolved, len(evaluable)) if evaluable else None
-        ),
+        resolved_wilson_95=(_wilson(resolved, len(evaluable)) if evaluable else None),
         accepted=(sum(accepted_observed) if accepted_observed else None),
         accepted_evidence_count=len(accepted_observed),
         accepted_rate=(
             sum(accepted_observed) / len(accepted_observed)
-            if accepted_observed else None
+            if accepted_observed
+            else None
         ),
         infrastructure_failures=infra,
         infrastructure_failure_rate=infra / total,
@@ -367,9 +368,7 @@ def _paired(
     duplicate_keys: dict[str, set[tuple[str, str, int, str]]] = {}
     for name in (baseline, candidate):
         records = grouped.get(name, [])
-        candidates: dict[tuple[str, str, int, str], list[RunRecord]] = defaultdict(
-            list
-        )
+        candidates: dict[tuple[str, str, int, str], list[RunRecord]] = defaultdict(list)
         for record in records:
             if (
                 record.experiment_id in shared_experiments
@@ -380,9 +379,7 @@ def _paired(
             key for key, matches in candidates.items() if len(matches) > 1
         }
         indexed = {
-            key: matches[0]
-            for key, matches in candidates.items()
-            if len(matches) == 1
+            key: matches[0] for key, matches in candidates.items() if len(matches) == 1
         }
         by_key[name] = indexed
     keys = sorted(
@@ -466,9 +463,7 @@ def _paired(
             pairs, lambda r: r.efficiency.wall_time_s
         ),
         token_median_delta=_median_delta(pairs, _total_tokens),
-        cost_median_delta_usd=_median_delta(
-            pairs, lambda r: r.efficiency.cost_usd
-        ),
+        cost_median_delta_usd=_median_delta(pairs, lambda r: r.efficiency.cost_usd),
     )
 
 
@@ -486,9 +481,7 @@ def compare_agents(records: list[RunRecord]) -> AgentComparison:
     paired = []
     for cohort_id in sorted(cohorts):
         cohort, groups = cohorts[cohort_id]
-        summaries.extend(
-            _summarize(groups[name], cohort) for name in sorted(groups)
-        )
+        summaries.extend(_summarize(groups[name], cohort) for name in sorted(groups))
         if cohort.binding != "bound":
             continue
         names = sorted(groups)

@@ -1,7 +1,9 @@
 """Bounded producer ingestion. A submission never constitutes acceptance."""
 
 from typing import Literal
+
 from pydantic import Field
+
 from ..blackbox.models import StrictModel, digest
 from ..experiments.models import Identifier, Sha256
 

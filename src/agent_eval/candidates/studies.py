@@ -348,12 +348,11 @@ def study_report(store, project, cohort):
         )
         if task is None:
             raise ValueError("ticket task is outside the declared study")
-        if trial["attempt_kind"] == "initial":
-            if (
-                ticket["recipe_sha256"] != recipe_id(plan, task, trial["arm"])
-                or not 1 <= trial["trial"] <= plan.trials
-            ):
-                raise ValueError("study ticket recipe or trial differs from plan")
+        if trial["attempt_kind"] == "initial" and (
+            ticket["recipe_sha256"] != recipe_id(plan, task, trial["arm"])
+            or not 1 <= trial["trial"] <= plan.trials
+        ):
+            raise ValueError("study ticket recipe or trial differs from plan")
         if (
             not any(
                 ticket["suite_sha256"] == t.suite_sha256

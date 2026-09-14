@@ -51,6 +51,7 @@ def database(tmp_path_factory):
     )
     dsn = f"host={root} port={port} dbname=postgres user={os.environ.get('USER', 'postgres')}"
     import time
+
     import psycopg
 
     for _ in range(100):
@@ -264,13 +265,13 @@ def test_kubernetes_profiles_are_immutable_restricted_and_observed():
 
 
 def test_local_journal_distributed_round_trip(queue, tmp_path, monkeypatch):
-    from agent_eval.workbench.store import Store
-    from agent_eval.workbench.models import TargetProfile, Launch
-    from agent_eval.workbench.datasets import Dataset, register_dataset
-    from agent_eval.workbench.service import launch_experiment
-    from agent_eval.blackbox.models import Suite, Case, Metric
-    from agent_eval.distributed.bridge import enqueue_experiment, collect_experiment
+    from agent_eval.blackbox.models import Case, Metric, Suite
+    from agent_eval.distributed.bridge import collect_experiment, enqueue_experiment
     from agent_eval.experiments.journal import Journal
+    from agent_eval.workbench.datasets import Dataset, register_dataset
+    from agent_eval.workbench.models import Launch, TargetProfile
+    from agent_eval.workbench.service import launch_experiment
+    from agent_eval.workbench.store import Store
 
     monkeypatch.setenv("AGENT_EVAL_STATE_DIR", str(tmp_path / "state"))
     store = Store()
@@ -428,8 +429,9 @@ def test_confirmed_quota_rejection_defers_without_spending(queue, monkeypatch):
 
 
 def test_job_cleanup_uses_uid_precondition(monkeypatch):
-    from agent_eval.distributed.kubernetes import cleanup_job
     import json
+
+    from agent_eval.distributed.kubernetes import cleanup_job
 
     calls = []
 

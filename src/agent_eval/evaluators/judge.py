@@ -115,17 +115,21 @@ def structured_completion(
 def _build_prompts(task: Task, diff: str) -> tuple[str, str]:
     dim_lines = "\n".join(
         f"- {d}: {DIMENSION_GUIDE.get(d, 'Score this dimension on its plain meaning.')}"
-        for d in task.judge.weights)
+        for d in task.judge.weights
+    )
     system = (
         "You are a strict senior engineer judging a code change produced by a "
         "coding agent. Score each rubric dimension from 1 (poor) to 5 (excellent) "
         "with a concise, evidence-based rationale citing specifics from the diff. "
         "Judge only what is in the diff against the task; do not reward unrequested "
-        "extras.")
-    user = (f"# Task given to the coding agent\n\n{task.prompt}\n\n"
-            f"# Rubric dimensions\n\n{dim_lines}\n\n"
-            f"# Diff produced by the agent\n\n```diff\n{diff}\n```\n\n"
-            f"Score every dimension listed above, one entry per dimension.")
+        "extras."
+    )
+    user = (
+        f"# Task given to the coding agent\n\n{task.prompt}\n\n"
+        f"# Rubric dimensions\n\n{dim_lines}\n\n"
+        f"# Diff produced by the agent\n\n```diff\n{diff}\n```\n\n"
+        f"Score every dimension listed above, one entry per dimension."
+    )
     return system, user
 
 

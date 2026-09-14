@@ -289,6 +289,7 @@ def test_study_correction_uses_separate_cap_and_frozen_failure_selection(
 
 def test_browser_policy_preview_matches_python(tmp_path):
     import subprocess
+
     from agent_eval.candidates.contracts import AcceptancePolicy, Check
     from agent_eval.candidates.execution import policy_decision
 
@@ -331,8 +332,8 @@ def test_browser_policy_preview_matches_python(tmp_path):
                             "expected": outcome,
                         }
                     )
-    import shutil
     import json
+    import shutil
 
     if shutil.which("node") is None:
         pytest.skip("Node is required for browser policy parity")

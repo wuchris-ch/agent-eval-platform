@@ -34,8 +34,8 @@ def main():
         raise ValueError("input limit")
     value = parse_json(raw)
     if mode == "http":
-        from pathlib import Path
         import os
+        from pathlib import Path
 
         profile = read_json(Path(sys.argv[2]))
         token = os.environ.get(profile.get("token_env", ""))

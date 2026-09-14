@@ -5,8 +5,8 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from ..blackbox.models import StrictModel
-from ..experiments.models import CommandSpec, Identifier
 from ..environments.world import Fault
+from ..experiments.models import CommandSpec, Identifier
 
 
 class TargetProfile(StrictModel):

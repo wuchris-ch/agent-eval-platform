@@ -46,9 +46,7 @@ def _private_scanner_state(monkeypatch, tmp_path):
             return "8.30.1"
         return installed_version(command)
 
-    monkeypatch.setattr(
-        scanners, "_installed_version", exact_fake_external_version
-    )
+    monkeypatch.setattr(scanners, "_installed_version", exact_fake_external_version)
 
 
 def _semgrep_report(results=None, **updates):
@@ -129,9 +127,7 @@ def test_run_timeout_terminates_the_entire_process_group(monkeypatch, tmp_path):
     assert not sentinel.exists()
 
 
-def test_ruff_disables_workspace_suppression_with_pinned_package(
-    monkeypatch, tmp_path
-):
+def test_ruff_disables_workspace_suppression_with_pinned_package(monkeypatch, tmp_path):
     captured = {}
 
     def fake_run(cmd, out_file):
@@ -187,9 +183,7 @@ def test_ruff_disables_workspace_suppression_with_pinned_package(
         (0, '{"findings": []}'),
     ],
 )
-def test_ruff_errors_leave_metric_unset(
-    monkeypatch, tmp_path, returncode, stdout
-):
+def test_ruff_errors_leave_metric_unset(monkeypatch, tmp_path, returncode, stdout):
     def fake_run(cmd, out_file):
         del cmd, out_file
         return SimpleNamespace(returncode=returncode, stdout=stdout), "ok"
@@ -204,9 +198,7 @@ def test_ruff_errors_leave_metric_unset(
     assert results.lint_errors is None
 
 
-def test_semgrep_disables_workspace_suppression_and_binds_config(
-    monkeypatch, tmp_path
-):
+def test_semgrep_disables_workspace_suppression_and_binds_config(monkeypatch, tmp_path):
     captured = {}
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
@@ -297,9 +289,7 @@ def test_semgrep_rejects_a_clean_report_that_omits_an_explicit_target(
         del cmd, out_file
         return SimpleNamespace(
             returncode=0,
-            stdout=_semgrep_report(
-                paths={"scanned": [str(first.resolve())]}
-            ),
+            stdout=_semgrep_report(paths={"scanned": [str(first.resolve())]}),
         ), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
@@ -323,22 +313,30 @@ def test_scanner_runtime_has_exact_top_level_versions_and_stable_identity():
     assert len(scanner_runtime_digest()) == 64
     assert len(scanner_runtime_environment_digest()) == 64
     assert len(scanner_runtime_project_digest()) == 64
-    assert scanner_runtime_lock_digest() == scanners.hashlib.sha256(
-        SCANNER_RUNTIME_LOCK.read_bytes()
-    ).hexdigest()
-    assert scanner_runtime_ruleset_digest() == scanners.hashlib.sha256(
-        SCANNER_RUNTIME_RULESET.read_bytes()
-    ).hexdigest()
-    assert scanner_runtime_gitleaks_config_digest() == scanners.hashlib.sha256(
-        SCANNER_RUNTIME_GITLEAKS_CONFIG.read_bytes()
-    ).hexdigest()
+    assert (
+        scanner_runtime_lock_digest()
+        == scanners.hashlib.sha256(SCANNER_RUNTIME_LOCK.read_bytes()).hexdigest()
+    )
+    assert (
+        scanner_runtime_ruleset_digest()
+        == scanners.hashlib.sha256(SCANNER_RUNTIME_RULESET.read_bytes()).hexdigest()
+    )
+    assert (
+        scanner_runtime_gitleaks_config_digest()
+        == scanners.hashlib.sha256(
+            SCANNER_RUNTIME_GITLEAKS_CONFIG.read_bytes()
+        ).hexdigest()
+    )
     assert scanner_runtime_empty_ignore_policy_digest() == (
         SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256
     )
     assert SCANNER_RUNTIME_EMPTY_IGNORE_POLICY.read_bytes() == b"\n"
-    assert scanner_runtime_invocation_policy_digest() == scanners.hashlib.sha256(
-        SCANNER_RUNTIME_INVOCATION_POLICY.read_bytes()
-    ).hexdigest()
+    assert (
+        scanner_runtime_invocation_policy_digest()
+        == scanners.hashlib.sha256(
+            SCANNER_RUNTIME_INVOCATION_POLICY.read_bytes()
+        ).hexdigest()
+    )
 
 
 def test_scanner_invocation_policy_is_exact_and_runtime_bound():
@@ -377,9 +375,7 @@ def test_scanner_invocation_policy_is_exact_and_runtime_bound():
             "--max-target-megabytes",
             "0",
         ],
-        "empty_ignore_policy_sha256": (
-            SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256
-        ),
+        "empty_ignore_policy_sha256": (SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256),
     }
     assert policy["trivy"] == {
         "version": "0.72.0",
@@ -392,9 +388,7 @@ def test_scanner_invocation_policy_is_exact_and_runtime_bound():
             "--scanners",
             "vuln",
         ],
-        "empty_ignore_policy_sha256": (
-            SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256
-        ),
+        "empty_ignore_policy_sha256": (SCANNER_RUNTIME_EMPTY_IGNORE_POLICY_SHA256),
     }
     expected = scanners.hashlib.sha256()
     expected.update(b"agent-eval-scanner-runtime-v1\0")
@@ -424,9 +418,7 @@ def test_empty_ignore_policy_requires_exact_regular_file(monkeypatch, tmp_path):
     target.write_bytes(b"\n")
     linked_policy = tmp_path / "ignore-policy"
     linked_policy.symlink_to(target)
-    monkeypatch.setattr(
-        scanners, "SCANNER_RUNTIME_EMPTY_IGNORE_POLICY", linked_policy
-    )
+    monkeypatch.setattr(scanners, "SCANNER_RUNTIME_EMPTY_IGNORE_POLICY", linked_policy)
 
     assert scanners._verified_empty_ignore_policy_sha256() is None
 
@@ -440,9 +432,7 @@ def test_external_scanners_fail_closed_when_ignore_policy_is_tampered(
     monkeypatch.setattr(
         scanners, "SCANNER_RUNTIME_EMPTY_IGNORE_POLICY", tampered_policy
     )
-    monkeypatch.setattr(
-        scanners, "_resolved_executable", lambda name: f"/tools/{name}"
-    )
+    monkeypatch.setattr(scanners, "_resolved_executable", lambda name: f"/tools/{name}")
     monkeypatch.setattr(
         scanners,
         "_run",
@@ -489,15 +479,11 @@ def test_scanner_subprocess_drops_host_credentials_and_uses_private_state(
     assert environment["SSL_CERT_FILE"] == "/private/cert.pem"
     assert environment["PYTHONDONTWRITEBYTECODE"] == "1"
     identity_root = (
-        tmp_path
-        / "state-scanner-runtime"
-        / scanner_runtime_environment_digest()
+        tmp_path / "state-scanner-runtime" / scanner_runtime_environment_digest()
     )
     assert environment["HOME"] == str(identity_root / "home")
     assert environment["UV_CACHE_DIR"] == str(identity_root / "cache")
-    assert environment["UV_PROJECT_ENVIRONMENT"] == str(
-        identity_root / "environment"
-    )
+    assert environment["UV_PROJECT_ENVIRONMENT"] == str(identity_root / "environment")
     assert stat_mode(identity_root) == 0o700
     assert not (SCANNER_RUNTIME_PROJECT.parent / ".venv").exists()
 
@@ -559,25 +545,16 @@ def test_scanner_assurance_identity_is_canonical_and_fail_closed():
     assert first.promotion_blockers == []
     assert first.runtime_lock_sha256 == scanner_runtime_lock_digest()
     assert first.semgrep_ruleset_sha256 == scanner_runtime_ruleset_digest()
-    assert (
-        first.gitleaks_config_sha256
-        == scanner_runtime_gitleaks_config_digest()
-    )
+    assert first.gitleaks_config_sha256 == scanner_runtime_gitleaks_config_digest()
 
     results.scanner_executable_sha256["trivy"] = None
     blocked = scanners.scanner_assurance_identity(results)
     assert not blocked.promotion_ready
-    assert "scanner:trivy:executable-sha256-missing" in (
-        blocked.promotion_blockers
-    )
+    assert "scanner:trivy:executable-sha256-missing" in (blocked.promotion_blockers)
     assert blocked.identity_sha256 != first.identity_sha256
 
-    tampered = first.model_copy(
-        update={"runtime_environment_sha256": "9" * 64}
-    )
-    with pytest.raises(
-        ValueError, match="identity_sha256 does not match its material"
-    ):
+    tampered = first.model_copy(update={"runtime_environment_sha256": "9" * 64})
+    with pytest.raises(ValueError, match="identity_sha256 does not match its material"):
         type(first).model_validate(tampered.model_dump(mode="python"))
 
     results.scanner_executable_sha256["trivy"] = "b" * 64
@@ -698,9 +675,7 @@ def test_trivy_version_identity_normalizes_bounded_database_metadata(
 
     monkeypatch.setattr(scanners, "_execute_bounded", fake_execute)
 
-    version, database = scanners._trivy_version_identity(
-        "/usr/bin/trivy", tmp_path
-    )
+    version, database = scanners._trivy_version_identity("/usr/bin/trivy", tmp_path)
 
     assert version == "0.72.0"
     assert database == TrivyDatabaseIdentity(
@@ -726,9 +701,7 @@ def test_trivy_database_content_digest_binds_names_and_bytes(tmp_path):
     assert first != second
 
 
-def test_scanner_environment_digest_binds_installed_package_tree(
-    monkeypatch, tmp_path
-):
+def test_scanner_environment_digest_binds_installed_package_tree(monkeypatch, tmp_path):
     environment = tmp_path / "environment"
     package = environment / "lib" / "python3.12" / "site-packages" / "semgrep"
     package.mkdir(parents=True)
@@ -767,9 +740,7 @@ def test_scanner_preflight_binds_every_promoted_material(monkeypatch, tmp_path):
         "/tools/gitleaks": "c" * 64,
         "/tools/trivy": "d" * 64,
     }
-    monkeypatch.setattr(
-        scanners, "_resolved_executable", lambda name: executables.get(name)
-    )
+    monkeypatch.setattr(scanners, "_resolved_executable", executables.get)
     monkeypatch.setattr(
         scanners,
         "_scanner_environment_executable",
@@ -817,16 +788,14 @@ def test_prepare_scanner_runtime_hydrates_then_returns_exact_identity(
     calls = []
     expected_identity = object()
 
-    monkeypatch.setattr(
-        scanners, "_resolved_executable", lambda name: executables.get(name)
-    )
+    monkeypatch.setattr(scanners, "_resolved_executable", executables.get)
     monkeypatch.setattr(
         scanners,
         "_executable_sha256",
-        lambda executable: {
+        {
             "/tools/uv": "a" * 64,
             "/tools/trivy": "b" * 64,
-        }.get(executable),
+        }.get,
     )
     monkeypatch.setattr(scanners, "_scanner_identity_root", lambda: tmp_path)
 
@@ -957,9 +926,7 @@ def test_semgrep_caps_retained_findings_but_preserves_total_counts(
         del cmd, out_file
         return SimpleNamespace(
             returncode=0,
-            stdout=_semgrep_report(
-                report, paths={"scanned": [str(source.resolve())]}
-            ),
+            stdout=_semgrep_report(report, paths={"scanned": [str(source.resolve())]}),
         ), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
@@ -1017,18 +984,12 @@ def test_semgrep_bounds_fields_and_caches_source_reads(monkeypatch, tmp_path):
     assert results.scanner_status["semgrep"] == "truncated"
     assert len(results.findings) == 2
     assert all(
-        len(finding["rule"]) <= scanners._MAX_RULE_CHARS
-        for finding in results.findings
+        len(finding["rule"]) <= scanners._MAX_RULE_CHARS for finding in results.findings
     )
-    assert all(
-        "primary_location_line_hash" in finding
-        for finding in results.findings
-    )
+    assert all("primary_location_line_hash" in finding for finding in results.findings)
 
 
-def test_semgrep_marks_oversize_source_identity_input_truncated(
-    monkeypatch, tmp_path
-):
+def test_semgrep_marks_oversize_source_identity_input_truncated(monkeypatch, tmp_path):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     (workspace / "source.py").write_text("oversize source\n", encoding="utf-8")
@@ -1083,9 +1044,7 @@ def test_gitleaks_errors_leave_metric_unset(
     def fake_run(cmd, out_file):
         del out_file
         assert cmd[cmd.index("--report-path") + 1] == "-"
-        return SimpleNamespace(
-            returncode=returncode, stdout=report_contents
-        ), "ok"
+        return SimpleNamespace(returncode=returncode, stdout=report_contents), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
     monkeypatch.setattr(scanners, "_run", fake_run)
@@ -1110,17 +1069,13 @@ def test_gitleaks_accepts_valid_empty_list_for_documented_exits(
     def fake_run(cmd, out_file):
         assert out_file == Path(os.devnull)
         assert cmd[cmd.index("--report-path") + 1] == "-"
-        assert cmd[cmd.index("--config") + 1] == str(
-            SCANNER_RUNTIME_GITLEAKS_CONFIG
-        )
+        assert cmd[cmd.index("--config") + 1] == str(SCANNER_RUNTIME_GITLEAKS_CONFIG)
         assert cmd[cmd.index("--gitleaks-ignore-path") + 1] == str(
             SCANNER_RUNTIME_EMPTY_IGNORE_POLICY
         )
         assert "--ignore-gitleaks-allow" in cmd
         assert cmd[cmd.index("--max-target-megabytes") + 1] == "0"
-        return SimpleNamespace(
-            returncode=returncode, stdout=json.dumps([])
-        ), "ok"
+        return SimpleNamespace(returncode=returncode, stdout=json.dumps([])), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
     monkeypatch.setattr(scanners, "_run", fake_run)
@@ -1165,18 +1120,14 @@ def test_gitleaks_rejects_a_wrong_observed_version(monkeypatch, tmp_path):
     assert results.secrets_found is None
 
 
-def test_gitleaks_rejects_ignore_policy_changed_during_scan(
-    monkeypatch, tmp_path
-):
+def test_gitleaks_rejects_ignore_policy_changed_during_scan(monkeypatch, tmp_path):
     workspace = tmp_path / "workspace"
     scans_dir = tmp_path / "scans"
     ignore_policy = tmp_path / "ignore-policy"
     workspace.mkdir()
     scans_dir.mkdir()
     ignore_policy.write_bytes(b"\n")
-    monkeypatch.setattr(
-        scanners, "SCANNER_RUNTIME_EMPTY_IGNORE_POLICY", ignore_policy
-    )
+    monkeypatch.setattr(scanners, "SCANNER_RUNTIME_EMPTY_IGNORE_POLICY", ignore_policy)
 
     def fake_run(cmd, out_file):
         del cmd, out_file
@@ -1203,9 +1154,7 @@ def test_gitleaks_uses_private_bounded_stage_and_maps_target_ignore_as_data(
     secret = "".join(("AKIA", "ZXYWVUTSRQPONMLK"))
     git_secret = "".join(("AKIA", "LMNPQRSTVWXZBCDF"))
     target_ignore = workspace / ".gitleaksignore"
-    target_ignore.write_text(
-        f'aws_access_key_id = "{secret}"\n', encoding="utf-8"
-    )
+    target_ignore.write_text(f'aws_access_key_id = "{secret}"\n', encoding="utf-8")
     git_directory = workspace / ".git"
     git_directory.mkdir()
     (git_directory / "secret.txt").write_text(
@@ -1216,22 +1165,19 @@ def test_gitleaks_uses_private_bounded_stage_and_maps_target_ignore_as_data(
     def fake_run(cmd, out_file):
         del out_file
         staged_workspace = Path(cmd[2])
-        staged_ignore = (
-            staged_workspace / scanners._GITLEAKS_STAGED_IGNORE_NAME
-        )
+        staged_ignore = staged_workspace / scanners._GITLEAKS_STAGED_IGNORE_NAME
         staged_git_secret = (
-            staged_workspace
-            / scanners._GITLEAKS_STAGED_GIT_NAME
-            / "secret.txt"
+            staged_workspace / scanners._GITLEAKS_STAGED_GIT_NAME / "secret.txt"
         )
         captured["workspace"] = staged_workspace
         assert staged_workspace != workspace
         assert not (staged_workspace / ".gitleaksignore").exists()
         assert not (staged_workspace / ".git").exists()
         assert staged_ignore.read_bytes() == target_ignore.read_bytes()
-        assert staged_git_secret.read_bytes() == (
-            git_directory / "secret.txt"
-        ).read_bytes()
+        assert (
+            staged_git_secret.read_bytes()
+            == (git_directory / "secret.txt").read_bytes()
+        )
         assert stat_mode(staged_workspace) == 0o700
         assert stat_mode(staged_ignore) == 0o600
         return SimpleNamespace(
@@ -1249,7 +1195,7 @@ def test_gitleaks_uses_private_bounded_stage_and_maps_target_ignore_as_data(
                         "File": str(staged_git_secret),
                         "StartLine": 1,
                         "Secret": git_secret,
-                    }
+                    },
                 ]
             ),
         ), "ok"
@@ -1267,12 +1213,8 @@ def test_gitleaks_uses_private_bounded_stage_and_maps_target_ignore_as_data(
         ".gitleaksignore",
         ".git/secret.txt",
     ]
-    assert secret not in (
-        scans_dir / "gitleaks.json"
-    ).read_text(encoding="utf-8")
-    assert git_secret not in (
-        scans_dir / "gitleaks.json"
-    ).read_text(encoding="utf-8")
+    assert secret not in (scans_dir / "gitleaks.json").read_text(encoding="utf-8")
+    assert git_secret not in (scans_dir / "gitleaks.json").read_text(encoding="utf-8")
 
 
 def test_external_stage_neutralizes_nested_scanner_skip_directories(tmp_path):
@@ -1288,15 +1230,10 @@ def test_external_stage_neutralizes_nested_scanner_skip_directories(tmp_path):
     renamed = scanners._stage_gitleaks_workspace(workspace, destination)
 
     staged_git = (
-        destination
-        / "nested"
-        / scanners._GITLEAKS_STAGED_GIT_NAME
-        / "secret.txt"
+        destination / "nested" / scanners._GITLEAKS_STAGED_GIT_NAME / "secret.txt"
     )
     staged_manifest = (
-        destination
-        / scanners._STAGED_NODE_MODULES_NAME
-        / "package-lock.json"
+        destination / scanners._STAGED_NODE_MODULES_NAME / "package-lock.json"
     )
     assert staged_git.read_bytes() == nested_git.read_bytes()
     assert staged_manifest.read_bytes() == node_manifest.read_bytes()
@@ -1347,9 +1284,10 @@ def test_gitleaks_8301_target_suppressions_and_size_skip_cannot_hide_secret(
     monkeypatch, tmp_path
 ):
     executable = scanners._resolved_executable("gitleaks")
-    if executable is None or scanners._installed_version(
-        [executable, "version"]
-    ) != "8.30.1":
+    if (
+        executable is None
+        or scanners._installed_version([executable, "version"]) != "8.30.1"
+    ):
         pytest.skip("exact Gitleaks 8.30.1 executable is unavailable")
 
     workspace = tmp_path / "workspace"
@@ -1376,13 +1314,12 @@ def test_gitleaks_8301_target_suppressions_and_size_skip_cannot_hide_secret(
     assert results.findings[0]["rule"] == "aws-access-token"
 
 
-def test_gitleaks_8301_default_git_skip_cannot_hide_secret(
-    monkeypatch, tmp_path
-):
+def test_gitleaks_8301_default_git_skip_cannot_hide_secret(monkeypatch, tmp_path):
     executable = scanners._resolved_executable("gitleaks")
-    if executable is None or scanners._installed_version(
-        [executable, "version"]
-    ) != "8.30.1":
+    if (
+        executable is None
+        or scanners._installed_version([executable, "version"]) != "8.30.1"
+    ):
         pytest.skip("exact Gitleaks 8.30.1 executable is unavailable")
 
     workspace = tmp_path / "workspace"
@@ -1445,9 +1382,7 @@ def test_gitleaks_caps_findings_and_fields_but_preserves_total_count(
     def fake_run(cmd, out_file):
         del out_file
         assert cmd[cmd.index("--report-path") + 1] == "-"
-        return SimpleNamespace(
-            returncode=1, stdout=json.dumps(raw_findings)
-        ), "ok"
+        return SimpleNamespace(returncode=1, stdout=json.dumps(raw_findings)), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
     monkeypatch.setattr(scanners, "_run", fake_run)
@@ -1462,8 +1397,7 @@ def test_gitleaks_caps_findings_and_fields_but_preserves_total_count(
     assert len(results.findings) == 2
     assert len(retained) == 2
     assert all(
-        len(finding["rule"]) <= scanners._MAX_RULE_CHARS
-        for finding in results.findings
+        len(finding["rule"]) <= scanners._MAX_RULE_CHARS for finding in results.findings
     )
 
 
@@ -1509,9 +1443,7 @@ def test_gitleaks_enforces_global_source_cache_budgets_across_files(
     def fake_run(cmd, out_file):
         del out_file
         assert cmd[cmd.index("--report-path") + 1] == "-"
-        return SimpleNamespace(
-            returncode=1, stdout=json.dumps(raw_findings)
-        ), "ok"
+        return SimpleNamespace(returncode=1, stdout=json.dumps(raw_findings)), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
     monkeypatch.setattr(scanners, "_run", fake_run)
@@ -1545,9 +1477,7 @@ def test_trivy_uses_evaluator_owned_ignore_policy(monkeypatch, tmp_path):
     def fake_run(cmd, out_file):
         captured["cmd"] = cmd
         captured["out_file"] = out_file
-        return SimpleNamespace(
-            returncode=0, stdout=json.dumps({"Results": []})
-        ), "ok"
+        return SimpleNamespace(returncode=0, stdout=json.dumps({"Results": []})), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
     monkeypatch.setattr(scanners, "_run", fake_run)
@@ -1611,9 +1541,7 @@ def test_trivy_rejects_a_wrong_observed_version(monkeypatch, tmp_path):
     assert results.vulns is None
 
 
-def test_trivy_rejects_ignore_policy_changed_during_scan(
-    monkeypatch, tmp_path
-):
+def test_trivy_rejects_ignore_policy_changed_during_scan(monkeypatch, tmp_path):
     workspace = tmp_path / "workspace"
     scans_dir = tmp_path / "scans"
     ignore_policy = tmp_path / "ignore-policy"
@@ -1626,16 +1554,12 @@ def test_trivy_rejects_ignore_policy_changed_during_scan(
         next_update="2026-07-15T00:00:00Z",
         downloaded_at="2026-07-14T01:00:00Z",
     )
-    monkeypatch.setattr(
-        scanners, "SCANNER_RUNTIME_EMPTY_IGNORE_POLICY", ignore_policy
-    )
+    monkeypatch.setattr(scanners, "SCANNER_RUNTIME_EMPTY_IGNORE_POLICY", ignore_policy)
 
     def fake_run(cmd, out_file):
         del cmd, out_file
         ignore_policy.write_text("CVE-2020-8203\n", encoding="utf-8")
-        return SimpleNamespace(
-            returncode=0, stdout=json.dumps({"Results": []})
-        ), "ok"
+        return SimpleNamespace(returncode=0, stdout=json.dumps({"Results": []})), "ok"
 
     monkeypatch.setattr(scanners.shutil, "which", lambda tool: f"/usr/bin/{tool}")
     monkeypatch.setattr(scanners, "_run", fake_run)
@@ -1655,9 +1579,7 @@ def test_trivy_rejects_ignore_policy_changed_during_scan(
     assert results.vulns is None
 
 
-def test_trivy_rejects_database_content_changed_during_scan(
-    monkeypatch, tmp_path
-):
+def test_trivy_rejects_database_content_changed_during_scan(monkeypatch, tmp_path):
     workspace = tmp_path / "workspace"
     scans_dir = tmp_path / "scans"
     workspace.mkdir()
@@ -1694,9 +1616,7 @@ def test_trivy_rejects_database_content_changed_during_scan(
     assert results.vulns is None
 
 
-def test_trivy_0720_caller_ignore_file_cannot_hide_vulnerability(
-    monkeypatch, tmp_path
-):
+def test_trivy_0720_caller_ignore_file_cannot_hide_vulnerability(monkeypatch, tmp_path):
     executable = scanners._resolved_executable("trivy")
     cache_dir_value = os.environ.get("AGENT_EVAL_TEST_TRIVY_CACHE")
     if executable is None or cache_dir_value is None:
@@ -1728,16 +1648,12 @@ def test_trivy_0720_caller_ignore_file_cannot_hide_vulnerability(
         ),
         encoding="utf-8",
     )
-    (workspace / ".trivyignore").write_text(
-        "CVE-2020-8203\n", encoding="utf-8"
-    )
+    (workspace / ".trivyignore").write_text("CVE-2020-8203\n", encoding="utf-8")
     (workspace / "trivy.yaml").write_text(
         "ignorefile: .trivyignore\n", encoding="utf-8"
     )
     monkeypatch.chdir(workspace)
-    monkeypatch.setattr(
-        scanners, "_scanner_identity_root", lambda: cache_dir.parent
-    )
+    monkeypatch.setattr(scanners, "_scanner_identity_root", lambda: cache_dir.parent)
     results = ScanResults()
 
     scanners._trivy(workspace, scans_dir, results)
@@ -1756,9 +1672,7 @@ def test_trivy_0720_caller_ignore_file_cannot_hide_vulnerability(
     assert results.vulns == len(vulnerability_ids)
 
 
-def test_truncated_process_output_remains_explicitly_non_ok(
-    monkeypatch, tmp_path
-):
+def test_truncated_process_output_remains_explicitly_non_ok(monkeypatch, tmp_path):
     def fake_run(cmd, out_file):
         del cmd, out_file
         return SimpleNamespace(returncode=0, stdout="[]"), "truncated"
@@ -1773,3 +1687,106 @@ def test_truncated_process_output_remains_explicitly_non_ok(
 
     assert results.scanner_status["ruff"] == "truncated"
     assert results.lint_errors is None
+
+
+def _phase_payload(workspace, run_dir):
+    return json.dumps(
+        scanners.run_scanners(workspace, run_dir).model_dump(mode="json"),
+        sort_keys=False,
+    )
+
+
+def test_concurrent_scan_phase_matches_serial_execution(monkeypatch, tmp_path):
+    """Concurrency must not change the recorded evidence.
+
+    The scan phase runs registered scanners in parallel. Findings order and
+    scanner_* key order both reach the persisted record and the attestation, so
+    the parallel phase has to produce exactly what the serial phase produced.
+    """
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "app.py").write_text(
+        "import os\n\n\ndef handler(path):\n    return os.popen(path).read()\n",
+        encoding="utf-8",
+    )
+    (workspace / "config.env").write_text(
+        'token = "AKIAIOSFODNN7EXAMPLE"\n', encoding="utf-8"
+    )
+
+    # The first phase in a fresh state directory materialises the scanner
+    # runtime, so its before/after environment digests disagree and are
+    # recorded as null. Warm that up so the comparison isolates concurrency.
+    monkeypatch.setenv("AGENT_EVAL_SCANNER_WORKERS", "1")
+    _phase_payload(workspace, tmp_path / "warmup")
+
+    serial = _phase_payload(workspace, tmp_path / "serial")
+
+    monkeypatch.setenv(
+        "AGENT_EVAL_SCANNER_WORKERS", str(len(scanners._SCANNER_REGISTRY))
+    )
+    parallel = _phase_payload(workspace, tmp_path / "parallel")
+
+    assert parallel == serial
+    assert json.loads(serial)["scanner_runtime_environment_sha256"] is not None
+
+
+def test_scan_phase_surfaces_the_first_registered_scanner_failure(monkeypatch):
+    """A scanner crash must not be masked or reordered by the thread pool."""
+
+    calls = []
+
+    def failing(name):
+        def run(context, results):
+            del context, results
+            calls.append(name)
+            raise RuntimeError(f"{name} exploded")
+
+        return run
+
+    def succeeding(name):
+        def run(context, results):
+            del context
+            calls.append(name)
+            results.scanner_status[name] = "ok"
+
+        return run
+
+    monkeypatch.setattr(
+        scanners,
+        "_SCANNER_REGISTRY",
+        (
+            scanners._RegisteredScanner("first", failing("first")),
+            scanners._RegisteredScanner("second", succeeding("second")),
+        ),
+    )
+    context = scanners.ScannerContext(
+        workspace=Path("/nonexistent"),
+        scans_dir=Path("/nonexistent"),
+        language="python",
+        python_targets=None,
+    )
+
+    with pytest.raises(RuntimeError, match="first exploded"):
+        scanners._execute_scanners(context)
+
+    assert "first" in calls
+
+
+def test_scanner_worker_count_is_bounded_and_fails_soft(monkeypatch):
+    registered = len(scanners._SCANNER_REGISTRY)
+
+    monkeypatch.delenv("AGENT_EVAL_SCANNER_WORKERS", raising=False)
+    assert scanners._scanner_worker_count() == registered
+
+    for value, expected in (
+        ("1", 1),
+        ("0", 1),
+        ("-4", 1),
+        (str(registered + 99), registered),
+        ("not-a-number", registered),
+        ("  2  ", min(2, registered)),
+        ("", registered),
+    ):
+        monkeypatch.setenv("AGENT_EVAL_SCANNER_WORKERS", value)
+        assert scanners._scanner_worker_count() == expected, value

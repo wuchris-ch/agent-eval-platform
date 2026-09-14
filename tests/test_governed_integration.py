@@ -10,7 +10,8 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from agent_eval import agents, cli, metrics, runner
+from agent_eval import agents, cli, metrics, runner, verification
+from agent_eval.assessments import derive_assessments
 from agent_eval.attestation import canonical_statement_bytes, capture_git_state
 from agent_eval.audit import (
     GENESIS_HASH,
@@ -18,7 +19,6 @@ from agent_eval.audit import (
     canonical_audit_json_bytes,
     verify_audit_chain,
 )
-from agent_eval.assessments import derive_assessments
 from agent_eval.evaluators import scanners
 from agent_eval.evaluators.tests import TestResults as EvalTestResults
 from agent_eval.governance import (
@@ -30,6 +30,7 @@ from agent_eval.governance import (
     sha256_json,
     write_canonical_json,
 )
+from agent_eval.kube import KubeError
 from agent_eval.metrics import (
     AgentMetrics,
     DiffStats,
@@ -37,10 +38,8 @@ from agent_eval.metrics import (
     ScanResults,
     TrivyDatabaseIdentity,
 )
-from agent_eval.kube import KubeError
 from agent_eval.outcome import RunOutcome
 from agent_eval.task import EvaluationConfig, load_task
-
 
 IMAGE_DIGEST = "sha256:" + "a" * 64
 IMAGE_REF = "agent-eval/example-todo-api:governed-" + "a" * 64
@@ -107,9 +106,7 @@ def _stable_governance_scanner_evidence(monkeypatch):
     monkeypatch.setattr(
         runner,
         "_governance_scanner_evidence",
-        lambda *, run_scans: (
-            (SCANNER_IDENTITY, True) if run_scans else (None, False)
-        ),
+        lambda *, run_scans: (SCANNER_IDENTITY, True) if run_scans else (None, False),
     )
 
 
@@ -704,9 +701,7 @@ def test_governed_prepare_rejects_final_identity_drift_before_cluster(monkeypatc
         proxy_image=proxy_image,
         **_task_evidence_args(task),
     )
-    observed_identities = iter(
-        [(SCANNER_IDENTITY, True), (other_identity, True)]
-    )
+    observed_identities = iter([(SCANNER_IDENTITY, True), (other_identity, True)])
     monkeypatch.setattr(
         runner,
         "_governance_scanner_evidence",
@@ -1022,7 +1017,6 @@ class _SuccessfulAgentPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def delete(self):
         self.deleted = True
@@ -1041,7 +1035,15 @@ def _attribute_keys(value):
 def test_governed_run_writes_ordered_privacy_safe_audit_and_applies_budget(
     monkeypatch, tmp_path
 ):
-    task = load_task("example-todo-api")
+    # This test mutates a hidden-test file mid-run to prove the governed
+    # snapshot is re-checked. Copy the bundled task first: mutating the real
+    # tasks/ tree dirties the harness worktree, which makes any attestation
+    # test running concurrently fail on a worktree or task-tree digest
+    # mismatch.
+    source = load_task("example-todo-api")
+    tasks_root = tmp_path / "bundled-tasks"
+    shutil.copytree(source.path, tasks_root / source.id)
+    task = load_task(source.id, tasks_root)
     task = task.model_copy(
         update={
             "network": task.network.model_copy(
@@ -1113,7 +1115,6 @@ def test_governed_run_writes_ordered_privacy_safe_audit_and_applies_budget(
         assert audit_path.is_file()
         events = [json.loads(line) for line in audit_path.read_text().splitlines()]
         audit_at_credential_access.extend(event["event_type"] for event in events)
-        return None
 
     monkeypatch.setattr(runner, "load_trial_credentials", fake_credentials)
     monkeypatch.setattr(runner, "_docker_platform", lambda: IMAGE_PLATFORM)
@@ -1274,7 +1275,9 @@ def test_governed_run_writes_ordered_privacy_safe_audit_and_applies_budget(
     assert verified.trace_id == record.provenance.audit_trace_id
     persisted = RunRecord.model_validate_json((run_dir / "results.json").read_text())
     assert persisted.provenance.audit_final_hash == verified.final_hash
-    assert cli._audit_lifecycle_failures(persisted, run_dir / "audit.jsonl") == []
+    assert (
+        verification.audit_lifecycle_failures(persisted, run_dir / "audit.jsonl") == []
+    )
 
 
 def test_persist_run_binds_governance_and_audit_artifacts(monkeypatch, tmp_path):
@@ -1710,7 +1713,7 @@ def test_audit_lifecycle_rejects_skipped_admitted_judge(tmp_path):
         )
         audit.append("run.completed", {"status": "infra_error"})
 
-    failures = cli._audit_lifecycle_failures(record, audit_path)
+    failures = verification.audit_lifecycle_failures(record, audit_path)
 
     assert "admitted judge recipe requires a completed judge result" in failures
 
@@ -1806,7 +1809,7 @@ def test_audit_lifecycle_rejects_completed_judge_without_score(tmp_path):
         )
         audit.append("run.completed", {"status": "infra_error"})
 
-    failures = cli._audit_lifecycle_failures(record, audit_path)
+    failures = verification.audit_lifecycle_failures(record, audit_path)
 
     assert "completed admitted judge recipe has no score evidence" in failures
 
@@ -2038,9 +2041,7 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
     record.assessments = [
         (
             assessment.model_copy(
-                update={
-                    "value": assessment.value.model_copy(update={"boolean": True})
-                }
+                update={"value": assessment.value.model_copy(update={"boolean": True})}
             )
             if assessment.name == "tests.resolved" and assessment.value is not None
             else assessment
@@ -2075,9 +2076,7 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
     assert runner._persist_run(task, record) is None
 
     stored = json.loads(record.model_dump_json())
-    stored["scans"]["scanner_assurance"][
-        "runtime_environment_sha256"
-    ] = "9" * 64
+    stored["scans"]["scanner_assurance"]["runtime_environment_sha256"] = "9" * 64
     with metrics._connect() as connection:
         connection.execute(
             "UPDATE runs SET results_json = ? WHERE run_id = ?",
@@ -2145,12 +2144,13 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
     results_path = record.run_dir / "results.json"
 
     def swap_results_after_verification(*args, **kwargs):
-        verification = real_verify(*args, **kwargs)
+        verified = real_verify(*args, **kwargs)
         results_path.write_bytes(results_path.read_bytes() + b" ")
-        return verification
+        return verified
 
+    # Patch the name where verification resolves it, not where it is defined.
     monkeypatch.setattr(
-        attestation_module, "verify_attestation", swap_results_after_verification
+        verification, "verify_attestation", swap_results_after_verification
     )
     swapped_results = CliRunner().invoke(
         cli.app, ["verify-run", "--run", record.run_id]
@@ -2160,18 +2160,18 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
         "results.json changed after attestation verification" in swapped_results.output
     )
 
-    monkeypatch.setattr(attestation_module, "verify_attestation", real_verify)
+    monkeypatch.setattr(verification, "verify_attestation", real_verify)
     assert runner._persist_run(task, record) is None
     policy_path = record.run_dir / "policy-bundle.json"
     original_policy = policy_path.read_bytes()
 
     def swap_policy_after_verification(*args, **kwargs):
-        verification = real_verify(*args, **kwargs)
+        verified = real_verify(*args, **kwargs)
         policy_path.write_bytes(b"{}")
-        return verification
+        return verified
 
     monkeypatch.setattr(
-        attestation_module, "verify_attestation", swap_policy_after_verification
+        verification, "verify_attestation", swap_policy_after_verification
     )
     swapped_policy = CliRunner().invoke(cli.app, ["verify-run", "--run", record.run_id])
     assert swapped_policy.exit_code == 2
@@ -2179,7 +2179,7 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
         "policy-bundle.json changed after attestation verification"
         in swapped_policy.output
     )
-    monkeypatch.setattr(attestation_module, "verify_attestation", real_verify)
+    monkeypatch.setattr(verification, "verify_attestation", real_verify)
     policy_path.write_bytes(original_policy)
 
     original_outcome = record.outcome

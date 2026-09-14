@@ -12,7 +12,9 @@ from rich.console import Console
 from .kube import KUBE_CONTEXT, NAMESPACE, KubeError, ensure_namespace
 
 CLUSTER_NAME = "agent-eval"
-K3S_IMAGE_DIGEST = "sha256:2074403abe1bded11ef3dde09d457e13be8e0b64c218b1c4f8269b4565cfbc65"
+K3S_IMAGE_DIGEST = (
+    "sha256:2074403abe1bded11ef3dde09d457e13be8e0b64c218b1c4f8269b4565cfbc65"
+)
 K3S_IMAGE = f"rancher/k3s@{K3S_IMAGE_DIGEST}"
 console = Console()
 
@@ -25,8 +27,9 @@ def _run(cmd: list[str], timeout: int = 600) -> subprocess.CompletedProcess:
 
 
 def _cluster_record() -> dict[str, Any] | None:
-    proc = subprocess.run(["k3d", "cluster", "list", "-o", "json"],
-                          capture_output=True, text=True)
+    proc = subprocess.run(
+        ["k3d", "cluster", "list", "-o", "json"], capture_output=True, text=True
+    )
     if proc.returncode != 0:
         return None
     try:
@@ -121,12 +124,16 @@ def cluster_down() -> None:
 def cluster_status() -> None:
     cluster = _cluster_record()
     if cluster is None:
-        console.print(f"[red]cluster {CLUSTER_NAME} does not exist[/red] "
-                      "(run: agent-eval cluster up)")
+        console.print(
+            f"[red]cluster {CLUSTER_NAME} does not exist[/red] "
+            "(run: agent-eval cluster up)"
+        )
         return
     if not _cluster_running(cluster):
-        console.print(f"[yellow]cluster {CLUSTER_NAME} is stopped[/yellow] "
-                      "(run: agent-eval cluster up)")
+        console.print(
+            f"[yellow]cluster {CLUSTER_NAME} is stopped[/yellow] "
+            "(run: agent-eval cluster up)"
+        )
         return
     if not _cluster_image_matches(cluster):
         console.print(
@@ -136,12 +143,14 @@ def cluster_status() -> None:
         return
     proc = subprocess.run(
         ["kubectl", "--context", KUBE_CONTEXT, "get", "nodes", "-o", "wide"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     console.print(proc.stdout or proc.stderr)
     pods = subprocess.run(
         ["kubectl", "--context", KUBE_CONTEXT, "-n", NAMESPACE, "get", "pods"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     console.print(pods.stdout or pods.stderr)
 

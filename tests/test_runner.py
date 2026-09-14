@@ -8,10 +8,10 @@ import pytest
 
 from agent_eval import metrics, runner
 from agent_eval.attestation import CLEAN_WORKTREE_SHA256
+from agent_eval.credentials import CredentialMaterial, CredentialRedactor
 from agent_eval.evaluators.tests import TestResults as EvalTestResults
 from agent_eval.kube import KubeError, UnsafeArchiveError
 from agent_eval.metrics import AgentMetrics
-from agent_eval.credentials import CredentialMaterial, CredentialRedactor
 from agent_eval.task import EvaluationConfig, SandboxResources, load_task
 
 IMAGE_DIGEST = "sha256:" + "a" * 64
@@ -165,7 +165,6 @@ class _BlackBoxPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def image_digest(self):
         return IMAGE_DIGEST
@@ -252,7 +251,6 @@ class _SnapshotAgentPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def image_digest(self):
         return IMAGE_DIGEST
@@ -310,7 +308,6 @@ class _CredentialExfilPod:
 
     def infrastructure_failure(self, command_exit_code=None):
         del command_exit_code
-        return None
 
     def image_digest(self):
         return IMAGE_DIGEST
@@ -401,9 +398,7 @@ def test_cluster_image_check_requires_image_on_every_running_node(monkeypatch):
             )
         raise AssertionError(command)
 
-    def fake_manifest_identity(
-        node, image_ref, *, expected_manifest_digest=None
-    ):
+    def fake_manifest_identity(node, image_ref, *, expected_manifest_digest=None):
         assert image_ref == "example:tag"
         assert expected_manifest_digest == IMAGE_DIGEST
         if node in missing:
@@ -456,11 +451,13 @@ def test_cluster_manifest_check_uses_containerd_target_on_every_node(monkeypatch
         runner,
         "containerd_image_manifest_identity",
         lambda node, _image_ref, *, expected_manifest_digest: (
-            manifest_by_node[node],
-            "sha256:" + "c" * 64,
-        )
-        if expected_manifest_digest == IMAGE_DIGEST
-        else None,
+            (
+                manifest_by_node[node],
+                "sha256:" + "c" * 64,
+            )
+            if expected_manifest_digest == IMAGE_DIGEST
+            else None
+        ),
     )
 
     image_ref = "agent-eval/example:governed-" + "a" * 64
@@ -535,9 +532,7 @@ def test_runtime_image_evidence_never_falls_back_to_config_digest():
         def image_digest(self):
             raise AssertionError("CRI config digest fallback must not be used")
 
-        def image_manifest_digest(
-            self, image_ref, *, expected_manifest_digest=None
-        ):
+        def image_manifest_digest(self, image_ref, *, expected_manifest_digest=None):
             assert image_ref == "agent-eval/example:tag"
             assert expected_manifest_digest == IMAGE_DIGEST
             return IMAGE_DIGEST
@@ -559,9 +554,7 @@ def test_image_identity_commands_fail_closed_on_timeout(monkeypatch):
     monkeypatch.setattr(runner.subprocess, "run", timed_out)
 
     assert not runner._cluster_has_image("agent-eval/example:tag", IMAGE_DIGEST)
-    assert not runner._cluster_has_manifest(
-        "agent-eval/example:tag", IMAGE_DIGEST
-    )
+    assert not runner._cluster_has_manifest("agent-eval/example:tag", IMAGE_DIGEST)
     assert runner._local_manifest_digest("agent-eval/example:tag") is None
     with pytest.raises(KubeError, match="Docker server platform"):
         runner._docker_platform()
@@ -852,8 +845,7 @@ def test_eval_preserves_coverage_integrity_evidence(monkeypatch, tmp_path):
     def copy_invalid_coverage(remote_dir, local_dir):
         copy_results(remote_dir, local_dir)
         (local_dir / "coverage.json").write_text(
-            '{"totals": {"percent_covered": 10}, '
-            '"totals": {"percent_covered": 90}}'
+            '{"totals": {"percent_covered": 10}, "totals": {"percent_covered": 90}}'
         )
 
     pod.copy_dir_from = copy_invalid_coverage
@@ -872,9 +864,7 @@ def test_eval_preserves_coverage_integrity_evidence(monkeypatch, tmp_path):
     assert not result.resolved
 
 
-def test_eval_cleanup_failure_becomes_infrastructure_evidence(
-    monkeypatch, tmp_path
-):
+def test_eval_cleanup_failure_becomes_infrastructure_evidence(monkeypatch, tmp_path):
     task = _cooperative_task()
     pod = _SuccessfulEvalPod()
     delete_attempts = 0
@@ -900,9 +890,7 @@ def test_eval_cleanup_failure_becomes_infrastructure_evidence(
     assert "eval pod cleanup failed" in (run_dir / "eval-output.txt").read_text()
 
 
-def test_eval_local_archive_failure_becomes_integrity_evidence(
-    monkeypatch, tmp_path
-):
+def test_eval_local_archive_failure_becomes_integrity_evidence(monkeypatch, tmp_path):
     task = _cooperative_task()
     pod = _SuccessfulEvalPod()
 
@@ -938,9 +926,7 @@ def test_evaluate_workspace_promotes_eval_runtime_digest_to_provenance(
     monkeypatch.setattr(
         runner,
         "_capture_provenance",
-        lambda task, record: setattr(
-            record.provenance, "image_tag", task.image_tag
-        ),
+        lambda task, record: setattr(record.provenance, "image_tag", task.image_tag),
     )
     monkeypatch.setattr(
         runner,
@@ -954,9 +940,7 @@ def test_evaluate_workspace_promotes_eval_runtime_digest_to_provenance(
             submission_runtime_image_digest=IMAGE_DIGEST,
         ),
     )
-    monkeypatch.setattr(
-        runner, "compute_diff", lambda *args: runner.DiffStats()
-    )
+    monkeypatch.setattr(runner, "compute_diff", lambda *args: runner.DiffStats())
     monkeypatch.setattr(
         runner, "_persist_run", lambda task, record: persisted.append(record)
     )
@@ -1070,7 +1054,7 @@ def test_agent_quiescence_is_bounded_and_preserves_control_pids():
     command, timeout = calls[0]
     assert timeout == runner._AGENT_QUIESCE_TIMEOUT_SECONDS == 5
     assert '1|"$self") continue' in command
-    assert 'state=${stat_tail%% *}' in command
+    assert "state=${stat_tail%% *}" in command
     assert '[ "$state" = "Z" ] && continue' in command
     assert '[ -e "$process" ] && exit 69' in command
     assert '[ -e "$process" ] && exit 71' in command
@@ -1151,8 +1135,7 @@ def test_agent_timeout_is_an_explicit_failed_outcome(monkeypatch, tmp_path):
 
     assert record.efficiency.timed_out is True
     assert record.efficiency.infra_error == (
-        "agent timed out after 900s; "
-        "agent process quiescence timed out after 5s"
+        "agent timed out after 900s; agent process quiescence timed out after 5s"
     )
     assert record.correctness.infra_error == record.efficiency.infra_error
     assert not record.correctness.resolved
@@ -1196,7 +1179,7 @@ def test_eval_rejects_submitted_pytest_shadow_before_starting_pod(
 
     assert not result.resolved
     assert result.command_exit_code == 126
-    assert "evaluator-control path changed: pytest.py" == result.integrity_error
+    assert result.integrity_error == "evaluator-control path changed: pytest.py"
 
 
 def test_isolated_evaluate_workspace_does_not_apply_cooperative_pytest_controls(
@@ -1253,14 +1236,10 @@ def test_judge_input_requires_successful_zero_secret_scan():
     record = RunRecord(run_id="r", task_id="t", agent="external")
     assert not runner._judge_input_is_safe(record)
 
-    record.scans = ScanResults(
-        secrets_found=1, scanner_status={"gitleaks": "ok"}
-    )
+    record.scans = ScanResults(secrets_found=1, scanner_status={"gitleaks": "ok"})
     assert not runner._judge_input_is_safe(record)
 
-    record.scans = ScanResults(
-        secrets_found=0, scanner_status={"gitleaks": "ok"}
-    )
+    record.scans = ScanResults(secrets_found=0, scanner_status={"gitleaks": "ok"})
     assert runner._judge_input_is_safe(record)
 
     record.diff.complete = False
@@ -1304,9 +1283,7 @@ def test_capped_git_output_enforces_deadline(monkeypatch, tmp_path):
     assert time.monotonic() - started < 1
 
 
-def test_deleted_starter_secret_blocks_coding_judge(
-    monkeypatch, tmp_path
-):
+def test_deleted_starter_secret_blocks_coding_judge(monkeypatch, tmp_path):
     from agent_eval.evaluators import judge, scanners
     from agent_eval.metrics import ScanResults
 
@@ -1328,16 +1305,12 @@ def test_deleted_starter_secret_blocks_coding_judge(
     monkeypatch.setattr(
         runner,
         "run_eval_phase",
-        lambda *args, **kwargs: EvalTestResults(
-            total=1, passed=1, command_exit_code=0
-        ),
+        lambda *args, **kwargs: EvalTestResults(total=1, passed=1, command_exit_code=0),
     )
 
     def fake_scanners(scan_root, *args, **kwargs):
         screened_diff = (scan_root / ".agent-eval-workspace.diff").read_text()
-        model_context = (
-            scan_root / ".agent-eval-model-context.txt"
-        ).read_text()
+        model_context = (scan_root / ".agent-eval-model-context.txt").read_text()
         assert secret in screened_diff
         assert "spec_adherence" in model_context
         return ScanResults(
@@ -1396,9 +1369,7 @@ def test_exact_projected_credential_blocks_judge_when_gitleaks_is_clear(
     monkeypatch.setattr(
         runner,
         "run_eval_phase",
-        lambda *args, **kwargs: EvalTestResults(
-            total=1, passed=1, command_exit_code=0
-        ),
+        lambda *args, **kwargs: EvalTestResults(total=1, passed=1, command_exit_code=0),
     )
     monkeypatch.setattr(
         scanners,
@@ -1542,10 +1513,10 @@ def test_agent_credentials_are_redacted_from_outputs_proxy_and_attestation(
     monkeypatch.setattr(runner, "ensure_image", lambda task: None)
     monkeypatch.setattr(runner, "ensure_namespace", lambda: None)
     monkeypatch.setattr(runner, "_image_digest", lambda tag: IMAGE_DIGEST)
-    monkeypatch.setattr(runner, "load_trial_credentials", lambda *args, **kwargs: material)
     monkeypatch.setattr(
-        runner, "create_trial_secret", lambda value, **kwargs: secret
+        runner, "load_trial_credentials", lambda *args, **kwargs: material
     )
+    monkeypatch.setattr(runner, "create_trial_secret", lambda value, **kwargs: secret)
     monkeypatch.setattr(runner, "create_egress_proxy", lambda *args, **kwargs: proxy)
     monkeypatch.setattr(runner, "create_sandbox_pod", lambda *args, **kwargs: pod)
     monkeypatch.setattr(runner, "evaluate_workspace", fake_evaluate)
@@ -1558,15 +1529,9 @@ def test_agent_credentials_are_redacted_from_outputs_proxy_and_attestation(
     )
 
     assert (record.run_dir / "attestation.json").is_file()
-    assert b"redacted-credential" in (
-        record.run_dir / "transcript.jsonl"
-    ).read_bytes()
-    assert b"redacted-credential" in (
-        record.run_dir / "agent-stderr.log"
-    ).read_bytes()
-    assert b"redacted-credential" in (
-        record.run_dir / "egress-proxy.log"
-    ).read_bytes()
+    assert b"redacted-credential" in (record.run_dir / "transcript.jsonl").read_bytes()
+    assert b"redacted-credential" in (record.run_dir / "agent-stderr.log").read_bytes()
+    assert b"redacted-credential" in (record.run_dir / "egress-proxy.log").read_bytes()
     for artifact in record.run_dir.rglob("*"):
         if artifact.is_file():
             contents = artifact.read_bytes()
@@ -1624,16 +1589,18 @@ def test_workspace_credential_exfiltration_is_dropped_before_durable_promotion(
     monkeypatch.setattr(runner, "ensure_image", lambda task: None)
     monkeypatch.setattr(runner, "ensure_namespace", lambda: None)
     monkeypatch.setattr(runner, "_image_digest", lambda tag: IMAGE_DIGEST)
-    monkeypatch.setattr(runner, "load_trial_credentials", lambda *args, **kwargs: material)
     monkeypatch.setattr(
-        runner, "create_trial_secret", lambda value, **kwargs: secret
+        runner, "load_trial_credentials", lambda *args, **kwargs: material
     )
+    monkeypatch.setattr(runner, "create_trial_secret", lambda value, **kwargs: secret)
     monkeypatch.setattr(runner, "create_sandbox_pod", lambda *args, **kwargs: pod)
     monkeypatch.setattr(runner, "_capture_provenance", capture)
     monkeypatch.setattr(
         runner,
         "evaluate_workspace",
-        lambda *args, **kwargs: pytest.fail("credential-bearing snapshot was evaluated"),
+        lambda *args, **kwargs: pytest.fail(
+            "credential-bearing snapshot was evaluated"
+        ),
     )
 
     record = runner.run_agent_trial(

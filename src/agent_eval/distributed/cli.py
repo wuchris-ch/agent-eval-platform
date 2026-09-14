@@ -105,8 +105,8 @@ def job_run(manifest: Path, context: str):
 
 @command("submit-experiment")
 def submit_experiment(experiment: str, reservation_micros: int, project: str = "local"):
-    from .bridge import enqueue_experiment
     from ..workbench.store import Store
+    from .bridge import enqueue_experiment
 
     emit(
         enqueue_experiment(
@@ -117,15 +117,15 @@ def submit_experiment(experiment: str, reservation_micros: int, project: str = "
 
 @command("collect-experiment")
 def collect_experiment(experiment: str, project: str = "local"):
-    from .bridge import collect_experiment
     from ..workbench.store import Store
+    from .bridge import collect_experiment
 
     emit(collect_experiment(Store(), project, experiment, queue()))
 
 
 @command("cancel-experiment")
 def cancel_experiment(experiment: str, project: str = "local"):
-    from .bridge import cancel_experiment
     from ..workbench.store import Store
+    from .bridge import cancel_experiment
 
     emit(cancel_experiment(Store(), project, experiment, queue()))

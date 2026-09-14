@@ -11,7 +11,8 @@ from ..blackbox.models import load_suite
 from .executor import execute
 from .journal import ExperimentBusy, Journal, JournalError
 from .models import CommandSpec
-from .service import create_experiment, status as read_status
+from .service import create_experiment
+from .service import status as read_status
 
 app = typer.Typer(
     help="Durable local black-box experiments with deterministic graders.",

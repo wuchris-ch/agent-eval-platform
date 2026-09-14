@@ -32,9 +32,9 @@ from .contracts import (
 
 def identity():
     root = Path(__file__).parent
+    from .. import limits, paths
     from ..experiments import journal, service
     from ..workbench import api, store
-    from .. import limits, paths
 
     return digest(
         {

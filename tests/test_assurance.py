@@ -1,5 +1,5 @@
-from types import SimpleNamespace
 import time
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -180,9 +180,7 @@ def test_pathological_regex_times_out_without_blocking_host(monkeypatch, tmp_pat
             "checks": [{"type": "content_absent", "pattern": "(a+)+$"}],
         }
     )
-    monkeypatch.setattr(
-        "agent_eval.assurance.CHALLENGE_REGEX_TIMEOUT_SECONDS", 0.001
-    )
+    monkeypatch.setattr("agent_eval.assurance.CHALLENGE_REGEX_TIMEOUT_SECONDS", 0.001)
 
     started = time.monotonic()
     result = evaluate_challenges([spec], workspace, run_dir, _record())

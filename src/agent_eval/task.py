@@ -163,7 +163,7 @@ class JudgeConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _valid_weights(self) -> "JudgeConfig":
+    def _valid_weights(self) -> JudgeConfig:
         if not self.weights or len(self.weights) > 32:
             raise ValueError("judge weights must contain between 1 and 32 dimensions")
         for name, weight in self.weights.items():
@@ -281,13 +281,11 @@ class EvaluationConfig(BaseModel):
 
     mode: Literal["cooperative", "isolated-black-box"] = "cooperative"
     submission_command: str | None = Field(default=None, max_length=4096)
-    submission_port: int | None = Field(
-        default=None, ge=1024, le=65535, strict=True
-    )
+    submission_port: int | None = Field(default=None, ge=1024, le=65535, strict=True)
     readiness: EvaluationReadiness | None = None
 
     @model_validator(mode="after")
-    def _complete_black_box_contract(self) -> "EvaluationConfig":
+    def _complete_black_box_contract(self) -> EvaluationConfig:
         command = self.submission_command
         if command is not None and (not command.strip() or "\x00" in command):
             raise ValueError(
@@ -411,9 +409,7 @@ class Task(BaseModel):
             metadata = candidate.lstat()
             mode = stat.S_IMODE(metadata.st_mode)
             if stat.S_ISLNK(metadata.st_mode):
-                digest.update(
-                    f"L\0{name}\0{mode:o}\0{candidate.readlink()}\n".encode()
-                )
+                digest.update(f"L\0{name}\0{mode:o}\0{candidate.readlink()}\n".encode())
             elif stat.S_ISDIR(metadata.st_mode):
                 digest.update(f"D\0{name}\0{mode:o}\n".encode())
             elif stat.S_ISREG(metadata.st_mode):
@@ -517,8 +513,7 @@ class Task(BaseModel):
                     metadata = entry.stat(follow_symlinks=False)
                 except OSError as exc:
                     return (
-                        f"task tree path {relative} is unreadable: "
-                        f"{type(exc).__name__}"
+                        f"task tree path {relative} is unreadable: {type(exc).__name__}"
                     )
                 if stat.S_ISDIR(metadata.st_mode):
                     pending.append((Path(entry.path), depth + 1))

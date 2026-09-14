@@ -176,9 +176,7 @@ def test_infrastructure_failures_are_not_paired_as_correctness_results():
     assert paired.pairs == 0
     assert paired.unavailable_pairs == 1
     assert paired.excluded_pairs == 0
-    assert paired.unavailable_pair_reasons == {
-        "candidate_correctness_unavailable": 1
-    }
+    assert paired.unavailable_pair_reasons == {"candidate_correctness_unavailable": 1}
     assert (paired.candidate_wins, paired.ties, paired.candidate_losses) == (
         0,
         0,
@@ -203,9 +201,7 @@ def test_post_test_infrastructure_failure_excludes_observed_command_result():
     assert paired.expected_pairs == 1
     assert paired.pairs == 0
     assert paired.unavailable_pairs == 1
-    assert paired.unavailable_pair_reasons == {
-        "candidate_correctness_unavailable": 1
-    }
+    assert paired.unavailable_pair_reasons == {"candidate_correctness_unavailable": 1}
 
 
 def test_infrastructure_outcome_does_not_enter_acceptance_denominator():
@@ -304,9 +300,7 @@ def test_observed_assessment_presence_does_not_change_configured_cohort():
         }
     )
     second.assessments.append(
-        extra.model_copy(
-            update={"assessment_id": expected_assessment_id(extra)}
-        )
+        extra.model_copy(update={"assessment_id": expected_assessment_id(extra)})
     )
 
     result = compare_agents([first, second])
@@ -360,8 +354,7 @@ def test_legacy_unbound_records_are_each_isolated():
     assert len(result.summaries) == 3
     assert all(summary.sample_size == 1 for summary in result.summaries)
     assert all(
-        summary.cohort.binding == "legacy-unbound"
-        for summary in result.summaries
+        summary.cohort.binding == "legacy-unbound" for summary in result.summaries
     )
     assert all(
         "evaluation_spec_digest" in summary.cohort.missing_fields
@@ -475,9 +468,7 @@ def test_infrastructure_trial_is_reported_but_excluded_from_win_loss_counts():
     assert paired.pairs == 1
     assert paired.unavailable_pairs == 1
     assert paired.excluded_pairs == 0
-    assert paired.unavailable_pair_reasons == {
-        "candidate_correctness_unavailable": 1
-    }
+    assert paired.unavailable_pair_reasons == {"candidate_correctness_unavailable": 1}
     assert (paired.candidate_wins, paired.ties, paired.candidate_losses) == (
         1,
         0,

@@ -7,6 +7,7 @@ import os
 import sqlite3
 import subprocess
 import time
+from datetime import UTC
 from pathlib import Path
 
 from ..blackbox.models import digest, json_bytes, parse_json
@@ -82,7 +83,7 @@ def execute(
         # The parent remains 0700. Only this disposable bind mount is writable to UID 65534.
         state.chmod(0o777)
         for p in (root / "candidate", root / "inputs"):
-            for directory_path, folders, filenames in os.walk(p):
+            for directory_path, _folders, filenames in os.walk(p):
                 Path(directory_path).chmod(0o755)
                 for filename in filenames:
                     path = Path(directory_path) / filename
@@ -154,12 +155,10 @@ def execute(
         state = existing["State"]
         if state["Status"] in ("exited", "dead"):
             break
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         started = datetime.fromisoformat(state["StartedAt"].replace("Z", "+00:00"))
-        if (
-            datetime.now(timezone.utc) - started
-        ).total_seconds() > suite.timeout_seconds:
+        if (datetime.now(UTC) - started).total_seconds() > suite.timeout_seconds:
             docker("kill", name)
             existing = inspect(name)
             if existing["State"]["Running"]:
@@ -223,7 +222,7 @@ def collect_state(root, suite):
     except (OSError, ValueError, sqlite3.Error):
         # Missing, oversized, special-file or malformed state is failed candidate evidence.
         # No exception text or candidate-controlled bytes enter the assessment.
-        return {key: None for key in state_values}
+        return dict.fromkeys(state_values)
     return state_values
 
 

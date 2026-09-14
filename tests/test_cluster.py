@@ -13,9 +13,7 @@ def test_cluster_exists_parses_compact_k3d_json(monkeypatch):
     monkeypatch.setattr(
         cluster.subprocess,
         "run",
-        lambda *args, **kwargs: _completed(
-            [{"name": "agent-eval", "serversCount": 1}]
-        ),
+        lambda *args, **kwargs: _completed([{"name": "agent-eval", "serversCount": 1}]),
     )
 
     assert cluster.cluster_exists()
@@ -54,7 +52,7 @@ def test_cluster_up_starts_an_existing_stopped_cluster(monkeypatch):
     commands = []
     namespace_calls = []
     monkeypatch.setattr(cluster, "_cluster_record", lambda: stopped)
-    monkeypatch.setattr(cluster, "_run", lambda command: commands.append(command))
+    monkeypatch.setattr(cluster, "_run", commands.append)
     monkeypatch.setattr(
         cluster, "ensure_namespace", lambda: namespace_calls.append(True)
     )
@@ -68,7 +66,7 @@ def test_cluster_up_starts_an_existing_stopped_cluster(monkeypatch):
 def test_cluster_up_creates_with_digest_pinned_k3s_image(monkeypatch):
     commands = []
     monkeypatch.setattr(cluster, "_cluster_record", lambda: None)
-    monkeypatch.setattr(cluster, "_run", lambda command: commands.append(command))
+    monkeypatch.setattr(cluster, "_run", commands.append)
     monkeypatch.setattr(cluster, "ensure_namespace", lambda: None)
 
     cluster.cluster_up()
@@ -91,9 +89,7 @@ def test_cluster_up_creates_with_digest_pinned_k3s_image(monkeypatch):
 def test_cluster_up_rejects_existing_cluster_with_different_node_image(monkeypatch):
     existing = {
         "name": "agent-eval",
-        "nodes": [
-            {"name": "server", "role": "server", "image": "sha256:" + "0" * 64}
-        ],
+        "nodes": [{"name": "server", "role": "server", "image": "sha256:" + "0" * 64}],
     }
     monkeypatch.setattr(cluster, "_cluster_record", lambda: existing)
     monkeypatch.setattr(

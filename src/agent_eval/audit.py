@@ -7,6 +7,7 @@ signature or an independently trusted transport in addition to this module.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import math
@@ -16,7 +17,7 @@ import secrets
 import stat
 import threading
 import unicodedata
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -567,11 +568,7 @@ def _event_digest(event: AuditEvent) -> str:
 
 
 def _utc_timestamp() -> str:
-    return (
-        datetime.now(timezone.utc)
-        .isoformat(timespec="microseconds")
-        .replace("+00:00", "Z")
-    )
+    return datetime.now(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 class AuditChain:
@@ -619,10 +616,8 @@ class AuditChain:
             opened = os.fdopen(fd, "wb")
         except Exception:
             os.close(fd)
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(target)
-            except OSError:
-                pass
             raise
 
         self.path = Path(path)

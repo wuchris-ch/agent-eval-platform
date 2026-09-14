@@ -2,7 +2,7 @@ import io
 import json
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -32,14 +32,15 @@ def test_adapter_credentials_are_scoped(monkeypatch, tmp_path):
 
 
 def test_broker_material_is_short_lived_and_never_uses_shell(monkeypatch, tmp_path):
-    expires = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+    expires = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
     broker = tmp_path / "broker.py"
     broker.write_text(
         "import json\n"
         f"print(json.dumps({{'env': {{'TOKEN': 'value'}}, 'expires_at': {expires!r}}}))\n"
     )
     monkeypatch.setenv(
-        "AGENT_EVAL_CREDENTIAL_COMMAND", f"python {broker} --literal-semicolon ';'"
+        "AGENT_EVAL_CREDENTIAL_COMMAND",
+        f"{sys.executable} {broker} --literal-semicolon ';'",
     )
 
     material = load_trial_credentials("custom")
@@ -53,17 +54,17 @@ def test_broker_expiry_must_cover_trial_and_long_ttl_is_not_short_lived(
     monkeypatch, tmp_path
 ):
     broker = tmp_path / "broker.py"
-    expires = (datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat()
+    expires = (datetime.now(UTC) + timedelta(minutes=2)).isoformat()
     broker.write_text(
         "import json\n"
         f"print(json.dumps({{'env': {{'TOKEN': 'value'}}, 'expires_at': {expires!r}}}))\n"
     )
-    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"python {broker}")
+    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"{sys.executable} {broker}")
 
     with pytest.raises(ValueError, match="trial timeout"):
         load_trial_credentials("custom", minimum_ttl_seconds=300)
 
-    far_expiry = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    far_expiry = (datetime.now(UTC) + timedelta(days=30)).isoformat()
     broker.write_text(
         "import json\n"
         f"print(json.dumps({{'env': {{'TOKEN': 'value'}}, 'expires_at': {far_expiry!r}}}))\n"
@@ -75,7 +76,7 @@ def test_broker_expiry_must_cover_trial_and_long_ttl_is_not_short_lived(
 def test_broker_failure_does_not_echo_secret_output(monkeypatch, tmp_path):
     broker = tmp_path / "bad.py"
     broker.write_text("import sys\nprint('VERY_SECRET')\nsys.exit(4)\n")
-    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"python {broker}")
+    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"{sys.executable} {broker}")
 
     with pytest.raises(RuntimeError) as caught:
         load_trial_credentials("custom")
@@ -88,9 +89,7 @@ def test_broker_failure_does_not_echo_secret_output(monkeypatch, tmp_path):
     [
         lambda: CredentialMaterial(values={}),
         lambda: CredentialMaterial(values={"x": "y"}, env_keys=("BAD-NAME",)),
-        lambda: CredentialMaterial(
-            values={"x": "y"}, file_items={"x": "../auth.json"}
-        ),
+        lambda: CredentialMaterial(values={"x": "y"}, file_items={"x": "../auth.json"}),
     ],
 )
 def test_invalid_material_is_rejected(material):
@@ -104,7 +103,7 @@ def test_broker_rejects_unknown_fields_without_exposing_values(monkeypatch, tmp_
         "import json\n"
         "print(json.dumps({'env': {'TOKEN': 'VERY_SECRET'}, 'unexpected': True}))\n"
     )
-    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"python {broker}")
+    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"{sys.executable} {broker}")
 
     with pytest.raises(ValueError) as caught:
         load_trial_credentials("custom")
@@ -117,13 +116,9 @@ def test_exact_redactor_covers_api_keys_and_json_auth_representations():
     api_key = "sk-enterprise-agent-eval-api-key"
     access_token = "access-token-from-codex-auth-json"
     refresh_token = 'refresh-token-with-"quotes"-and-\\slashes'
-    auth = (
-        '{"tokens":{"access_token":%s,"refresh_token":%s},'
-        '"mode":"chatgpt"}'
-        % (
-            credentials_module.json.dumps(access_token),
-            credentials_module.json.dumps(refresh_token),
-        )
+    auth = '{"tokens":{"access_token":%s,"refresh_token":%s},"mode":"chatgpt"}' % (
+        credentials_module.json.dumps(access_token),
+        credentials_module.json.dumps(refresh_token),
     )
     material = CredentialMaterial(
         values={"API_KEY": api_key, "codex-auth": auth},
@@ -223,7 +218,7 @@ def test_streaming_json_unescaper_matches_whole_buffer_decoder():
     samples = [
         b"plain text",
         b"trailing\\",
-        b"simple=\\n slash=\\/ quote=\\\"",
+        b'simple=\\n slash=\\/ quote=\\"',
         b"unicode=\\u0061 invalid=\\u00zz",
         b"incomplete=\\u0\\n shorter=\\u\\t",
         b"pair=\\ud83d\\ude00 lone=\\ud83d!",
@@ -269,9 +264,7 @@ def test_stream_search_detects_credentials_at_every_json_layer(decode_layers):
     if decode_layers == 0:
         nested = secret.encode()
     else:
-        encoded_secret = b"".join(
-            f"\\u{byte:04x}".encode() for byte in secret.encode()
-        )
+        encoded_secret = b"".join(f"\\u{byte:04x}".encode() for byte in secret.encode())
         nested = _nest_json_escape(encoded_secret, decode_layers - 1)
     redactor = CredentialRedactor.from_material(
         CredentialMaterial(values={"TOKEN": secret}, env_keys=("TOKEN",))
@@ -430,9 +423,7 @@ def test_malformed_projected_json_fails_closed_without_exposing_values():
         ('{"pin":123.45}', "123.45"),
     ],
 )
-def test_projected_json_keys_and_number_spellings_are_credential_material(
-    auth, copied
-):
+def test_projected_json_keys_and_number_spellings_are_credential_material(auth, copied):
     redactor = CredentialRedactor.from_material(
         CredentialMaterial(
             values={"auth-file": auth},
@@ -484,17 +475,14 @@ def test_credential_material_size_limits_are_generic_and_repr_hides_values():
     assert "size limit" in str(caught.value)
 
 
-def test_broker_output_limit_fails_closed_without_echoing_output(
-    monkeypatch, tmp_path
-):
+def test_broker_output_limit_fails_closed_without_echoing_output(monkeypatch, tmp_path):
     secret = "BROKER_OUTPUT_MUST_NEVER_REACH_AN_ERROR"
     broker = tmp_path / "oversized-broker.py"
     broker.write_text(
-        "import json\n"
-        f"print(json.dumps({{'env': {{'TOKEN': {secret!r} * 100}}}}))\n"
+        f"import json\nprint(json.dumps({{'env': {{'TOKEN': {secret!r} * 100}}}}))\n"
     )
     monkeypatch.setattr(credentials_module, "MAX_BROKER_OUTPUT_BYTES", 128)
-    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"python {broker}")
+    monkeypatch.setenv("AGENT_EVAL_CREDENTIAL_COMMAND", f"{sys.executable} {broker}")
 
     with pytest.raises(RuntimeError) as caught:
         load_trial_credentials("custom")

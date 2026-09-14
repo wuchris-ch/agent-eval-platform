@@ -6,7 +6,7 @@ import re
 from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cache
 from importlib import metadata
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -243,7 +243,7 @@ def _validate_plugin(adapter: object, *, expected_name: str) -> AgentAdapter:
     )
 
 
-@lru_cache(maxsize=None)
+@cache
 def _load_plugin(name: str) -> AgentAdapter:
     if name in _BUILTIN_ADAPTERS:
         raise ValueError(f"{name!r} is reserved for a built-in agent adapter")
@@ -279,9 +279,9 @@ def is_builtin_adapter(name: str) -> bool:
 
 
 __all__ = [
-    "AdapterMetadata",
     "BUILTIN_ADAPTER_NAMES",
     "ENTRY_POINT_GROUP",
+    "AdapterMetadata",
     "get_adapter",
     "is_builtin_adapter",
     "list_adapters",

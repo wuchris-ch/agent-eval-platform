@@ -6,7 +6,7 @@ import sqlite3
 import sys
 import threading
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import SimpleNamespace
 
@@ -183,10 +183,8 @@ def http_server(body=b'{"answer":"answer"}', status=200, delay=0, drip_headers=F
             self.send_header("Location", "/should-not-follow")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            try:
+            with suppress(BrokenPipeError, ConnectionResetError):
                 self.wfile.write(body)
-            except (BrokenPipeError, ConnectionResetError):
-                pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)

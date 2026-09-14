@@ -13,9 +13,10 @@ from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
+from typer.testing import CliRunner
 
-from agent_eval import metrics, paths
 from agent_eval import cli as cli_module
+from agent_eval import metrics, paths
 from agent_eval import state as state_module
 from agent_eval.assessments import (
     Assessment,
@@ -28,7 +29,6 @@ from agent_eval.metrics import RunRecord
 from agent_eval.paths import UnsafeStatePathError, get_state_dir
 from agent_eval.state import inspect_legacy_state, migrate_legacy_state
 from agent_eval.task import list_tasks, load_task
-from typer.testing import CliRunner
 
 
 def _mode(path) -> int:
@@ -58,9 +58,7 @@ def _assessment(
         finished_at=timestamp,
         observed_at=timestamp,
     )
-    return draft.model_copy(
-        update={"assessment_id": expected_assessment_id(draft)}
-    )
+    return draft.model_copy(update={"assessment_id": expected_assessment_id(draft)})
 
 
 def _write_task(root, task_id: str) -> None:
@@ -393,7 +391,8 @@ def test_state_migration_dry_runs_then_applies_atomically(monkeypatch, tmp_path)
     assert _mode(target / record.run_id / "results.json") == 0o600
     with closing(metrics._connect()) as connection:
         migrations = {
-            row[0] for row in connection.execute("SELECT version FROM schema_migrations")
+            row[0]
+            for row in connection.execute("SELECT version FROM schema_migrations")
         }
     assert {1, 2, 3} <= migrations
 
@@ -473,9 +472,7 @@ def test_state_migration_rejects_nonfinite_and_duplicate_results_json(tmp_path):
         source = tmp_path / label
         record = _write_legacy_state(source)
         payload = record.model_dump_json()[:-1] + suffix
-        (source / record.run_id / "results.json").write_text(
-            payload, encoding="utf-8"
-        )
+        (source / record.run_id / "results.json").write_text(payload, encoding="utf-8")
         with sqlite3.connect(source / "metrics.db") as connection:
             connection.execute(
                 "UPDATE runs SET results_json = ? WHERE run_id = ?",
@@ -492,9 +489,7 @@ def test_state_migration_rejects_unknown_results_fields(tmp_path):
     payload = record.model_dump(mode="json")
     payload["unexpected"] = "not part of the evidence schema"
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    (source / record.run_id / "results.json").write_text(
-        encoded, encoding="utf-8"
-    )
+    (source / record.run_id / "results.json").write_text(encoded, encoding="utf-8")
     with sqlite3.connect(source / "metrics.db") as connection:
         connection.execute(
             "UPDATE runs SET results_json = ? WHERE run_id = ?",
@@ -565,9 +560,7 @@ def test_current_schema_rejects_hidden_generated_columns(monkeypatch, tmp_path):
         inspect_legacy_state(source)
 
 
-def test_current_schema_rejects_noncanonical_table_constraints(
-    monkeypatch, tmp_path
-):
+def test_current_schema_rejects_noncanonical_table_constraints(monkeypatch, tmp_path):
     source = tmp_path / "current-state"
     monkeypatch.setattr(metrics, "RUNS_ROOT", source)
     metrics.save_run(_record())
@@ -582,8 +575,7 @@ def test_current_schema_rejects_noncanonical_table_constraints(
         version = connection.execute("PRAGMA schema_version").fetchone()[0]
         connection.execute("PRAGMA writable_schema = ON")
         connection.execute(
-            "UPDATE sqlite_schema SET sql = ? "
-            "WHERE type = 'table' AND name = 'runs'",
+            "UPDATE sqlite_schema SET sql = ? WHERE type = 'table' AND name = 'runs'",
             (modified,),
         )
         connection.execute("PRAGMA writable_schema = OFF")
@@ -654,13 +646,11 @@ def test_schema_v2_assessments_rebuilds_to_canonical_v3_order(
         connection.execute("ALTER TABLE assessments RENAME TO old_assessments")
         connection.execute(metrics._ASSESSMENTS_V2_SCHEMA)
         columns = [
-            str(row[1])
-            for row in connection.execute("PRAGMA table_info(assessments)")
+            str(row[1]) for row in connection.execute("PRAGMA table_info(assessments)")
         ]
         names = ", ".join(columns)
         connection.execute(
-            f"INSERT INTO assessments ({names}) "
-            f"SELECT {names} FROM old_assessments"
+            f"INSERT INTO assessments ({names}) SELECT {names} FROM old_assessments"
         )
         connection.execute("DROP TABLE old_assessments")
         for name in (
@@ -673,8 +663,7 @@ def test_schema_v2_assessments_rebuilds_to_canonical_v3_order(
 
     with closing(metrics._connect()) as connection:
         columns = [
-            str(row[1])
-            for row in connection.execute("PRAGMA table_info(assessments)")
+            str(row[1]) for row in connection.execute("PRAGMA table_info(assessments)")
         ]
     assert columns.index("dataset_id") < columns.index("dataset_revision")
     assert metrics.load_run(record.run_id, validate_assessments=True) == record
@@ -821,9 +810,7 @@ def test_migration_fsync_failure_leaves_only_the_complete_renamed_tree(
     assert (source / "safe-run" / "results.json").is_file()
 
 
-def test_migration_refuses_nonempty_or_uninitialized_destination(
-    monkeypatch, tmp_path
-):
+def test_migration_refuses_nonempty_or_uninitialized_destination(monkeypatch, tmp_path):
     source = tmp_path / "legacy-runs"
     _write_legacy_state(source)
     target = tmp_path / "target"
@@ -920,9 +907,7 @@ def test_run_record_requires_assessment_ownership_identity_and_uniqueness(
         metrics.save_run(record)
 
 
-def test_save_run_restores_file_and_database_when_commit_fails(
-    monkeypatch, tmp_path
-):
+def test_save_run_restores_file_and_database_when_commit_fails(monkeypatch, tmp_path):
     monkeypatch.setattr(metrics, "RUNS_ROOT", tmp_path / "state")
     original = _record()
     metrics.save_run(original)
@@ -941,9 +926,7 @@ def test_save_run_restores_file_and_database_when_commit_fails(
     assert metrics.load_run(original.run_id) == original
 
 
-def test_save_run_restores_existing_file_when_publication_fails(
-    monkeypatch, tmp_path
-):
+def test_save_run_restores_existing_file_when_publication_fails(monkeypatch, tmp_path):
     monkeypatch.setattr(metrics, "RUNS_ROOT", tmp_path / "state")
     original = _record()
     metrics.save_run(original)
@@ -965,16 +948,12 @@ def test_save_run_restores_existing_file_when_publication_fails(
     assert metrics.load_run(original.run_id) == original
 
 
-def test_strict_legacy_governance_evidence_remains_persistable(
-    monkeypatch, tmp_path
-):
+def test_strict_legacy_governance_evidence_remains_persistable(monkeypatch, tmp_path):
     legacy = LegacyGovernanceEvidenceV1.model_validate(
         {
             "schema_version": "agent-eval.governance-evidence/v1",
             "decision_stage": "execution",
-            "preflight_decision_id": UUID(
-                "12345678-1234-5678-9234-567812345671"
-            ),
+            "preflight_decision_id": UUID("12345678-1234-5678-9234-567812345671"),
             "preflight_decision_digest": "a" * 64,
             "decision_id": UUID("12345678-1234-5678-9234-567812345672"),
             "trace_id": "b" * 32,

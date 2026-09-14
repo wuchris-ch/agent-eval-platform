@@ -4,12 +4,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from typer.testing import CliRunner
 
 from agent_eval import agents
 from agent_eval.agents import registry
 from agent_eval.agents.codex import CodexAdapter
 from agent_eval.metrics import AgentMetrics
-from typer.testing import CliRunner
 
 
 class FakeEntryPoint:
