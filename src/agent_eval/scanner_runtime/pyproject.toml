@@ -3,8 +3,8 @@ name = "agent-eval-scanner-runtime"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "ruff==0.15.20",
-    "semgrep==1.176.0",
+    "ruff==0.16.7",
+    "semgrep==1.177.0",
 ]
 
 [tool.uv]
