@@ -167,7 +167,8 @@ max-statements = 70
 "src/agent_eval/audit.py" = ["C901", "PLR0911", "PLR0912", "PLR0915"]
 "src/agent_eval/blackbox/cli.py" = ["PLR0913", "PLR0915"]
 "src/agent_eval/candidates/boundary.py" = ["C901"]
-"src/agent_eval/cli.py" = ["PLR0912", "PLR0913", "PLR0915", "C901"]
+# Typer commands take one parameter per option, so PLR0913 is structural here.
+"src/agent_eval/cli.py" = ["PLR0913", "PLR0915"]
 "src/agent_eval/corpus.py" = ["PLR0912", "C901"]
 "src/agent_eval/distributed/worker.py" = ["C901", "PLR0913"]
 "src/agent_eval/evaluators/scanners.py" = [
@@ -184,6 +185,10 @@ max-statements = 70
 "src/agent_eval/kube.py" = ["C901", "PLR0911", "PLR0912", "PLR0913"]
 "src/agent_eval/metrics.py" = ["PLR0912"]
 "src/agent_eval/runner.py" = ["PLR0912", "PLR0913", "PLR0915", "C901"]
+# Inherited from cli.py when run verification moved into its own module.
+# verify_run itself is now inside the budget; the remaining debt is
+# audit_lifecycle_failures and two of the extracted check groups.
+"src/agent_eval/verification.py" = ["C901", "PLR0912", "PLR0915"]
 "src/agent_eval/workbench/api.py" = ["PLR0911", "PLR0912", "PLR0915", "C901"]
 # --- Test suite --------------------------------------------------------------
 # Tests legitimately reach into private helpers, build long arrange blocks, and

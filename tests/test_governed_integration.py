@@ -10,7 +10,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from agent_eval import agents, cli, metrics, runner
+from agent_eval import agents, cli, metrics, runner, verification
 from agent_eval.assessments import derive_assessments
 from agent_eval.attestation import canonical_statement_bytes, capture_git_state
 from agent_eval.audit import (
@@ -1275,7 +1275,9 @@ def test_governed_run_writes_ordered_privacy_safe_audit_and_applies_budget(
     assert verified.trace_id == record.provenance.audit_trace_id
     persisted = RunRecord.model_validate_json((run_dir / "results.json").read_text())
     assert persisted.provenance.audit_final_hash == verified.final_hash
-    assert cli._audit_lifecycle_failures(persisted, run_dir / "audit.jsonl") == []
+    assert (
+        verification.audit_lifecycle_failures(persisted, run_dir / "audit.jsonl") == []
+    )
 
 
 def test_persist_run_binds_governance_and_audit_artifacts(monkeypatch, tmp_path):
@@ -1711,7 +1713,7 @@ def test_audit_lifecycle_rejects_skipped_admitted_judge(tmp_path):
         )
         audit.append("run.completed", {"status": "infra_error"})
 
-    failures = cli._audit_lifecycle_failures(record, audit_path)
+    failures = verification.audit_lifecycle_failures(record, audit_path)
 
     assert "admitted judge recipe requires a completed judge result" in failures
 
@@ -1807,7 +1809,7 @@ def test_audit_lifecycle_rejects_completed_judge_without_score(tmp_path):
         )
         audit.append("run.completed", {"status": "infra_error"})
 
-    failures = cli._audit_lifecycle_failures(record, audit_path)
+    failures = verification.audit_lifecycle_failures(record, audit_path)
 
     assert "completed admitted judge recipe has no score evidence" in failures
 
@@ -2142,12 +2144,13 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
     results_path = record.run_dir / "results.json"
 
     def swap_results_after_verification(*args, **kwargs):
-        verification = real_verify(*args, **kwargs)
+        verified = real_verify(*args, **kwargs)
         results_path.write_bytes(results_path.read_bytes() + b" ")
-        return verification
+        return verified
 
+    # Patch the name where verification resolves it, not where it is defined.
     monkeypatch.setattr(
-        attestation_module, "verify_attestation", swap_results_after_verification
+        verification, "verify_attestation", swap_results_after_verification
     )
     swapped_results = CliRunner().invoke(
         cli.app, ["verify-run", "--run", record.run_id]
@@ -2157,18 +2160,18 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
         "results.json changed after attestation verification" in swapped_results.output
     )
 
-    monkeypatch.setattr(attestation_module, "verify_attestation", real_verify)
+    monkeypatch.setattr(verification, "verify_attestation", real_verify)
     assert runner._persist_run(task, record) is None
     policy_path = record.run_dir / "policy-bundle.json"
     original_policy = policy_path.read_bytes()
 
     def swap_policy_after_verification(*args, **kwargs):
-        verification = real_verify(*args, **kwargs)
+        verified = real_verify(*args, **kwargs)
         policy_path.write_bytes(b"{}")
-        return verification
+        return verified
 
     monkeypatch.setattr(
-        attestation_module, "verify_attestation", swap_policy_after_verification
+        verification, "verify_attestation", swap_policy_after_verification
     )
     swapped_policy = CliRunner().invoke(cli.app, ["verify-run", "--run", record.run_id])
     assert swapped_policy.exit_code == 2
@@ -2176,7 +2179,7 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
         "policy-bundle.json changed after attestation verification"
         in swapped_policy.output
     )
-    monkeypatch.setattr(attestation_module, "verify_attestation", real_verify)
+    monkeypatch.setattr(verification, "verify_attestation", real_verify)
     policy_path.write_bytes(original_policy)
 
     original_outcome = record.outcome
