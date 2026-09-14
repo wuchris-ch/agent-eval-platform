@@ -6,6 +6,11 @@ dist/
 wheels/
 *.egg-info
 
+# macOS directory metadata. These are untracked files inside the harness
+# worktree, so Finder rewriting one mid-run changes the attestation worktree
+# digest and fails run verification.
+.DS_Store
+
 # Virtual environments
 .venv
 

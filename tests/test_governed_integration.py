@@ -106,9 +106,7 @@ def _stable_governance_scanner_evidence(monkeypatch):
     monkeypatch.setattr(
         runner,
         "_governance_scanner_evidence",
-        lambda *, run_scans: (
-            (SCANNER_IDENTITY, True) if run_scans else (None, False)
-        ),
+        lambda *, run_scans: (SCANNER_IDENTITY, True) if run_scans else (None, False),
     )
 
 
@@ -703,9 +701,7 @@ def test_governed_prepare_rejects_final_identity_drift_before_cluster(monkeypatc
         proxy_image=proxy_image,
         **_task_evidence_args(task),
     )
-    observed_identities = iter(
-        [(SCANNER_IDENTITY, True), (other_identity, True)]
-    )
+    observed_identities = iter([(SCANNER_IDENTITY, True), (other_identity, True)])
     monkeypatch.setattr(
         runner,
         "_governance_scanner_evidence",
@@ -1039,7 +1035,15 @@ def _attribute_keys(value):
 def test_governed_run_writes_ordered_privacy_safe_audit_and_applies_budget(
     monkeypatch, tmp_path
 ):
-    task = load_task("example-todo-api")
+    # This test mutates a hidden-test file mid-run to prove the governed
+    # snapshot is re-checked. Copy the bundled task first: mutating the real
+    # tasks/ tree dirties the harness worktree, which makes any attestation
+    # test running concurrently fail on a worktree or task-tree digest
+    # mismatch.
+    source = load_task("example-todo-api")
+    tasks_root = tmp_path / "bundled-tasks"
+    shutil.copytree(source.path, tasks_root / source.id)
+    task = load_task(source.id, tasks_root)
     task = task.model_copy(
         update={
             "network": task.network.model_copy(
@@ -2035,9 +2039,7 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
     record.assessments = [
         (
             assessment.model_copy(
-                update={
-                    "value": assessment.value.model_copy(update={"boolean": True})
-                }
+                update={"value": assessment.value.model_copy(update={"boolean": True})}
             )
             if assessment.name == "tests.resolved" and assessment.value is not None
             else assessment
@@ -2072,9 +2074,7 @@ def test_verify_run_replays_policy_and_governed_lifecycle(monkeypatch, tmp_path)
     assert runner._persist_run(task, record) is None
 
     stored = json.loads(record.model_dump_json())
-    stored["scans"]["scanner_assurance"][
-        "runtime_environment_sha256"
-    ] = "9" * 64
+    stored["scans"]["scanner_assurance"]["runtime_environment_sha256"] = "9" * 64
     with metrics._connect() as connection:
         connection.execute(
             "UPDATE runs SET results_json = ? WHERE run_id = ?",
