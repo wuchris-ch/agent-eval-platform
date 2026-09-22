@@ -200,31 +200,28 @@ The strongest task mode is `isolated-black-box`:
 | Layer | Technology | Responsibility |
 |---|---|---|
 | Runtime | Python 3.12+, Pydantic, Typer, uv | Typed evaluation contracts, orchestration, reporting, and reproducible dependency resolution |
-| Local cloud | k3d, k3s, Kubernetes | Long-running reviewer worker, isolated evaluation jobs, nightly scheduling, Secrets, Services, and persistent volumes |
+| Local cloud | k3d, k3s, Kubernetes | Isolated evaluation jobs, nightly scheduling, Secrets, Services, and persistent volumes |
 | Evaluation | Deterministic goldens, hidden pytest suites, coverage, DeepEval GEval | Combines exact evidence with an optional model judge without allowing subjective grading to weaken a failed hard gate |
 | Security evidence | Semgrep, Gitleaks, Trivy, Ruff | Static analysis, secret detection, vulnerability scanning, and code-quality signals with pinned invocation policy |
 | Observability | OpenTelemetry SDK, OTLP, OpenTelemetry Collector, Phoenix | End-to-end traces for runs, attempts, scores, latency, and failures, with sensitive review content removed before export |
 | Evidence store | Versioned JSON, SQLite, SHA-256 digests | Preserves the canonical run record, queryable metrics, provenance, and later verification |
-| Automation | GitHub watcher, Kubernetes Deployment, CronJob | Reviews new pull-request revisions continuously and runs the three-trial release benchmark every night |
+| Automation | GitHub Actions, on-demand review, CronJob | Repositories trigger their own reviews; the independent release benchmark runs nightly |
 | Delivery | Docker, pinned images, GitHub Actions | Reproducible task isolation, multi-version tests, scanner verification, package builds, and supply-chain checks |
 
 ### Always-on local control plane
 
 The platform runs as a small local AI operations environment rather than a
-one-shot script. A persistent Kubernetes worker polls configured repositories
-once per minute, reviews each new pull-request head exactly once per policy
-version, publishes the verdict, and reports a GitHub commit status. A nightly
-CronJob then re-evaluates the reviewer against the complete golden corpus.
+one-shot script. Pull-request review now belongs to each repository's GitHub Action or an explicit CLI request. The local cluster runs isolated evaluation jobs and retains their results; it does not discover or poll pull requests.
 
 ```text
-GitHub pull request -> k3s reviewer -> model gateway -> validated verdict -> GitHub
+GitHub event / CLI -> reviewer -> model gateway -> validated verdict -> GitHub
                               |                 |
                               +-> OTLP Collector +-> Phoenix trace explorer
 
 Versioned corpus -> isolated evaluator -> evidence gates -> JSON + SQLite -> release grade
 ```
 
-Kubernetes provides declarative recovery for the reviewer, telemetry pipeline,
+Kubernetes provides declarative recovery for the evaluator, telemetry pipeline,
 trace UI, scheduler, and result persistence. On a laptop, work pauses while the
 machine sleeps and resumes when Docker and the local cluster return.
 
@@ -315,7 +312,7 @@ attestation, isolation model, and security boundaries.
 
 ## Reviewer migration
 
-The review stack uses Flue for both continuous GitHub reviews and the independent daily evaluation. `./review-stack up` builds revision-tagged images from the sibling `pr-review-agent-flue` checkout, imports them into k3s, and waits for rollout completion. The single worker uses Recreate upgrades to avoid overlapping review publication. The existing runtime Secret, watched repositories, status context, and completion markers are preserved. No database migration is required.
+The review stack runs independent Flue evaluations. `./review-stack up` builds a revision-tagged evaluator image from the sibling `pr-review-agent-flue` checkout, imports it into k3s, and verifies rollout completion. PR reviews are triggered by each repository's GitHub Action or an on-demand command. The old polling deployment is deleted on rollout, and `resume` resumes only the evaluation schedule. Runtime secrets need only model gateway settings; GitHub credentials and repository watch lists are no longer provisioned.
 
 ## License
 
