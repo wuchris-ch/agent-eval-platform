@@ -1,138 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="title description">
-  <title id="title">Agent evaluation and observability architecture</title>
-  <desc id="description">Versioned inputs and golden evidence enter a blind evaluation pipeline. External review agents or isolated coding agents execute, deterministic scoring and optional correction produce an explicit release gate, and privacy-filtered telemetry flows to Phoenix. Kubernetes keeps the worker and scheduler running locally.</desc>
-  <defs>
-    <style>
-      :root {
-        --canvas: #ffffff; --ink: #202533; --muted: #667085; --line: #d8dde8; --flow: #7b8799; --card: #ffffff;
-        --blue: #eef7ff; --blue-line: #83b8e8; --amber: #fff9e9; --amber-line: #dfb765;
-        --violet: #f7f1ff; --violet-line: #a58bdd; --green: #effaf3; --green-line: #7fbc92;
-        --gate: #7765c8; --gate-ink: #ffffff;
-      }
-      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: var(--ink); }
-      .canvas { fill: var(--canvas); }
-      .group { stroke-width: 1.5; }
-      .blue-group { fill: var(--blue); stroke: var(--blue-line); }
-      .amber-group { fill: var(--amber); stroke: var(--amber-line); }
-      .violet-group { fill: var(--violet); stroke: var(--violet-line); }
-      .green-group { fill: var(--green); stroke: var(--green-line); }
-      .card { fill: var(--card); stroke: var(--line); stroke-width: 1.25; }
-      .boundary { fill: none; stroke: var(--line); stroke-width: 1.4; stroke-dasharray: 7 6; }
-      .flow { fill: none; stroke: var(--flow); stroke-width: 1.8; marker-end: url(#arrow); }
-      .optional { fill: none; stroke: var(--violet-line); stroke-width: 1.8; stroke-dasharray: 7 6; marker-end: url(#violet-arrow); }
-      .title { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-      .subtitle { font-size: 15px; fill: var(--muted); }
-      .section { font-size: 12px; font-weight: 700; letter-spacing: 0.11em; fill: var(--muted); }
-      .node-title { font-size: 16px; font-weight: 650; }
-      .detail { font-size: 13px; fill: var(--muted); }
-      .small { font-size: 11px; fill: var(--muted); }
-      .step { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; fill: var(--muted); }
-      .gate { fill: var(--gate); }
-      .gate-title { font-size: 17px; font-weight: 700; fill: var(--gate-ink); }
-      .gate-detail { font-size: 13px; fill: var(--gate-ink); }
-    </style>
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0 0 8 4 0 8Z" fill="var(--flow)"/>
-    </marker>
-    <marker id="violet-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M0 0 8 4 0 8Z" fill="var(--violet-line)"/>
-    </marker>
-  </defs>
-
-  <rect class="canvas" width="1440" height="900"/>
-  <text class="title" x="54" y="52">Agent evaluation, from golden case to release gate</text>
-  <text class="subtitle" x="54" y="78">Blind inputs, independent evidence, repeatable scoring, local Kubernetes orchestration, and privacy-filtered traces</text>
-
-  <rect class="group blue-group" x="54" y="112" width="390" height="172" rx="12"/>
-  <text class="section" x="78" y="139">ENTRY POINTS</text>
-  <rect class="card" x="78" y="158" width="342" height="98" rx="8"/>
-  <text class="node-title" x="98" y="185">Manual, scheduled, or CI-driven</text>
-  <text class="detail" x="98" y="208">./review-stack eval</text>
-  <text class="detail" x="98" y="229">Nightly Kubernetes CronJob</text>
-  <text class="detail" x="98" y="250">agent-eval run / evaluate / eval-review-agent</text>
-
-  <rect class="group amber-group" x="474" y="112" width="492" height="172" rx="12"/>
-  <text class="section" x="498" y="139">VERSIONED EVIDENCE</text>
-  <rect class="card" x="498" y="158" width="444" height="98" rx="8"/>
-  <text class="node-title" x="518" y="185">Reviewer corpus v1.1.0</text>
-  <text class="detail" x="518" y="208">20 golden diffs: 13 faulty + 7 clean</text>
-  <text class="detail" x="518" y="229">Expected file, category, severity, and changed-line range</text>
-  <text class="detail" x="518" y="250">Artifact hashes + optional executable reproducers</text>
-
-  <rect class="group violet-group" x="996" y="112" width="390" height="172" rx="12"/>
-  <text class="section" x="1020" y="139">TARGETS UNDER TEST</text>
-  <rect class="card" x="1020" y="158" width="342" height="98" rx="8"/>
-  <text class="node-title" x="1040" y="185">One harness, multiple target types</text>
-  <text class="detail" x="1040" y="208">External pull-request reviewer executable</text>
-  <text class="detail" x="1040" y="229">Coding agent in an isolated k3s pod</text>
-  <text class="detail" x="1040" y="250">Already-produced workspace</text>
-
-  <path class="flow" d="M249 284 V322 H190 V365"/>
-  <path class="flow" d="M720 284 V322 H492 V365"/>
-  <path class="flow" d="M1191 284 V322 H790 V365"/>
-
-  <rect class="boundary" x="54" y="338" width="1332" height="320" rx="14"/>
-  <text class="section" x="78" y="365">EVALUATION HARNESS</text>
-
-  <text class="step" x="78" y="403">01  BLIND INPUT</text>
-  <rect class="card" x="78" y="418" width="224" height="142" rx="9"/>
-  <text class="node-title" x="98" y="449">Bind exact input</text>
-  <text class="detail" x="98" y="475">Raw diff or task snapshot</text>
-  <text class="detail" x="98" y="498">SHA-256 identity</text>
-  <text class="detail" x="98" y="521">Hide goldens and thresholds</text>
-  <text class="small" x="98" y="545">Fail closed on invalid artifacts</text>
-
-  <text class="step" x="348" y="403">02  EXECUTE</text>
-  <rect class="card" x="348" y="418" width="246" height="142" rx="9"/>
-  <text class="node-title" x="368" y="449">Run the target</text>
-  <text class="detail" x="368" y="475">Bounded process or isolated pod</text>
-  <text class="detail" x="368" y="498">Allowlisted environment</text>
-  <text class="detail" x="368" y="521">Timeout + process-group cleanup</text>
-  <text class="small" x="368" y="545">Capture first attempt separately</text>
-
-  <text class="step" x="640" y="403">03  VERIFY + SCORE</text>
-  <rect class="card" x="640" y="418" width="280" height="142" rx="9"/>
-  <text class="node-title" x="660" y="449">Independent evidence</text>
-  <text class="detail" x="660" y="475">Strict JSON + digest validation</text>
-  <text class="detail" x="660" y="498">Finding F1 + block decision</text>
-  <text class="detail" x="660" y="521">Hidden tests + scanners for code</text>
-  <text class="small" x="660" y="545">Optional GEval cannot loosen goldens</text>
-
-  <text class="step" x="966" y="403">04  AGGREGATE</text>
-  <rect class="gate" x="966" y="418" width="372" height="142" rx="9"/>
-  <text class="gate-title" x="988" y="449">Release-quality cohort gate</text>
-  <text class="gate-detail" x="988" y="476">0 infrastructure errors</text>
-  <text class="gate-detail" x="988" y="499">100% security-blocker recall</text>
-  <text class="gate-detail" x="988" y="522">≥95% clean accuracy + 100% case stability</text>
-  <text class="gate-detail" x="988" y="545">Explicit PASS or FAIL</text>
-
-  <path class="flow" d="M302 489 H348"/>
-  <path class="flow" d="M594 489 H640"/>
-  <path class="flow" d="M920 489 H966"/>
-  <path class="optional" d="M780 560 V605 H471 V560"/>
-  <text class="small" x="625" y="626" text-anchor="middle">valid rejection only: one critique-guided correction, original result preserved</text>
-
-  <path class="flow" d="M1152 560 V690 H1190 V720"/>
-  <path class="flow" d="M1152 560 V682 H716 V720"/>
-  <path class="optional" d="M780 560 V676 H250 V720"/>
-
-  <rect class="group violet-group" x="54" y="720" width="392" height="132" rx="12"/>
-  <text class="section" x="78" y="748">OBSERVABILITY</text>
-  <text class="node-title" x="78" y="779">OpenTelemetry → Collector → Phoenix</text>
-  <text class="detail" x="78" y="803">Scores, outcomes, latency, attempts, and counts</text>
-  <text class="detail" x="78" y="826">Collector strips content, endpoints, and authorization</text>
-
-  <rect class="group blue-group" x="474" y="720" width="484" height="132" rx="12"/>
-  <text class="section" x="498" y="748">LOCAL K3S OPERATIONS</text>
-  <text class="node-title" x="498" y="779">Deployment + CronJob + persistent volumes</text>
-  <text class="detail" x="498" y="803">Kubernetes keeps the PR worker, telemetry, and dashboard alive</text>
-  <text class="detail" x="498" y="826">Scheduled evaluations run once, persist their report, then exit</text>
-
-  <rect class="group green-group" x="986" y="720" width="400" height="132" rx="12"/>
-  <text class="section" x="1010" y="748">DURABLE OUTPUT</text>
-  <text class="node-title" x="1010" y="779">JSON report + versioned baseline</text>
-  <text class="detail" x="1010" y="803">Every trial and correction remains auditable</text>
-  <text class="detail" x="1010" y="826">Content-minimized record is safe to publish</text>
-
-  <text class="small" x="54" y="884">The evaluator owns the evidence and verdict. The agent under test never sees the golden answer and cannot rewrite the final score.</text>
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" data-diagram="platform" viewBox="0 0 1416 860" width="1416" height="860" role="img" aria-labelledby="platform-title platform-desc">
+<title id="platform-title">Agent Eval platform architecture</title>
+<desc id="platform-desc">Versioned inputs feed a four-step harness: bind the exact input, run the target, verify and score with hidden expectations, then gate the cohort against hidden thresholds. A valid rejection allows one retry while keeping the first result. Telemetry leaves through a content-stripping collector, and the gate writes a JSON report and versioned baseline. Everything runs on local k3s.</desc>
+<defs><style>.dg text{font-family:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;}.dg .dg-bg{fill:#0d1016;}.dg .dg-box{fill:#141922;stroke:#2a3242;stroke-width:1.2;}.dg .dg-gate .dg-box,.dg .dg-decision .dg-box{fill:#e8ecf3;stroke:#e8ecf3;}.dg .dg-tag{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;letter-spacing:.08em;}.dg .dg-title{font-size:16px;font-weight:600;fill:#e8ebf1;letter-spacing:-.005em;}.dg .dg-mono-title{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:15.5px;}.dg .dg-detail{font-size:13.5px;fill:#98a1b1;}.dg .dg-mono{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:12.5px;fill:#b7c0cf;}.dg .dg-gate .dg-title,.dg .dg-decision .dg-title{fill:#0d1016;}.dg .dg-gate .dg-detail,.dg .dg-decision .dg-detail{fill:#465063;}.dg .dg-gate .dg-mono,.dg .dg-decision .dg-mono{fill:#2c3443;}.dg .dg-chip{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;}.dg .dg-line{fill:none;stroke:#5f6a7f;stroke-width:1.6;}.dg .dg-edge-retry .dg-line{stroke:#98a1b1;stroke-dasharray:5 5;}.dg .dg-edge-telemetry .dg-line{stroke:#b195f7;stroke-dasharray:5 5;}.dg .dg-edge-reject .dg-line{stroke:#f2646f;stroke-dasharray:5 5;}.dg .dg-edge-label{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;fill:#98a1b1;paint-order:stroke;stroke:#0d1016;stroke-width:5px;stroke-linejoin:round;}.dg .dg-frame rect{fill:#ffffff;fill-opacity:.018;stroke:#2f3848;stroke-width:1.2;stroke-dasharray:6 6;}.dg .dg-frame-label{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;letter-spacing:.1em;fill:#6b7486;}.dg .dg-note{font-size:13px;fill:#6b7486;}.dg .dg-code{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:12px;}.dg .dg-check{font-size:13.5px;fill:#2c3443;}.dg .dg-band-title{font-size:14.5px;font-weight:600;fill:#e8ebf1;}</style><marker id="platform-arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#5f6a7f"/></marker><marker id="platform-arrow-retry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#98a1b1"/></marker><marker id="platform-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#b195f7"/></marker><marker id="platform-arrow-reject" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#f2646f"/></marker><marker id="platform-arrow-lit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#7cb2ff"/></marker></defs>
+<rect class="dg-bg" width="1416" height="860" rx="18"/>
+<g class="dg-frame"><rect x="280" y="252" width="1096" height="272" rx="14"/><text class="dg-frame-label" x="304" y="508">EVALUATION HARNESS</text></g>
+<g class="dg-edge dg-edge-flow" data-from="corpus" data-to="bind"><path class="dg-line" d="M423 196 L423 276" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="target" data-to="execute"><path class="dg-line" d="M701 196 L701 276" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="expected" data-to="verify"><path class="dg-line" d="M979 196 L979 276" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="thresholds" data-to="gate"><path class="dg-line" d="M1257 196 L1257 276" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="trigger" data-to="bind"><path class="dg-line" d="M244 358 L304 358" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="bind" data-to="execute"><path class="dg-line" d="M542 358 L582 358" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="execute" data-to="verify"><path class="dg-line" d="M820 358 L860 358" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="verify" data-to="gate"><path class="dg-line" d="M1098 358 L1138 358" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-retry" data-from="verify" data-to="execute"><path class="dg-line" d="M924 440 L924 464 Q924 474 914 474 L766 474 Q756 474 756 464 L756 440" marker-end="url(#platform-arrow-retry)"/><text class="dg-edge-label" x="840" y="498" text-anchor="middle">valid rejection only: one critique-guided retry, first result kept</text></g>
+<g class="dg-edge dg-edge-telemetry" data-from="bind execute verify gate" data-to="telemetry"><path class="dg-line" d="M423 524 L423 580" marker-end="url(#platform-arrow-telemetry)"/><text class="dg-edge-label" x="435" y="556">spans + scores</text></g>
+<g class="dg-edge dg-edge-flow" data-from="gate" data-to="report"><path class="dg-line" d="M1257 440 L1257 580" marker-end="url(#platform-arrow-flow)"/></g>
+<g class="dg-node dg-input" data-id="corpus" tabindex="0"><rect class="dg-box" x="304" y="40" width="238" height="156" rx="10"/><text class="dg-tag" x="322" y="65" fill="#7cb2ff">INPUT</text><text class="dg-title" x="322" y="90">Reviewer corpus v1.1.0</text><text class="dg-detail" x="322" y="114">20 golden diffs</text><text class="dg-detail" x="322" y="135">13 faulty, 7 clean</text><text class="dg-detail" x="322" y="156">raw diff or task snapshot</text></g>
+<g class="dg-node dg-target" data-id="target" tabindex="0"><rect class="dg-box" x="582" y="40" width="238" height="156" rx="10"/><text class="dg-tag" x="600" y="65" fill="#f5a35c">TARGET UNDER TEST</text><text class="dg-title" x="600" y="90">One harness, three targets</text><text class="dg-detail" x="600" y="114">pull-request reviewer</text><text class="dg-detail" x="600" y="135">coding agent in a k3s pod</text><text class="dg-detail" x="600" y="156">already-produced workspace</text></g>
+<g class="dg-node dg-hidden" data-id="expected" tabindex="0"><rect class="dg-box" x="860" y="40" width="238" height="156" rx="10"/><text class="dg-tag" x="878" y="65" fill="#7cb2ff">HIDDEN INPUT</text><text class="dg-title" x="878" y="90">Expected findings</text><text class="dg-detail" x="878" y="114">file, category, severity</text><text class="dg-detail" x="878" y="135">changed-line range</text><text class="dg-detail" x="878" y="156">optional reproducers</text></g>
+<g class="dg-node dg-hidden" data-id="thresholds" tabindex="0"><rect class="dg-box" x="1138" y="40" width="238" height="156" rx="10"/><text class="dg-tag" x="1156" y="65" fill="#7cb2ff">HIDDEN INPUT</text><text class="dg-title" x="1156" y="90">Release thresholds</text><text class="dg-detail" x="1156" y="114">0 infrastructure errors</text><text class="dg-detail" x="1156" y="135">100% security-blocker recall</text><text class="dg-detail" x="1156" y="156">≥95% clean accuracy</text><text class="dg-detail" x="1156" y="177">100% case stability</text></g>
+<g class="dg-node dg-trigger" data-id="trigger" tabindex="0"><rect class="dg-box" x="40" y="276" width="204" height="164" rx="10"/><text class="dg-tag" x="58" y="301" fill="#98a1b1">TRIGGER</text><text class="dg-title" x="58" y="326">Start a run</text><text class="dg-detail dg-mono" x="58" y="350">./review-stack eval</text><text class="dg-detail dg-mono" x="58" y="371">nightly CronJob</text><text class="dg-detail dg-mono" x="58" y="392">agent-eval CLI</text><text class="dg-detail dg-mono" x="58" y="413">CI pipeline</text></g>
+<g class="dg-node dg-step" data-id="bind" tabindex="0"><rect class="dg-box" x="304" y="276" width="238" height="164" rx="10"/><text class="dg-tag" x="322" y="301" fill="#98a1b1">STEP 01</text><text class="dg-title" x="322" y="326">Bind exact input</text><text class="dg-detail" x="322" y="350">hash the diff or snapshot</text><text class="dg-detail" x="322" y="371">hide goldens and thresholds</text><text class="dg-detail" x="322" y="392">fail closed on bad artifacts</text></g>
+<g class="dg-node dg-step" data-id="execute" tabindex="0"><rect class="dg-box" x="582" y="276" width="238" height="164" rx="10"/><text class="dg-tag" x="600" y="301" fill="#98a1b1">STEP 02</text><text class="dg-title" x="600" y="326">Run the target</text><text class="dg-detail" x="600" y="350">bounded process or k3s pod</text><text class="dg-detail" x="600" y="371">allowlisted environment</text><text class="dg-detail" x="600" y="392">timeout + process cleanup</text><text class="dg-detail" x="600" y="413">first attempt kept separately</text></g>
+<g class="dg-node dg-step" data-id="verify" tabindex="0"><rect class="dg-box" x="860" y="276" width="238" height="164" rx="10"/><text class="dg-tag" x="878" y="301" fill="#98a1b1">STEP 03</text><text class="dg-title" x="878" y="326">Verify and score</text><text class="dg-detail" x="878" y="350">strict JSON + digest checks</text><text class="dg-detail" x="878" y="371">finding F1 + block decision</text><text class="dg-detail" x="878" y="392">hidden tests and scanners</text><text class="dg-detail" x="878" y="413">judge can’t loosen goldens</text></g>
+<g class="dg-node dg-gate" data-id="gate" tabindex="0"><rect class="dg-box" x="1138" y="276" width="238" height="164" rx="10"/><text class="dg-tag" x="1156" y="301" fill="#465063">STEP 04</text><text class="dg-title" x="1156" y="326">Release gate</text><text class="dg-detail" x="1156" y="350">every trial in the cohort,</text><text class="dg-detail" x="1156" y="371">checked against thresholds</text><rect x="1156" y="380" width="46" height="22" rx="6" fill="#13915a" fill-opacity="0.16" stroke="#13915a" stroke-opacity="0.55"/><text class="dg-chip" x="1165" y="395" fill="#0d7a4a">PASS</text><rect x="1210" y="380" width="46" height="22" rx="6" fill="#d63b49" fill-opacity="0.16" stroke="#d63b49" stroke-opacity="0.55"/><text class="dg-chip" x="1219" y="395" fill="#c02a38">FAIL</text></g>
+<g class="dg-node dg-telemetry" data-id="telemetry" tabindex="0"><rect class="dg-box" x="304" y="580" width="516" height="112" rx="10"/><text class="dg-tag" x="322" y="605" fill="#b195f7">TELEMETRY</text><text class="dg-title" x="322" y="630">OpenTelemetry → Collector → Phoenix</text><text class="dg-detail" x="322" y="654">scores, outcomes, latency, attempts and counts</text><text class="dg-detail" x="322" y="675">the collector strips content, endpoints and authorization</text></g>
+<g class="dg-node dg-output" data-id="report" tabindex="0"><rect class="dg-box" x="860" y="580" width="516" height="112" rx="10"/><text class="dg-tag" x="878" y="605" fill="#3fcbd3">DURABLE OUTPUT</text><text class="dg-title" x="878" y="630">JSON report + versioned baseline</text><text class="dg-detail" x="878" y="654">every trial and correction stays auditable</text><text class="dg-detail" x="878" y="675">content-minimized record, safe to publish</text></g>
+<g class="dg-legend"><rect x="40" y="40" width="204" height="156" rx="10" fill="none" stroke="#2a3242" stroke-width="1.2"/><text class="dg-tag" x="58" y="65" fill="#6b7486">LEGEND</text><path d="M58 96 H92" stroke="#5f6a7f" stroke-width="1.6" fill="none" marker-end="url(#platform-arrow-flow)"/><text class="dg-detail" x="104" y="100">data flow</text><path d="M58 122 H92" stroke="#98a1b1" stroke-width="1.6" fill="none" stroke-dasharray="5 5" marker-end="url(#platform-arrow-retry)"/><text class="dg-detail" x="104" y="126">retry path</text><path d="M58 148 H92" stroke="#b195f7" stroke-width="1.6" fill="none" stroke-dasharray="5 5" marker-end="url(#platform-arrow-telemetry)"/><text class="dg-detail" x="104" y="152">telemetry</text><rect x="58" y="165" width="34" height="14" rx="4" fill="#e8ecf3"/><text class="dg-detail" x="104" y="177">decision</text></g>
+<g class="dg-band"><rect x="40" y="728" width="1336" height="92" rx="10" fill="#ffffff" fill-opacity=".025" stroke="#2a3242" stroke-width="1.2"/><text class="dg-tag" x="58" y="762" fill="#6b7486">RUNTIME</text><text class="dg-band-title" x="58" y="788">Local k3s</text><text class="dg-band-title" x="304" y="766">Deployment</text><text class="dg-detail" x="304" y="788">keeps the PR worker, telemetry and dashboard up</text><text class="dg-band-title" x="662" y="766">CronJob</text><text class="dg-detail" x="662" y="788">nightly evaluations run once, save a report, exit</text><text class="dg-band-title" x="1020" y="766">Persistent volumes</text><text class="dg-detail" x="1020" y="788">saved reports survive pod restarts</text></g>
 </svg>
