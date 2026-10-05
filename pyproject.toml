@@ -15,10 +15,10 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "anthropic>=1.2.0",
+    "anthropic>=1.11.0",
     "pydantic>=2.13.5",
     "pyyaml>=6.0.3",
-    "regex==2026.7.19",
+    "regex==2026.9.29",
     "rich>=13.6.0,<16",
     "typer>=0.27.2",
 ]
@@ -33,8 +33,8 @@ observability = [
     "opentelemetry-sdk==1.43.0",
 ]
 judge = [
-    "deepeval>=4,<5",
-    "openai>=3.6.0,<4",
+    "deepeval>=4.2.8,<5",
+    "openai>=3.24.0,<4",
 ]
 
 [project.urls]
@@ -47,15 +47,15 @@ Security = "https://github.com/wuchris-ch/agent-eval-platform/security/policy"
 agent-eval = "agent_eval.cli:app"
 
 [build-system]
-requires = ["uv_build==0.12.7"]
+requires = ["uv_build==0.12.22"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.18",
+    "mypy>=2.4.0",
     "pytest>=9.1.1",
     "pytest-xdist>=3.8",
-    "ruff>=0.15.21",
+    "ruff>=0.16.10",
 ]
 security = [
     "pip-audit==2.10.1",
