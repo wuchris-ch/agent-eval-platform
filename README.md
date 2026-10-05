@@ -20,7 +20,8 @@ preview resource policies, and download the evidence.
 [![Agent evaluation and observability architecture](docs/local-review-platform.svg)](https://wuchris-ch.github.io/agent-eval-platform/architecture.html)
 
 [Explore the architecture](https://wuchris-ch.github.io/agent-eval-platform/architecture.html)
-to zoom, pan, and move between the supporting system diagrams.
+to zoom, pan, and trace how each component feeds the next across the four
+system diagrams.
 
 This repository contains the evaluation system. The separately deployable
 reviewer lives in [`pr-review-agent-flue`](https://github.com/wuchris-ch/pr-review-agent-flue).

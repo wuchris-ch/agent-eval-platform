@@ -1,71 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="title description">
-  <title id="title">Metric persistence and verification flow</title>
-  <desc id="description">Raw evidence is preserved in results.json as the canonical run record. metrics.db is a query projection used by compare and report. verify-run recomputes and cross-checks the record. Optional OpenTelemetry export is content-minimized and lossy.</desc>
-  <defs>
-    <style>
-      :root { --canvas:#fff; --surface:#f8fafc; --surface2:#f1f5f9; --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --strong:#94a3b8; --emphasis:#0f172a; --emphasis-ink:#fff; }
-      @media (prefers-color-scheme: dark) { :root { --canvas:#0b0f14; --surface:#111820; --surface2:#17202a; --ink:#e5e7eb; --muted:#9ca3af; --line:#334155; --strong:#64748b; --emphasis:#253140; --emphasis-ink:#f8fafc; } }
-      text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:var(--ink); }
-      .canvas { fill:var(--canvas); }
-      .card { fill:var(--surface); stroke:var(--line); stroke-width:1; }
-      .card2 { fill:var(--surface2); stroke:var(--line); stroke-width:1; }
-      .canonical { fill:var(--emphasis); }
-      .canonical-text, .detail.canonical-text { fill:var(--emphasis-ink); }
-      .flow { fill:none; stroke:var(--strong); stroke-width:1.5; marker-end:url(#arrow); }
-      .optional { fill:none; stroke:var(--strong); stroke-width:1.25; stroke-dasharray:5 4; marker-end:url(#arrow); }
-      .eyebrow { font-size:11px; font-weight:700; letter-spacing:.12em; fill:var(--muted); }
-      .title { font-size:22px; font-weight:650; letter-spacing:-.02em; }
-      .node-title { font-size:15px; font-weight:650; }
-      .detail { font-size:12px; fill:var(--muted); }
-      .label { font-size:10px; font-weight:700; letter-spacing:.08em; fill:var(--muted); }
-    </style>
-    <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0 0 7 3.5 0 7Z" fill="#94a3b8"/>
-    </marker>
-  </defs>
-
-  <rect class="canvas" width="1200" height="330"/>
-  <text class="eyebrow" x="40" y="31">PERSISTED METRICS</text>
-  <text class="title" x="40" y="60">The complete run record stays canonical</text>
-
-  <text class="label" x="40" y="102">RAW EVIDENCE</text>
-  <rect class="card" x="40" y="116" width="232" height="154" rx="6"/>
-  <text class="node-title" x="60" y="146">Independent sources</text>
-  <text class="detail" x="60" y="172">provider JSONL + process timing</text>
-  <text class="detail" x="60" y="195">JUnit + coverage</text>
-  <text class="detail" x="60" y="218">diff + scanner + judge results</text>
-  <text class="detail" x="60" y="241">governance + provenance</text>
-  <path class="flow" d="M272 193 H327"/>
-
-  <text class="label" x="328" y="102">CANONICAL RECORD</text>
-  <rect class="canonical" x="328" y="116" width="236" height="154" rx="6"/>
-  <text class="node-title canonical-text" x="350" y="151">results.json</text>
-  <text class="detail canonical-text" x="350" y="177">complete bounded run record</text>
-  <text class="detail canonical-text" x="350" y="200">explicit nulls for missing values</text>
-  <text class="detail canonical-text" x="350" y="223">artifact hashes + outcome</text>
-  <text class="detail canonical-text" x="350" y="246">source for later verification</text>
-
-  <text class="label" x="632" y="102">QUERY + VERIFY</text>
-  <path class="flow" d="M564 158 H631"/>
-  <rect class="card2" x="632" y="116" width="230" height="82" rx="6"/>
-  <text class="node-title" x="652" y="147">metrics.db</text>
-  <text class="detail" x="652" y="169">query projection + assessments</text>
-  <text class="detail" x="652" y="187">normalized across completed runs</text>
-
-  <path class="flow" d="M564 229 H631"/>
-  <rect class="card" x="632" y="216" width="230" height="54" rx="6"/>
-  <text class="node-title" x="652" y="241">verify-run</text>
-  <text class="detail" x="652" y="260">recompute and cross-check</text>
-
-  <text class="label" x="930" y="102">CONSUMERS</text>
-  <path class="flow" d="M862 157 H929"/>
-  <rect class="card2" x="930" y="116" width="230" height="82" rx="6"/>
-  <text class="node-title" x="950" y="147">compare + report</text>
-  <text class="detail" x="950" y="169">trial summaries, pass@k, trends</text>
-  <text class="detail" x="950" y="187">assessment and benchmark views</text>
-
-  <path class="optional" d="M564 253 H595 V300 H1045 V271"/>
-  <rect class="card" x="930" y="216" width="230" height="54" rx="6"/>
-  <text class="node-title" x="950" y="241">OpenTelemetry</text>
-  <text class="detail" x="950" y="260">optional, minimized, lossy export</text>
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" data-diagram="metrics" viewBox="0 0 1432 452" width="1432" height="452" role="img" aria-labelledby="metrics-title metrics-desc">
+<title id="metrics-title">Evidence and metrics</title>
+<desc id="metrics-desc">Independent sources are preserved in results.json, the canonical run record. metrics.db is a query projection used by compare and report, verify-run recomputes and cross-checks the record, and optional OpenTelemetry export is content-minimized and lossy.</desc>
+<defs><style>.dg text{font-family:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;}.dg .dg-bg{fill:#0d1016;}.dg .dg-box{fill:#141922;stroke:#2a3242;stroke-width:1.2;}.dg .dg-gate .dg-box,.dg .dg-decision .dg-box{fill:#e8ecf3;stroke:#e8ecf3;}.dg .dg-tag{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;letter-spacing:.08em;}.dg .dg-title{font-size:16px;font-weight:600;fill:#e8ebf1;letter-spacing:-.005em;}.dg .dg-mono-title{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:15.5px;}.dg .dg-detail{font-size:13.5px;fill:#98a1b1;}.dg .dg-mono{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:12.5px;fill:#b7c0cf;}.dg .dg-gate .dg-title,.dg .dg-decision .dg-title{fill:#0d1016;}.dg .dg-gate .dg-detail,.dg .dg-decision .dg-detail{fill:#465063;}.dg .dg-gate .dg-mono,.dg .dg-decision .dg-mono{fill:#2c3443;}.dg .dg-chip{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;}.dg .dg-line{fill:none;stroke:#5f6a7f;stroke-width:1.6;}.dg .dg-edge-retry .dg-line{stroke:#98a1b1;stroke-dasharray:5 5;}.dg .dg-edge-telemetry .dg-line{stroke:#b195f7;stroke-dasharray:5 5;}.dg .dg-edge-reject .dg-line{stroke:#f2646f;stroke-dasharray:5 5;}.dg .dg-edge-label{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;fill:#98a1b1;paint-order:stroke;stroke:#0d1016;stroke-width:5px;stroke-linejoin:round;}.dg .dg-frame rect{fill:#ffffff;fill-opacity:.018;stroke:#2f3848;stroke-width:1.2;stroke-dasharray:6 6;}.dg .dg-frame-label{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;letter-spacing:.1em;fill:#6b7486;}.dg .dg-note{font-size:13px;fill:#6b7486;}.dg .dg-code{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:12px;}.dg .dg-check{font-size:13.5px;fill:#2c3443;}.dg .dg-band-title{font-size:14.5px;font-weight:600;fill:#e8ebf1;}</style><marker id="metrics-arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#5f6a7f"/></marker><marker id="metrics-arrow-retry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#98a1b1"/></marker><marker id="metrics-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#b195f7"/></marker><marker id="metrics-arrow-reject" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#f2646f"/></marker><marker id="metrics-arrow-lit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#7cb2ff"/></marker></defs>
+<rect class="dg-bg" width="1432" height="452" rx="18"/>
+<g class="dg-edge dg-edge-flow" data-from="sources" data-to="results"><path class="dg-line" d="M324 182 L396 182" marker-end="url(#metrics-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="results" data-to="db"><path class="dg-line" d="M680 112 L752 112" marker-end="url(#metrics-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="results" data-to="verifyrun"><path class="dg-line" d="M680 232 L752 232" marker-end="url(#metrics-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-telemetry" data-from="results" data-to="otel"><path class="dg-line" d="M680 360 L752 360" marker-end="url(#metrics-arrow-telemetry)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="db" data-to="report"><path class="dg-line" d="M1036 112 L1108 112" marker-end="url(#metrics-arrow-flow)"/></g>
+<g class="dg-node dg-input" data-id="sources" tabindex="0"><rect class="dg-box" x="40" y="64" width="284" height="236" rx="10"/><text class="dg-tag" x="58" y="89" fill="#7cb2ff">RAW EVIDENCE</text><text class="dg-title" x="58" y="114">Independent sources</text><text class="dg-code" x="58" y="138" xml:space="preserve"><tspan fill="#7cb2ff">●  </tspan><tspan fill="#98a1b1">provider JSONL</tspan></text><text class="dg-code" x="58" y="162" xml:space="preserve"><tspan fill="#7cb2ff">●  </tspan><tspan fill="#98a1b1">process timing</tspan></text><text class="dg-code" x="58" y="186" xml:space="preserve"><tspan fill="#3fd294">●  </tspan><tspan fill="#98a1b1">JUnit + coverage</tspan></text><text class="dg-code" x="58" y="210" xml:space="preserve"><tspan fill="#f5a35c">●  </tspan><tspan fill="#98a1b1">diff + scanner results</tspan></text><text class="dg-code" x="58" y="234" xml:space="preserve"><tspan fill="#b195f7">●  </tspan><tspan fill="#98a1b1">judge results</tspan></text><text class="dg-code" x="58" y="258" xml:space="preserve"><tspan fill="#3fcbd3">●  </tspan><tspan fill="#98a1b1">governance + provenance</tspan></text></g>
+<g class="dg-node dg-decision" data-id="results" tabindex="0"><rect class="dg-box" x="396" y="64" width="284" height="340" rx="10"/><text class="dg-tag" x="414" y="89" fill="#465063">CANONICAL RECORD</text><text class="dg-title dg-mono-title" x="414" y="114">results.json</text><text class="dg-detail" x="414" y="138">complete, bounded run record;</text><text class="dg-detail" x="414" y="156">explicit nulls for missing values</text><text class="dg-code" x="414" y="184" xml:space="preserve"><tspan fill="#465063">{</tspan></text><text class="dg-code" x="414" y="201" xml:space="preserve"><tspan fill="#2456c9">  &quot;task_id&quot;: </tspan><tspan fill="#0e7a4c">&quot;example-todo-api&quot;</tspan><tspan fill="#465063">,</tspan></text><text class="dg-code" x="414" y="218" xml:space="preserve"><tspan fill="#2456c9">  &quot;agent&quot;: </tspan><tspan fill="#0e7a4c">&quot;oracle&quot;</tspan><tspan fill="#465063">,</tspan></text><text class="dg-code" x="414" y="235" xml:space="preserve"><tspan fill="#2456c9">  &quot;correctness&quot;: </tspan><tspan fill="#465063">{…}</tspan><tspan fill="#465063">,</tspan></text><text class="dg-code" x="414" y="252" xml:space="preserve"><tspan fill="#2456c9">  &quot;scans&quot;: </tspan><tspan fill="#465063">{…}</tspan><tspan fill="#465063">,</tspan></text><text class="dg-code" x="414" y="269" xml:space="preserve"><tspan fill="#2456c9">  &quot;judge&quot;: </tspan><tspan fill="#465063">{…}</tspan><tspan fill="#465063">,</tspan></text><text class="dg-code" x="414" y="286" xml:space="preserve"><tspan fill="#2456c9">  &quot;assurance&quot;: </tspan><tspan fill="#b4441c">null</tspan><tspan fill="#465063">,</tspan></text><text class="dg-code" x="414" y="303" xml:space="preserve"><tspan fill="#2456c9">  &quot;outcome&quot;: </tspan><tspan fill="#465063">{…}</tspan><tspan fill="#465063">,</tspan></text><text class="dg-code" x="414" y="320" xml:space="preserve"><tspan fill="#2456c9">  &quot;provenance&quot;: </tspan><tspan fill="#465063">{…}</tspan><tspan fill="#465063"></tspan></text><text class="dg-code" x="414" y="337" xml:space="preserve"><tspan fill="#465063">}</tspan></text></g>
+<g class="dg-node dg-output" data-id="db" tabindex="0"><rect class="dg-box" x="752" y="64" width="284" height="96" rx="10"/><text class="dg-tag" x="770" y="89" fill="#3fcbd3">QUERY PROJECTION</text><text class="dg-title dg-mono-title" x="770" y="114">metrics.db</text><text class="dg-detail" x="770" y="138">normalized across completed runs</text></g>
+<g class="dg-node dg-step" data-id="verifyrun" tabindex="0"><rect class="dg-box" x="752" y="188" width="284" height="88" rx="10"/><text class="dg-tag" x="770" y="213" fill="#98a1b1">VERIFICATION</text><text class="dg-title dg-mono-title" x="770" y="238">verify-run</text><text class="dg-detail" x="770" y="262">recomputes and cross-checks</text></g>
+<g class="dg-node dg-telemetry" data-id="otel" tabindex="0"><rect class="dg-box" x="752" y="316" width="284" height="88" rx="10"/><text class="dg-tag" x="770" y="341" fill="#b195f7">OPTIONAL EXPORT</text><text class="dg-title" x="770" y="366">OpenTelemetry</text><text class="dg-detail" x="770" y="390">content-minimized and lossy</text></g>
+<g class="dg-node dg-output" data-id="report" tabindex="0"><rect class="dg-box" x="1108" y="64" width="284" height="96" rx="10"/><text class="dg-tag" x="1126" y="89" fill="#3fcbd3">CONSUMERS</text><text class="dg-title dg-mono-title" x="1126" y="114">compare + report</text><text class="dg-detail" x="1126" y="138">pass@k, trends, benchmark views</text></g>
 </svg>

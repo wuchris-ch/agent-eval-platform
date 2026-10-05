@@ -1,101 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" role="img" aria-labelledby="title description">
-  <title id="title">Coding-agent evaluation flow</title>
-  <desc id="description">A versioned task runs in an agent pod. Provider JSONL, isolated hidden-test grading, and host inspection produce independent evidence for the acceptance policy. The policy records an explicit outcome in results.json and metrics.db.</desc>
-  <defs>
-    <style>
-      :root { --canvas:#fff; --surface:#f8fafc; --surface2:#f1f5f9; --ink:#0f172a; --muted:#64748b; --line:#cbd5e1; --strong:#94a3b8; --emphasis:#0f172a; --emphasis-ink:#fff; }
-      @media (prefers-color-scheme: dark) { :root { --canvas:#0b0f14; --surface:#111820; --surface2:#17202a; --ink:#e5e7eb; --muted:#9ca3af; --line:#334155; --strong:#64748b; --emphasis:#253140; --emphasis-ink:#f8fafc; } }
-      text { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; fill:var(--ink); }
-      .canvas { fill:var(--canvas); }
-      .group { fill:none; stroke:var(--line); stroke-width:1; }
-      .card { fill:var(--surface); stroke:var(--line); stroke-width:1; }
-      .card2 { fill:var(--surface2); stroke:var(--line); stroke-width:1; }
-      .decision { fill:var(--emphasis); }
-      .decision-text, .detail.decision-text { fill:var(--emphasis-ink); }
-      .flow { fill:none; stroke:var(--strong); stroke-width:1.5; marker-end:url(#arrow); }
-      .bus { fill:none; stroke:var(--strong); stroke-width:1.5; }
-      .boundary { fill:none; stroke:var(--strong); stroke-width:1; stroke-dasharray:5 5; }
-      .eyebrow { font-size:11px; font-weight:700; letter-spacing:.12em; fill:var(--muted); }
-      .title { font-size:22px; font-weight:650; letter-spacing:-.02em; }
-      .section { font-size:12px; font-weight:700; letter-spacing:.1em; fill:var(--muted); }
-      .node-title { font-size:15px; font-weight:650; }
-      .detail { font-size:12px; fill:var(--muted); }
-      .label { font-size:11px; fill:var(--muted); }
-      .tiny { font-size:10px; fill:var(--muted); }
-    </style>
-    <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0 0 7 3.5 0 7Z" fill="#94a3b8"/>
-    </marker>
-  </defs>
-
-  <rect class="canvas" width="1200" height="480"/>
-  <text class="eyebrow" x="40" y="31">AGENT-EVAL RUN</text>
-  <text class="title" x="40" y="60">Execution and grading are separate</text>
-
-  <text class="section" x="40" y="98">01  EXECUTE</text>
-  <rect class="group" x="40" y="112" width="408" height="314" rx="8"/>
-  <rect class="card" x="64" y="137" width="152" height="86" rx="6"/>
-  <text class="node-title" x="82" y="168">Versioned task</text>
-  <text class="detail" x="82" y="190">prompt + starter code</text>
-  <text class="detail" x="82" y="208">provider credential</text>
-  <path class="flow" d="M216 180 H254"/>
-  <rect class="card2" x="255" y="137" width="169" height="86" rx="6"/>
-  <text class="node-title" x="274" y="168">Agent pod</text>
-  <text class="detail" x="274" y="190">Claude Code or Codex</text>
-  <text class="detail" x="274" y="208">edits the workspace</text>
-
-  <line class="boundary" x1="64" y1="252" x2="424" y2="252"/>
-  <text class="label" x="64" y="276">After exit or timeout</text>
-  <text class="detail" x="64" y="300">1. Stop remaining agent processes</text>
-  <text class="detail" x="64" y="324">2. Require three clean process scans</text>
-  <text class="detail" x="64" y="348">3. Copy the produced workspace</text>
-  <rect class="card" x="64" y="372" width="360" height="34" rx="5"/>
-  <text class="detail" x="82" y="394">Outputs: workspace copy + provider stdout JSONL</text>
-
-  <text class="section" x="480" y="98">02  COLLECT INDEPENDENT EVIDENCE</text>
-  <rect class="group" x="480" y="112" width="450" height="314" rx="8"/>
-
-  <rect class="card" x="504" y="133" width="398" height="60" rx="6"/>
-  <text class="node-title" x="522" y="158">Usage + process evidence</text>
-  <text class="detail" x="522" y="178">provider JSONL • wall time • exit code • timeout</text>
-
-  <rect class="boundary" x="504" y="211" width="398" height="121" rx="6"/>
-  <text class="label" x="520" y="231">ISOLATED BLACK-BOX GRADING</text>
-  <rect class="card" x="520" y="244" width="150" height="66" rx="5"/>
-  <text class="node-title" x="538" y="269">Submission pod</text>
-  <text class="detail" x="538" y="290">produced code only</text>
-  <rect class="card2" x="736" y="244" width="150" height="66" rx="5"/>
-  <text class="node-title" x="754" y="269">Evaluator pod</text>
-  <text class="detail" x="754" y="290">hidden tests + results</text>
-  <path class="flow" d="M736 277 H681"/>
-  <text class="tiny" x="708" y="266" text-anchor="middle">one TCP port</text>
-
-  <rect class="card" x="504" y="350" width="398" height="55" rx="6"/>
-  <text class="node-title" x="522" y="374">Workspace inspection</text>
-  <text class="detail" x="522" y="394">diff size • Ruff • Semgrep • Gitleaks • Trivy • judge</text>
-
-  <path class="flow" d="M340 223 V243 H463 V163 H504"/>
-  <text class="tiny" x="458" y="153" text-anchor="end">JSONL</text>
-  <path class="flow" d="M424 389 H465 V278 H520"/>
-  <text class="tiny" x="468" y="268" text-anchor="end">workspace</text>
-  <path class="flow" d="M424 389 H504"/>
-
-  <path class="flow" d="M902 163 H948"/>
-  <path class="flow" d="M902 277 H948"/>
-  <path class="flow" d="M902 377 H948"/>
-  <path class="bus" d="M948 163 V377"/>
-  <path class="flow" d="M948 270 H978"/>
-
-  <text class="section" x="962" y="98">03  DECIDE + RECORD</text>
-  <rect class="decision" x="978" y="222" width="182" height="96" rx="6"/>
-  <text class="node-title decision-text" x="999" y="252">Acceptance policy</text>
-  <text class="detail decision-text" x="999" y="275">required evidence joins here</text>
-  <text class="detail decision-text" x="999" y="296">fail closed when missing</text>
-
-  <path class="flow" d="M1069 318 V347"/>
-  <rect class="card2" x="978" y="348" width="182" height="58" rx="6"/>
-  <text class="node-title" x="999" y="373">Explicit outcome</text>
-  <text class="detail" x="999" y="393">accepted / rejected / infra_error</text>
-
-  <text class="label" x="1069" y="436" text-anchor="middle">results.json + metrics.db</text>
+<svg xmlns="http://www.w3.org/2000/svg" class="dg" data-diagram="coding" viewBox="0 0 1640 616" width="1640" height="616" role="img" aria-labelledby="coding-title coding-desc">
+<title id="coding-title">Coding-agent evaluation</title>
+<desc id="coding-desc">A versioned task runs in an agent pod. After a clean teardown, the provider log, isolated black-box grading and workspace inspection supply independent evidence to the acceptance policy, which records an explicit outcome in results.json and metrics.db.</desc>
+<defs><style>.dg text{font-family:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;}.dg .dg-bg{fill:#0d1016;}.dg .dg-box{fill:#141922;stroke:#2a3242;stroke-width:1.2;}.dg .dg-gate .dg-box,.dg .dg-decision .dg-box{fill:#e8ecf3;stroke:#e8ecf3;}.dg .dg-tag{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;letter-spacing:.08em;}.dg .dg-title{font-size:16px;font-weight:600;fill:#e8ebf1;letter-spacing:-.005em;}.dg .dg-mono-title{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:15.5px;}.dg .dg-detail{font-size:13.5px;fill:#98a1b1;}.dg .dg-mono{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:12.5px;fill:#b7c0cf;}.dg .dg-gate .dg-title,.dg .dg-decision .dg-title{fill:#0d1016;}.dg .dg-gate .dg-detail,.dg .dg-decision .dg-detail{fill:#465063;}.dg .dg-gate .dg-mono,.dg .dg-decision .dg-mono{fill:#2c3443;}.dg .dg-chip{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;}.dg .dg-line{fill:none;stroke:#5f6a7f;stroke-width:1.6;}.dg .dg-edge-retry .dg-line{stroke:#98a1b1;stroke-dasharray:5 5;}.dg .dg-edge-telemetry .dg-line{stroke:#b195f7;stroke-dasharray:5 5;}.dg .dg-edge-reject .dg-line{stroke:#f2646f;stroke-dasharray:5 5;}.dg .dg-edge-label{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;fill:#98a1b1;paint-order:stroke;stroke:#0d1016;stroke-width:5px;stroke-linejoin:round;}.dg .dg-frame rect{fill:#ffffff;fill-opacity:.018;stroke:#2f3848;stroke-width:1.2;stroke-dasharray:6 6;}.dg .dg-frame-label{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:11px;font-weight:600;letter-spacing:.1em;fill:#6b7486;}.dg .dg-note{font-size:13px;fill:#6b7486;}.dg .dg-code{font-family:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;font-size:12px;}.dg .dg-check{font-size:13.5px;fill:#2c3443;}.dg .dg-band-title{font-size:14.5px;font-weight:600;fill:#e8ebf1;}</style><marker id="coding-arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#5f6a7f"/></marker><marker id="coding-arrow-retry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#98a1b1"/></marker><marker id="coding-arrow-telemetry" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#b195f7"/></marker><marker id="coding-arrow-reject" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#f2646f"/></marker><marker id="coding-arrow-lit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L9 5 L0 9 Z" fill="#7cb2ff"/></marker></defs>
+<rect class="dg-bg" width="1640" height="616" rx="18"/>
+<g class="dg-frame"><rect x="40" y="64" width="380" height="512" rx="14"/><text class="dg-frame-label" x="60" y="92">01  EXECUTE</text></g>
+<g class="dg-frame"><rect x="524" y="64" width="480" height="512" rx="14"/><text class="dg-frame-label" x="544" y="92">02  COLLECT INDEPENDENT EVIDENCE</text></g>
+<g class="dg-frame"><rect x="544" y="320" width="440" height="120" rx="14"/></g>
+<g class="dg-frame"><rect x="1080" y="64" width="520" height="512" rx="14"/><text class="dg-frame-label" x="1100" y="92">03  DECIDE AND RECORD</text></g>
+<g class="dg-edge dg-edge-flow" data-from="task" data-to="pod"><path class="dg-line" d="M230 192 L230 216" marker-end="url(#coding-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="pod" data-to="teardown"><path class="dg-line" d="M230 296 L230 320" marker-end="url(#coding-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="pod" data-to="usage"><path class="dg-line" d="M400 256 L544 256" marker-end="url(#coding-arrow-flow)"/><text class="dg-edge-label" x="472" y="246" text-anchor="middle">provider JSONL</text></g>
+<g class="dg-edge dg-edge-flow" data-from="teardown" data-to="submission"><path class="dg-line" d="M400 394 L560 394" marker-end="url(#coding-arrow-flow)"/><text class="dg-edge-label" x="472" y="384" text-anchor="middle">workspace</text></g>
+<g class="dg-edge dg-edge-flow" data-from="teardown" data-to="inspect"><path class="dg-line" d="M400 508 L544 508" marker-end="url(#coding-arrow-flow)"/><text class="dg-edge-label" x="472" y="498" text-anchor="middle">workspace</text></g>
+<g class="dg-edge dg-edge-flow" data-from="evaluator" data-to="submission"><path class="dg-line" d="M812 394 L716 394" marker-end="url(#coding-arrow-flow)"/><text class="dg-edge-label" x="764" y="414" text-anchor="middle">one TCP port</text></g>
+<g class="dg-edge dg-edge-flow" data-from="usage" data-to="policy"><path class="dg-line" d="M984 256 L1100 256" marker-end="url(#coding-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="evaluator" data-to="policy"><path class="dg-line" d="M968 394 L1100 394" marker-end="url(#coding-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="inspect" data-to="policy"><path class="dg-line" d="M984 508 L1100 508" marker-end="url(#coding-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="policy" data-to="outcome"><path class="dg-line" d="M1332 200 L1388 200" marker-end="url(#coding-arrow-flow)"/></g>
+<g class="dg-edge dg-edge-flow" data-from="outcome" data-to="record"><path class="dg-line" d="M1484 288 L1484 336" marker-end="url(#coding-arrow-flow)"/></g>
+<g class="dg-node dg-input" data-id="task" tabindex="0"><rect class="dg-box" x="60" y="112" width="340" height="80" rx="10"/><text class="dg-tag" x="78" y="137" fill="#7cb2ff">INPUT</text><text class="dg-title" x="78" y="162">Versioned task</text><text class="dg-detail" x="78" y="186">prompt, starter code, provider credential</text></g>
+<g class="dg-node dg-target" data-id="pod" tabindex="0"><rect class="dg-box" x="60" y="216" width="340" height="80" rx="10"/><text class="dg-tag" x="78" y="241" fill="#f5a35c">AGENT POD</text><text class="dg-title" x="78" y="266">Claude Code or Codex</text><text class="dg-detail" x="78" y="290">edits the workspace inside its pod</text></g>
+<g class="dg-node dg-step" data-id="teardown" tabindex="0"><rect class="dg-box" x="60" y="320" width="340" height="232" rx="10"/><text class="dg-tag" x="78" y="345" fill="#98a1b1">AFTER EXIT OR TIMEOUT</text><text class="dg-title" x="78" y="370">Clean teardown</text><text class="dg-detail" x="78" y="394">1  stop remaining agent processes</text><text class="dg-detail" x="78" y="415">2  require three clean process scans</text><text class="dg-detail" x="78" y="436">3  copy the produced workspace</text><rect x="78" y="445" width="74" height="22" rx="6" fill="#3fd294" fill-opacity="0.14" stroke="#3fd294" stroke-opacity="0.55"/><text class="dg-chip" x="87" y="460" fill="#3fd294">✓ scan 1</text><rect x="160" y="445" width="74" height="22" rx="6" fill="#3fd294" fill-opacity="0.14" stroke="#3fd294" stroke-opacity="0.55"/><text class="dg-chip" x="169" y="460" fill="#3fd294">✓ scan 2</text><rect x="242" y="445" width="74" height="22" rx="6" fill="#3fd294" fill-opacity="0.14" stroke="#3fd294" stroke-opacity="0.55"/><text class="dg-chip" x="251" y="460" fill="#3fd294">✓ scan 3</text></g>
+<g class="dg-node dg-step" data-id="usage" tabindex="0"><rect class="dg-box" x="544" y="216" width="440" height="80" rx="10"/><text class="dg-tag" x="562" y="241" fill="#98a1b1">USAGE + PROCESS</text><text class="dg-title" x="562" y="266">Provider log and timing</text><text class="dg-detail" x="562" y="290">provider JSONL, wall time, exit code, timeout</text></g>
+<g class="dg-node dg-step" data-id="submission" tabindex="0"><rect class="dg-box" x="560" y="360" width="156" height="68" rx="10"/><text class="dg-title" x="578" y="391">Submission pod</text><text class="dg-detail" x="578" y="415">produced code only</text></g>
+<g class="dg-node dg-step" data-id="evaluator" tabindex="0"><rect class="dg-box" x="812" y="360" width="156" height="68" rx="10"/><text class="dg-title" x="830" y="391">Evaluator pod</text><text class="dg-detail" x="830" y="415">hidden tests</text></g>
+<g class="dg-node dg-step" data-id="inspect" tabindex="0"><rect class="dg-box" x="544" y="464" width="440" height="88" rx="10"/><text class="dg-tag" x="562" y="489" fill="#98a1b1">STATIC INSPECTION</text><text class="dg-title" x="562" y="514">Workspace inspection</text><text class="dg-detail" x="562" y="538">diff size · Ruff · Semgrep · Gitleaks · Trivy · judge</text></g>
+<g class="dg-node dg-decision" data-id="policy" tabindex="0"><rect class="dg-box" x="1100" y="112" width="232" height="440" rx="10"/><text class="dg-tag" x="1118" y="137" fill="#465063">DECISION</text><text class="dg-title" x="1118" y="162">Acceptance policy</text><text class="dg-detail" x="1118" y="186">joins all required evidence;</text><text class="dg-detail" x="1118" y="207">fails closed if any is missing</text><text class="dg-check" x="1118" y="260"><tspan fill="#13915a" font-weight="700">✓</tspan>  usage + process evidence</text><text class="dg-check" x="1118" y="398"><tspan fill="#13915a" font-weight="700">✓</tspan>  hidden test results</text><text class="dg-check" x="1118" y="512"><tspan fill="#13915a" font-weight="700">✓</tspan>  inspection findings</text></g>
+<g class="dg-node dg-output" data-id="outcome" tabindex="0"><rect class="dg-box" x="1388" y="112" width="192" height="176" rx="10"/><text class="dg-tag" x="1406" y="137" fill="#3fcbd3">OUTCOME</text><text class="dg-title" x="1406" y="162">Explicit outcome</text><rect x="1406" y="174" width="74" height="22" rx="6" fill="#3fd294" fill-opacity="0.14" stroke="#3fd294" stroke-opacity="0.55"/><text class="dg-chip" x="1415" y="189" fill="#3fd294">accepted</text><rect x="1406" y="202" width="74" height="22" rx="6" fill="#f2646f" fill-opacity="0.14" stroke="#f2646f" stroke-opacity="0.55"/><text class="dg-chip" x="1415" y="217" fill="#f2646f">rejected</text><rect x="1406" y="230" width="95" height="22" rx="6" fill="#ecbd4f" fill-opacity="0.14" stroke="#ecbd4f" stroke-opacity="0.55"/><text class="dg-chip" x="1415" y="245" fill="#ecbd4f">infra_error</text></g>
+<g class="dg-node dg-record" data-id="record" tabindex="0"><rect class="dg-box" x="1388" y="336" width="192" height="124" rx="10"/><text class="dg-tag" x="1406" y="361" fill="#3fcbd3">RECORD</text><text class="dg-title dg-mono-title" x="1406" y="386">results.json</text><text class="dg-detail dg-mono" x="1406" y="410">metrics.db</text><text class="dg-detail" x="1406" y="431">kept for every trial</text></g>
+<text class="dg-frame-label" x="560" y="346">ISOLATED BLACK-BOX GRADING</text>
+<text class="dg-detail" x="544" y="140">Three sources the agent cannot influence.</text>
 </svg>

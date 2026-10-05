@@ -1,12 +1,199 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Inspect independent agent evaluations, compare policies, investigate failures, and replay recorded decisions."><meta name="theme-color" content="#f4f5f2"><title>Agent Eval | Evidence Explorer</title><link rel="stylesheet" href="evidence.css"><script src="evidence.mjs" type="module"></script></head>
-<body><header class="topbar"><a class="brand" href="./"><span class="mark">ae</span><span>Agent Eval <small>Evidence explorer</small></span></a><nav aria-label="Primary"><a href="architecture.html">Architecture</a><a href="https://github.com/wuchris-ch/agent-eval-platform">Source <span aria-hidden="true">↗</span></a></nav></header>
-<main><section class="hero"><div><p class="eyebrow"><span class="live-dot"></span> INDEPENDENT EVALUATION</p><h1>Every verdict.<br>With the evidence.</h1><p class="intro">Inspect what an agent produced, what the environment observed, and why the candidate passed or failed.</p></div><aside class="record-note"><span class="record-icon" aria-hidden="true">▤</span><div><strong>Recorded, replayable results</strong><p>Explore saved trials here. Fresh evaluations run through the operator service.</p><span id="published" class="tiny">Loading evidence</span></div></aside></section>
-<div class="study-bar"><label>Evidence collection<select id="collection" aria-label="Evidence collection"></select></label><div class="study-links"><a id="download" class="download" download>Download evidence <span aria-hidden="true">↓</span></a><a id="report-link">Method & results ↗</a></div></div>
-<div id="status" role="status" aria-live="polite">Loading recorded evidence…</div>
-<section aria-labelledby="collection-title"><div class="section-head"><div><p id="kind" class="eyebrow"></p><h2 id="collection-title"></h2></div><span id="revision" class="revision"></span></div><p id="description" class="description"></p><div id="metrics" class="metric-grid"></div><div id="arm-comparison" class="arm-comparison"></div><p id="inference" class="footnote"></p></section>
-<section id="policy-section" class="policy-section" hidden><div><p class="eyebrow">REPLAY A DECISION</p><h2>What does your policy require?</h2><p>Keep the behavioral checks and add a resource limit. The preview uses saved measurements and preserves every original verdict.</p></div><div class="policy-controls"><label>Resource<select id="policy-metric"><option value="none">Behavior checks only</option><option value="latency_ms">Production latency</option><option value="total_tokens">Total tokens</option><option value="cost_usd">Cost (USD)</option></select></label><label>Maximum<input id="policy-limit" type="number" min="0" step="any" value="60" disabled></label><span id="policy-unit" class="tiny"></span></div><div id="policy-preview" class="preview-grid"></div><p class="footnote">A limit requires an independently observed measurement. Missing measurements produce an inconclusive preview.</p></section>
-<section class="investigation" aria-labelledby="trials-heading"><div class="section-head"><div><p class="eyebrow">INVESTIGATE</p><h2 id="trials-heading">Look inside a result.</h2></div><span id="row-count" class="tiny"></span></div><div class="filters"><label>Outcome<select id="outcome"><option value="all">All outcomes</option><option value="fail">Rejected</option><option value="pass">Accepted</option><option value="production_failed">Production failed</option><option value="inconclusive">Inconclusive</option><option value="pending">Pending</option></select></label><label>Attempt<select id="attempt"><option value="initial">First attempts</option><option value="assisted_correction">Assisted corrections</option><option value="all">All attempts</option></select></label><label class="search-label">Find a task<input id="search" type="search" placeholder="Task or family"></label></div><div class="evidence-layout"><div class="table-wrap"><table><thead><tr><th scope="col">Task / trial</th><th scope="col">Policy</th><th scope="col">Outcome</th><th scope="col" id="latency-heading">Latency</th></tr></thead><tbody id="rows"></tbody></table><p id="empty" hidden>No trials match these filters.</p></div><aside id="detail" class="detail-panel" aria-live="polite"><p class="eyebrow">TRIAL RECEIPT</p><h3>Select a result</h3><p class="muted">See the independent checks and the identities that bind the decision.</p></aside></div></section>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Recorded agent evaluations: every trial, the independent checks behind each verdict, and replayable resource policies.">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="color-scheme" content="dark">
+  <title>Evidence explorer · Agent Eval</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="site.css">
+  <script src="evidence.mjs" type="module"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="wordmark" href="./" aria-label="Agent Eval evidence explorer"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>agent-eval<span class="slash">/</span><span class="page">evidence</span></a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="./" aria-current="page">Results</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="https://github.com/wuchris-ch/agent-eval-platform">GitHub<span class="ext" aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
 
-<section class="method-strip"><div><span>01</span><h3>Reserve the trial</h3><p>Freeze task, policy, recipe, budgets, and evaluator identities before dispatch.</p></div><div><span>02</span><h3>Observe independently</h3><p>Check behavior and final state outside the candidate's own verification.</p></div><div><span>03</span><h3>Keep the denominator</h3><p>Retain failures and missing results. Report assisted corrections separately.</p></div></section>
-<footer><p>Agent Eval Platform <span>Versioned evidence. Independent decisions.</span></p><a href="https://github.com/wuchris-ch/agent-eval-platform#reproduce">Run an evaluation ↗</a></footer></main></body></html>
+  <main>
+    <section class="wrap hero" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div>
+          <p class="kicker">Agent Eval Platform · evidence explorer</p>
+          <h1 id="hero-title">Recorded attempts, with the checks behind each verdict.</h1>
+          <p class="lead">Coding agents, a pull-request reviewer and fixed controls, each graded by checks it could not see or change. Every square below is one attempt. Select any of them to read its checks, timings and receipt chain.</p>
+        </div>
+        <dl class="hero-stats" id="hero-stats"></dl>
+      </div>
+      <div class="overview">
+        <div class="overview-head">
+          <h2>All recorded attempts</h2>
+          <p id="published">Loading evidence</p>
+        </div>
+        <div class="waffles" id="overview"></div>
+        <ul class="legend" id="overview-legend"></ul>
+      </div>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="wrap collections" aria-label="Evidence collections">
+      <div class="section-label"><h2>Collections</h2></div>
+      <div class="tabs" id="tabs" role="tablist" aria-label="Evidence collection"></div>
+    </section>
+
+    <section class="wrap collection" id="collection" aria-labelledby="collection-title">
+      <div class="collection-head">
+        <div>
+          <p class="kicker" id="kind"></p>
+          <h2 id="collection-title">Loading</h2>
+          <p class="description" id="description"></p>
+        </div>
+        <div class="collection-links">
+          <span class="revision" id="revision"></span>
+          <div class="link-row">
+            <a class="btn" id="report-link">Method and results <span aria-hidden="true">↗</span></a>
+            <a class="btn" id="download" download>Download <span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+      </div>
+      <div class="metrics" id="metrics"></div>
+      <div class="charts">
+        <article class="card span-6">
+          <div class="card-head"><h3>Outcomes by policy</h3><p id="arms-meta"></p></div>
+          <div id="arms"></div>
+          <div class="by-trial" id="by-trial"></div>
+        </article>
+        <article class="card span-6">
+          <div class="card-head"><h3>Why attempts were not accepted</h3><p id="reasons-meta"></p></div>
+          <div id="reasons"></div>
+          <div class="checks-summary" id="checks-summary"></div>
+        </article>
+        <article class="card span-6" id="matrix-card">
+          <div class="card-head"><h3>Trial matrix</h3><p id="matrix-meta"></p></div>
+          <p class="card-note">One cell per first attempt. Select a cell to open its receipt.</p>
+          <div class="matrix-scroll"><div class="matrix-blocks" id="matrix"></div></div>
+          <ul class="legend matrix-legend" id="matrix-legend"></ul>
+        </article>
+        <article class="card span-6" id="timing-card">
+          <div class="card-head"><h3 id="timing-title">Timing</h3><p id="timing-meta"></p></div>
+          <div id="timing"></div>
+          <div class="slowest" id="slowest"></div>
+        </article>
+      </div>
+      <p class="inference" id="inference"></p>
+    </section>
+
+    <section class="wrap policy" id="policy-section" aria-labelledby="policy-title" hidden>
+      <div class="policy-card">
+        <div class="policy-top">
+          <div>
+            <p class="kicker">Replay a decision</p>
+            <h2 id="policy-title">Add a resource limit and watch the verdicts change.</h2>
+            <p>The preview reuses saved measurements, so nothing reruns. Behavior checks stay required, and the recorded verdicts never change.</p>
+          </div>
+          <div class="controls">
+            <label class="field">Resource
+              <select id="policy-metric">
+                <option value="latency_ms">Production time</option>
+                <option value="total_tokens">Total tokens</option>
+                <option value="cost_usd">Cost (USD)</option>
+                <option value="none">Behavior checks only</option>
+              </select>
+            </label>
+            <div class="field">
+              <label for="policy-limit">Maximum</label>
+              <div class="limit-row">
+                <input id="policy-range" type="range" min="0" max="60" step="0.5" value="60" aria-label="Maximum, slider">
+                <input id="policy-limit" type="number" min="0" step="any" value="60">
+                <span class="unit" id="policy-unit">seconds</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="policy-plot" id="policy-plot"></div>
+        <div class="policy-result" id="policy-preview"></div>
+        <p class="policy-note" id="policy-note">A limit needs an independent measurement. Attempts without one become inconclusive in the preview.</p>
+      </div>
+    </section>
+
+    <section class="wrap trials" id="trials" aria-labelledby="trials-title">
+      <div class="trials-head">
+        <div>
+          <p class="kicker">Investigate</p>
+          <h2 id="trials-title">Every attempt in this collection</h2>
+        </div>
+        <div class="filters">
+          <label class="field">Outcome
+            <select id="outcome">
+              <option value="all">All outcomes</option>
+              <option value="pass">Accepted</option>
+              <option value="fail">Rejected</option>
+              <option value="inconclusive">Inconclusive</option>
+              <option value="production_failed">Production failed</option>
+              <option value="pending">Pending</option>
+            </select>
+          </label>
+          <label class="field">Attempt
+            <select id="attempt">
+              <option value="initial">First attempts</option>
+              <option value="assisted_correction">Assisted corrections</option>
+              <option value="all">All attempts</option>
+            </select>
+          </label>
+          <label class="field search">Find a task
+            <input id="search" type="search" placeholder="Task or family" autocomplete="off">
+          </label>
+        </div>
+      </div>
+      <div class="trial-layout">
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th scope="col">Task</th><th scope="col">Policy</th><th scope="col">Outcome</th><th scope="col" id="latency-heading">Time</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+            <p id="empty" hidden>No attempts match these filters.</p>
+          </div>
+          <div class="table-foot"><span id="row-count"></span><span>Select a row for its receipt</span></div>
+        </div>
+        <aside class="receipt" id="detail" aria-live="polite" aria-label="Trial receipt"></aside>
+      </div>
+    </section>
+
+    <section class="wrap method" aria-labelledby="method-title">
+      <div class="method-head">
+        <h2 id="method-title">How each attempt is graded</h2>
+        <a class="btn" href="architecture.html">See the architecture <span aria-hidden="true">→</span></a>
+      </div>
+      <ol class="steps">
+        <li><h3>Reserve the trial</h3><p>Task, policy, recipe, budgets and evaluator identities are frozen before anything is dispatched.</p></li>
+        <li><h3>Observe independently</h3><p>Behavior and final state are checked outside the candidate, which never sees the expected answers.</p></li>
+        <li><h3>Keep the denominator</h3><p>Failures and missing results stay in every count. Assisted corrections are reported separately.</p></li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <span>agent-eval · Apache-2.0</span>
+      <nav aria-label="Footer">
+        <a href="architecture.html">Architecture</a>
+        <a href="https://github.com/wuchris-ch/agent-eval-platform#reproduce">Run an evaluation</a>
+        <a href="https://github.com/wuchris-ch/agent-eval-platform">Source</a>
+      </nav>
+    </div>
+  </footer>
+  <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+</body>
+</html>
