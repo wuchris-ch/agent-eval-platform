@@ -89,6 +89,22 @@ dollars per token, with an optional hardware cost per hour. The
 [model comparison guide](docs/model-comparison.md) covers the models file,
 cost rules and outputs.
 
+Results recorded November 9, 2026 on an Apple M1 Max, with 12 cases and three
+trials per model.
+
+| Model | Release gate | Accepted | Tokens in / out | Cost | Median latency |
+|---|---|---:|---:|---:|---:|
+| llama3.2:3b on Ollama | FAIL | 15 / 36 | 13,356 / 600 | $0 | 0.37 s |
+| qwen2.5:7b on Ollama | FAIL | 27 / 36 | 12,954 / 864 | $0 | 1.18 s |
+| qwen2.5:14b on Ollama | FAIL | 33 / 36 | 12,954 / 672 | $0 | 2.00 s |
+| gpt-6.1-sol, hosted | **PASS** | 36 / 36 | 659,561 / 684 | $1.33 | 3.83 s |
+
+No local model passed, so the recommendation is the hosted model. Each local
+failure repeated in every trial. The hosted input tokens include a system prompt
+that the gateway adds, so its cost is an upper bound.
+[Full results](benchmarks/model-release/v1/results/2026-11-09.md)
+· [Explore the 144 records](https://wuchris-ch.github.io/agent-eval-platform/?collection=model-comparison).
+
 ## Platform verification
 
 Verified September 11, 2026 (Vancouver; September 12 UTC), on released evaluator revision `048a8d4`.

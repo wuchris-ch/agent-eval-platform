@@ -15,11 +15,11 @@ behind an OpenAI-compatible gateway.
    error fails the gate.
 3. Each observation records latency and the `prompt_tokens` and
    `completion_tokens` that the endpoint reports.
-4. Cost comes from the price table in the models file:
-   - hosted models: input tokens times the input price plus output tokens times
-     the output price, per million tokens.
-   - local models: zero dollars per token, plus `hardware_usd_per_hour` times the
-     summed model time when you set it.
+4. Cost comes from the price table in the models file. A hosted model costs
+   its input tokens times the input price plus its output tokens times the
+   output price, per million tokens. A local model costs zero dollars per
+   token, plus `hardware_usd_per_hour` times the summed model time when you
+   set it.
    If a priced model did not report token usage for every evaluation, its cost
    is unknown. A missing count is never treated as zero.
 5. The recommendation is the passing model with the lowest cost. Equal costs,
@@ -73,13 +73,13 @@ uv run agent-eval blackbox compare-models \
   --response-format json --trials 3 --out /tmp/model-comparison
 ```
 
-The command prints one line per model and the recommendation. The output
-directory contains:
+The command prints one line per model and the recommendation. It writes
+three outputs to the `--out` directory:
 
-- `comparison.json`: per-model gate result, counts, tokens, cost, median and
-  p95 latency, the price used and the recommendation.
-- `comparison.md`: the same comparison as a Markdown table.
-- `reports/<label>.json`: the complete black-box report for each model,
+- `comparison.json` holds the per-model gate result, counts, tokens, cost,
+  median and p95 latency, the price used and the recommendation.
+- `comparison.md` shows the same comparison as a Markdown table.
+- `reports/<label>.json` is the complete black-box report for each model,
   including every answer and check.
 
 Each report is also saved in the private black-box state directory, like any

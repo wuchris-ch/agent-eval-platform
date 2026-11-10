@@ -1,0 +1,1250 @@
+{
+  "schema_version": "1.0",
+  "run_id": "8f058e87-64ff-41b1-812c-33254fef7565",
+  "parent_run_id": null,
+  "created_at": "2026-11-10T04:25:43.244244+00:00",
+  "suite_id": "model-release-triage",
+  "suite_version": "1.0.0",
+  "suite_sha256": "c9e9c0b994f3909cacbd289b0576bd6d70eec7eef81b60e154911c77db6574f5",
+  "agent": "ollama-llama3.2-3b",
+  "target_sha256": "3c272b87940d2ffc6b4028b55b0b852657aed60d6f9132ad1ffb638df022a300",
+  "mode": "model",
+  "trials": 3,
+  "evaluations": 36,
+  "accepted": 15,
+  "rejected": 21,
+  "infra_errors": 0,
+  "average_score": 0.4166666666666667,
+  "median_latency_ms": 369.64222928509116,
+  "tokens_in": 13356,
+  "tokens_out": 600,
+  "passed": false,
+  "results": [
+    {
+      "case_id": "api-outage",
+      "trial": 1,
+      "input_sha256": "da53a38ae6d68d400f2b1a8adfd447b69aee385be229aae86dc9f6c959015282",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "api-outage",
+        "trial": 1,
+        "input_sha256": "da53a38ae6d68d400f2b1a8adfd447b69aee385be229aae86dc9f6c959015282",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 6317.959667183459,
+        "tokens_in": 366,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "leaked-database-password",
+      "trial": 1,
+      "input_sha256": "9eb9d9d25ea994188246aafd5ab84e286ab92fd1d89547a69614316cde9ad5fa",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "leaked-database-password",
+        "trial": 1,
+        "input_sha256": "9eb9d9d25ea994188246aafd5ab84e286ab92fd1d89547a69614316cde9ad5fa",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 251.6479166224599,
+        "tokens_in": 367,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "dropped-orders-table",
+      "trial": 1,
+      "input_sha256": "95657dfdd890dd0c5ea45eb6d01a86768bffa2d299681212c5c6f06c0bf44a87",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "dropped-orders-table",
+        "trial": 1,
+        "input_sha256": "95657dfdd890dd0c5ea45eb6d01a86768bffa2d299681212c5c6f06c0bf44a87",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 310.7949998229742,
+        "tokens_in": 374,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "invoice-access-breach",
+      "trial": 1,
+      "input_sha256": "f2682131fdc878cfca24d3b9d3569077cc679f4e3ad625f7925c8743009e0305",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "invoice-access-breach",
+        "trial": 1,
+        "input_sha256": "f2682131fdc878cfca24d3b9d3569077cc679f4e3ad625f7925c8743009e0305",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 289.4347906112671,
+        "tokens_in": 376,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "search-sql-injection",
+      "trial": 1,
+      "input_sha256": "c1ce8d59d83c7074e829bd2923c3ddf4b4f90c3c9bbaf09dd2d6d942cfe32fc4",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "search-sql-injection",
+        "trial": 1,
+        "input_sha256": "c1ce8d59d83c7074e829bd2923c3ddf4b4f90c3c9bbaf09dd2d6d942cfe32fc4",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 386.43120881170034,
+        "tokens_in": 369,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "password-reset-email",
+      "trial": 1,
+      "input_sha256": "6f6b9f4d5f7c718fa706ee7181836f3925900865dc66f070fffd7683f3ff6dbd",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "password-reset-email",
+        "trial": 1,
+        "input_sha256": "6f6b9f4d5f7c718fa706ee7181836f3925900865dc66f070fffd7683f3ff6dbd",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 283.51308312267065,
+        "tokens_in": 375,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "slow-monthly-report",
+      "trial": 1,
+      "input_sha256": "25393b0731d6eb31df4c7a5f0235b5aeba091780d4d7c734eccceda80159f52a",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "slow-monthly-report",
+        "trial": 1,
+        "input_sha256": "25393b0731d6eb31df4c7a5f0235b5aeba091780d4d7c734eccceda80159f52a",
+        "actual_output": {
+          "severity": "performance",
+          "escalate": false,
+          "category": "performance"
+        },
+        "status": "completed",
+        "latency_ms": 369.9328750371933,
+        "tokens_in": 372,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "slow-search-europe",
+      "trial": 1,
+      "input_sha256": "5bddce15289f1020130d7c79f6dfdf790276a61a374da16b6aa30c671a99de8e",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "slow-search-europe",
+        "trial": 1,
+        "input_sha256": "5bddce15289f1020130d7c79f6dfdf790276a61a374da16b6aa30c671a99de8e",
+        "actual_output": {
+          "severity": "performance",
+          "escalate": false,
+          "category": "performance"
+        },
+        "status": "completed",
+        "latency_ms": 369.351583532989,
+        "tokens_in": 373,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "csv-export-missing-row",
+      "trial": 1,
+      "input_sha256": "f1f8eb57aac84df6a26ff5c3a9475cc665eefe838d030d174a9d6a0d9c897e19",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "csv-export-missing-row",
+        "trial": 1,
+        "input_sha256": "f1f8eb57aac84df6a26ff5c3a9475cc665eefe838d030d174a9d6a0d9c897e19",
+        "actual_output": {
+          "severity": "medium",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 323.9679168909788,
+        "tokens_in": 377,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "settings-label-typo",
+      "trial": 1,
+      "input_sha256": "30b599269e73404569a58f1e974630a070938792ef63e4bda28b76748055ba4a",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "settings-label-typo",
+        "trial": 1,
+        "input_sha256": "30b599269e73404569a58f1e974630a070938792ef63e4bda28b76748055ba4a",
+        "actual_output": {
+          "severity": "functional",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 299.83774945139885,
+        "tokens_in": 368,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "malformed-client-json",
+      "trial": 1,
+      "input_sha256": "0a8a2444e5eb64d4b0a3b6f6baee5885e352ff5a6b4f2cab46e1fe4effcad601",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "malformed-client-json",
+        "trial": 1,
+        "input_sha256": "0a8a2444e5eb64d4b0a3b6f6baee5885e352ff5a6b4f2cab46e1fe4effcad601",
+        "actual_output": {
+          "severity": "low",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 244.50737424194813,
+        "tokens_in": 365,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "single-user-calendar-sync",
+      "trial": 1,
+      "input_sha256": "b98b5a1701d20b7d3fe1c6ee4de70e2bde785d4be92c13899f73fcb938483388",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "single-user-calendar-sync",
+        "trial": 1,
+        "input_sha256": "b98b5a1701d20b7d3fe1c6ee4de70e2bde785d4be92c13899f73fcb938483388",
+        "actual_output": {
+          "severity": "low",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 316.00662507116795,
+        "tokens_in": 370,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "api-outage",
+      "trial": 2,
+      "input_sha256": "da53a38ae6d68d400f2b1a8adfd447b69aee385be229aae86dc9f6c959015282",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "api-outage",
+        "trial": 2,
+        "input_sha256": "da53a38ae6d68d400f2b1a8adfd447b69aee385be229aae86dc9f6c959015282",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 237.96041682362556,
+        "tokens_in": 366,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "leaked-database-password",
+      "trial": 2,
+      "input_sha256": "9eb9d9d25ea994188246aafd5ab84e286ab92fd1d89547a69614316cde9ad5fa",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "leaked-database-password",
+        "trial": 2,
+        "input_sha256": "9eb9d9d25ea994188246aafd5ab84e286ab92fd1d89547a69614316cde9ad5fa",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 266.38412568718195,
+        "tokens_in": 367,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "dropped-orders-table",
+      "trial": 2,
+      "input_sha256": "95657dfdd890dd0c5ea45eb6d01a86768bffa2d299681212c5c6f06c0bf44a87",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "dropped-orders-table",
+        "trial": 2,
+        "input_sha256": "95657dfdd890dd0c5ea45eb6d01a86768bffa2d299681212c5c6f06c0bf44a87",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 397.8082090616226,
+        "tokens_in": 374,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "invoice-access-breach",
+      "trial": 2,
+      "input_sha256": "f2682131fdc878cfca24d3b9d3569077cc679f4e3ad625f7925c8743009e0305",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "invoice-access-breach",
+        "trial": 2,
+        "input_sha256": "f2682131fdc878cfca24d3b9d3569077cc679f4e3ad625f7925c8743009e0305",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 376.49033311754465,
+        "tokens_in": 376,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "search-sql-injection",
+      "trial": 2,
+      "input_sha256": "c1ce8d59d83c7074e829bd2923c3ddf4b4f90c3c9bbaf09dd2d6d942cfe32fc4",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "search-sql-injection",
+        "trial": 2,
+        "input_sha256": "c1ce8d59d83c7074e829bd2923c3ddf4b4f90c3c9bbaf09dd2d6d942cfe32fc4",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 414.78954162448645,
+        "tokens_in": 369,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "password-reset-email",
+      "trial": 2,
+      "input_sha256": "6f6b9f4d5f7c718fa706ee7181836f3925900865dc66f070fffd7683f3ff6dbd",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "password-reset-email",
+        "trial": 2,
+        "input_sha256": "6f6b9f4d5f7c718fa706ee7181836f3925900865dc66f070fffd7683f3ff6dbd",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 413.8434575870633,
+        "tokens_in": 375,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "slow-monthly-report",
+      "trial": 2,
+      "input_sha256": "25393b0731d6eb31df4c7a5f0235b5aeba091780d4d7c734eccceda80159f52a",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "slow-monthly-report",
+        "trial": 2,
+        "input_sha256": "25393b0731d6eb31df4c7a5f0235b5aeba091780d4d7c734eccceda80159f52a",
+        "actual_output": {
+          "severity": "performance",
+          "escalate": false,
+          "category": "performance"
+        },
+        "status": "completed",
+        "latency_ms": 485.35666707903147,
+        "tokens_in": 372,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "slow-search-europe",
+      "trial": 2,
+      "input_sha256": "5bddce15289f1020130d7c79f6dfdf790276a61a374da16b6aa30c671a99de8e",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "slow-search-europe",
+        "trial": 2,
+        "input_sha256": "5bddce15289f1020130d7c79f6dfdf790276a61a374da16b6aa30c671a99de8e",
+        "actual_output": {
+          "severity": "performance",
+          "escalate": false,
+          "category": "performance"
+        },
+        "status": "completed",
+        "latency_ms": 485.98266672343016,
+        "tokens_in": 373,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "csv-export-missing-row",
+      "trial": 2,
+      "input_sha256": "f1f8eb57aac84df6a26ff5c3a9475cc665eefe838d030d174a9d6a0d9c897e19",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "csv-export-missing-row",
+        "trial": 2,
+        "input_sha256": "f1f8eb57aac84df6a26ff5c3a9475cc665eefe838d030d174a9d6a0d9c897e19",
+        "actual_output": {
+          "severity": "medium",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 478.27833238989115,
+        "tokens_in": 377,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "settings-label-typo",
+      "trial": 2,
+      "input_sha256": "30b599269e73404569a58f1e974630a070938792ef63e4bda28b76748055ba4a",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "settings-label-typo",
+        "trial": 2,
+        "input_sha256": "30b599269e73404569a58f1e974630a070938792ef63e4bda28b76748055ba4a",
+        "actual_output": {
+          "severity": "functional",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 322.071666829288,
+        "tokens_in": 368,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "malformed-client-json",
+      "trial": 2,
+      "input_sha256": "0a8a2444e5eb64d4b0a3b6f6baee5885e352ff5a6b4f2cab46e1fe4effcad601",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "malformed-client-json",
+        "trial": 2,
+        "input_sha256": "0a8a2444e5eb64d4b0a3b6f6baee5885e352ff5a6b4f2cab46e1fe4effcad601",
+        "actual_output": {
+          "severity": "low",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 377.8030825778842,
+        "tokens_in": 365,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "single-user-calendar-sync",
+      "trial": 2,
+      "input_sha256": "b98b5a1701d20b7d3fe1c6ee4de70e2bde785d4be92c13899f73fcb938483388",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "single-user-calendar-sync",
+        "trial": 2,
+        "input_sha256": "b98b5a1701d20b7d3fe1c6ee4de70e2bde785d4be92c13899f73fcb938483388",
+        "actual_output": {
+          "severity": "low",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 384.18537471443415,
+        "tokens_in": 370,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "api-outage",
+      "trial": 3,
+      "input_sha256": "da53a38ae6d68d400f2b1a8adfd447b69aee385be229aae86dc9f6c959015282",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "api-outage",
+        "trial": 3,
+        "input_sha256": "da53a38ae6d68d400f2b1a8adfd447b69aee385be229aae86dc9f6c959015282",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 331.35370817035437,
+        "tokens_in": 366,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "leaked-database-password",
+      "trial": 3,
+      "input_sha256": "9eb9d9d25ea994188246aafd5ab84e286ab92fd1d89547a69614316cde9ad5fa",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "leaked-database-password",
+        "trial": 3,
+        "input_sha256": "9eb9d9d25ea994188246aafd5ab84e286ab92fd1d89547a69614316cde9ad5fa",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 354.8819161951542,
+        "tokens_in": 367,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "dropped-orders-table",
+      "trial": 3,
+      "input_sha256": "95657dfdd890dd0c5ea45eb6d01a86768bffa2d299681212c5c6f06c0bf44a87",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "dropped-orders-table",
+        "trial": 3,
+        "input_sha256": "95657dfdd890dd0c5ea45eb6d01a86768bffa2d299681212c5c6f06c0bf44a87",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 368.2240415364504,
+        "tokens_in": 374,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "invoice-access-breach",
+      "trial": 3,
+      "input_sha256": "f2682131fdc878cfca24d3b9d3569077cc679f4e3ad625f7925c8743009e0305",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "invoice-access-breach",
+        "trial": 3,
+        "input_sha256": "f2682131fdc878cfca24d3b9d3569077cc679f4e3ad625f7925c8743009e0305",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 363.816125318408,
+        "tokens_in": 376,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "search-sql-injection",
+      "trial": 3,
+      "input_sha256": "c1ce8d59d83c7074e829bd2923c3ddf4b4f90c3c9bbaf09dd2d6d942cfe32fc4",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "search-sql-injection",
+        "trial": 3,
+        "input_sha256": "c1ce8d59d83c7074e829bd2923c3ddf4b4f90c3c9bbaf09dd2d6d942cfe32fc4",
+        "actual_output": {
+          "severity": "high",
+          "escalate": true,
+          "category": "security"
+        },
+        "status": "completed",
+        "latency_ms": 443.1261671707034,
+        "tokens_in": 369,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "password-reset-email",
+      "trial": 3,
+      "input_sha256": "6f6b9f4d5f7c718fa706ee7181836f3925900865dc66f070fffd7683f3ff6dbd",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "password-reset-email",
+        "trial": 3,
+        "input_sha256": "6f6b9f4d5f7c718fa706ee7181836f3925900865dc66f070fffd7683f3ff6dbd",
+        "actual_output": {
+          "severity": "critical",
+          "escalate": true,
+          "category": "availability"
+        },
+        "status": "completed",
+        "latency_ms": 391.2479169666767,
+        "tokens_in": 375,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "slow-monthly-report",
+      "trial": 3,
+      "input_sha256": "25393b0731d6eb31df4c7a5f0235b5aeba091780d4d7c734eccceda80159f52a",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "slow-monthly-report",
+        "trial": 3,
+        "input_sha256": "25393b0731d6eb31df4c7a5f0235b5aeba091780d4d7c734eccceda80159f52a",
+        "actual_output": {
+          "severity": "performance",
+          "escalate": false,
+          "category": "performance"
+        },
+        "status": "completed",
+        "latency_ms": 444.35633439570665,
+        "tokens_in": 372,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "slow-search-europe",
+      "trial": 3,
+      "input_sha256": "5bddce15289f1020130d7c79f6dfdf790276a61a374da16b6aa30c671a99de8e",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "slow-search-europe",
+        "trial": 3,
+        "input_sha256": "5bddce15289f1020130d7c79f6dfdf790276a61a374da16b6aa30c671a99de8e",
+        "actual_output": {
+          "severity": "performance",
+          "escalate": false,
+          "category": "performance"
+        },
+        "status": "completed",
+        "latency_ms": 458.20616744458675,
+        "tokens_in": 373,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "csv-export-missing-row",
+      "trial": 3,
+      "input_sha256": "f1f8eb57aac84df6a26ff5c3a9475cc665eefe838d030d174a9d6a0d9c897e19",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "csv-export-missing-row",
+        "trial": 3,
+        "input_sha256": "f1f8eb57aac84df6a26ff5c3a9475cc665eefe838d030d174a9d6a0d9c897e19",
+        "actual_output": {
+          "severity": "medium",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 458.4567081183195,
+        "tokens_in": 377,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "settings-label-typo",
+      "trial": 3,
+      "input_sha256": "30b599269e73404569a58f1e974630a070938792ef63e4bda28b76748055ba4a",
+      "outcome": "rejected",
+      "score": 0.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 0.0,
+          "passed": false,
+          "reason": "did not match"
+        }
+      ],
+      "observation": {
+        "case_id": "settings-label-typo",
+        "trial": 3,
+        "input_sha256": "30b599269e73404569a58f1e974630a070938792ef63e4bda28b76748055ba4a",
+        "actual_output": {
+          "severity": "functional",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 340.19912499934435,
+        "tokens_in": 368,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "malformed-client-json",
+      "trial": 3,
+      "input_sha256": "0a8a2444e5eb64d4b0a3b6f6baee5885e352ff5a6b4f2cab46e1fe4effcad601",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "malformed-client-json",
+        "trial": 3,
+        "input_sha256": "0a8a2444e5eb64d4b0a3b6f6baee5885e352ff5a6b4f2cab46e1fe4effcad601",
+        "actual_output": {
+          "severity": "low",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 344.05229054391384,
+        "tokens_in": 365,
+        "tokens_out": 15,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    },
+    {
+      "case_id": "single-user-calendar-sync",
+      "trial": 3,
+      "input_sha256": "b98b5a1701d20b7d3fe1c6ee4de70e2bde785d4be92c13899f73fcb938483388",
+      "outcome": "accepted",
+      "score": 1.0,
+      "metrics": [
+        {
+          "name": "triage-decision",
+          "kind": "json_subset",
+          "threshold": 1.0,
+          "score": 1.0,
+          "passed": true,
+          "reason": "matched"
+        }
+      ],
+      "observation": {
+        "case_id": "single-user-calendar-sync",
+        "trial": 3,
+        "input_sha256": "b98b5a1701d20b7d3fe1c6ee4de70e2bde785d4be92c13899f73fcb938483388",
+        "actual_output": {
+          "severity": "low",
+          "escalate": false,
+          "category": "functional"
+        },
+        "status": "completed",
+        "latency_ms": 540.4260000213981,
+        "tokens_in": 370,
+        "tokens_out": 19,
+        "trace_id": null,
+        "span_id": null
+      },
+      "error": null
+    }
+  ],
+  "inspection": null,
+  "overall_passed": false
+}

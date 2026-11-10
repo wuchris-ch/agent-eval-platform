@@ -497,12 +497,21 @@ def main():
                     chunk,
                 )
             )
+    # publish_model_comparison.py owns this collection; keep its published files.
+    recorded_at = "2026-09-12 to 2026-09-13 UTC"
+    index_path = folder / "index.json"
+    if index_path.exists():
+        previous = json.loads(index_path.read_bytes())
+        kept = [c for c in previous["collections"] if c["id"] == "model-comparison"]
+        if kept:
+            collections += kept
+            recorded_at = previous["recorded_at"]
     write(
         folder,
         "index.json",
         {
             "schema_version": "agent-eval.evidence-catalog/v1",
-            "recorded_at": "2026-09-12 to 2026-09-13 UTC",
+            "recorded_at": recorded_at,
             "collections": collections,
         },
     )
