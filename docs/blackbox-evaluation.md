@@ -94,6 +94,28 @@ goldens. For example, a PR tool that takes a PR URL can accept that URL as input
 and return the resulting review text. Publication and repository access remain
 the wrapper's responsibility; this evaluator does not post reviews to GitHub.
 
+### Models behind an OpenAI-compatible API
+
+`--model` evaluates a model directly. `--url-env` then names a variable that
+holds the base URL of an OpenAI-compatible chat API. This works with a hosted
+model gateway and with a local Ollama server:
+
+```sh
+ollama pull qwen2.5:7b
+export OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+uv run agent-eval blackbox run --suite benchmarks/model-release/v1/suite.yaml \
+  --agent ollama-qwen2.5-7b --url-env OLLAMA_BASE_URL --model qwen2.5:7b \
+  --system-prompt benchmarks/model-release/v1/system-prompt.md \
+  --response-format json --trials 3
+```
+
+The model receives the system prompt and the case input only. With
+`--response-format json`, the request asks for a JSON object. A reply that is not
+JSON stays text, so the checks reject it as a model answer. Each observation
+records latency and the `prompt_tokens` and `completion_tokens` that the endpoint
+reports. The report adds `tokens_in` and `tokens_out` totals. Use
+`--token-env` for a gateway key.
+
 ## Suites and generated goldens
 
 A suite declares `schema_version`, `id`, `version`, `metrics`, and `cases`.
