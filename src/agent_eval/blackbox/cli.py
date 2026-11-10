@@ -33,7 +33,7 @@ from .models import (
 from .runner import evaluate
 from .scoring import DeepEvalJudge
 from .storage import load_database_observations, load_observations, save_report
-from .targets import CommandTarget, HttpTarget, ResponseDecoder
+from .targets import CommandTarget, HttpTarget, ModelTarget, ResponseDecoder
 from .telemetry import export_report
 
 app = typer.Typer(
@@ -68,6 +68,10 @@ def _finish(suite: Suite, report: Report, evidence: InspectionEvidence | None = 
         f"infra_errors={report.infra_errors}  score={report.average_score:.3f}",
         markup=False,
     )
+    if report.tokens_in is not None:
+        console.print(
+            f"Tokens: in={report.tokens_in} out={report.tokens_out}", markup=False
+        )
     for result in report.results:
         if result.error:
             console.print(
@@ -178,7 +182,23 @@ def run(
         None, "--command", help="Argv command; use absolute script paths. No shell."
     ),
     url_env: str | None = typer.Option(
-        None, "--url-env", help="Environment variable containing an HTTP endpoint."
+        None,
+        "--url-env",
+        help="Environment variable containing an HTTP endpoint, or the base URL "
+        "of an OpenAI-compatible API when --model is set.",
+    ),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        help="Evaluate this model through the OpenAI-compatible API in --url-env, "
+        "for example a local Ollama server at http://127.0.0.1:11434/v1.",
+    ),
+    system_prompt: Path | None = typer.Option(
+        None,
+        "--system-prompt",
+        exists=True,
+        dir_okay=False,
+        help="File sent as the system message to a --model target.",
     ),
     token_env: str | None = typer.Option(
         None,
@@ -233,9 +253,12 @@ def run(
         (command is None) == (url_env is None)
         or (command is not None and token_env)
         or (url_env and pass_env)
+        or (system_prompt is not None and model is None)
+        or (model is not None and response_pointer is not None)
     ):
         console.print(
-            "Choose --command or --url-env. --pass-env is for commands; --token-env is for HTTP.",
+            "Choose --command or --url-env. --pass-env is for commands; --token-env is for HTTP. "
+            "--model needs --url-env; --system-prompt needs --model; --response-pointer is not used with --model.",
             markup=False,
         )
         raise typer.Exit(1)
@@ -246,21 +269,32 @@ def run(
         )
         output_judge = _judge(suite, judge, evidence)
         decoder = ResponseDecoder(response_format, response_pointer)
-        target = (
-            CommandTarget(
+        target: CommandTarget | HttpTarget | ModelTarget
+        if command is not None:
+            target = CommandTarget(
                 shlex.split(command),
                 timeout=timeout,
                 decoder=decoder,
                 env_names=pass_env,
             )
-            if command is not None
-            else HttpTarget(
+        elif model is not None:
+            target = ModelTarget(
+                os.environ[url_env],
+                model,
+                system_prompt=system_prompt.read_text("utf-8")
+                if system_prompt
+                else None,
+                response_format=response_format,
+                timeout=timeout,
+                api_key=os.environ[token_env] if token_env else None,
+            )
+        else:
+            target = HttpTarget(
                 os.environ[url_env],
                 timeout=timeout,
                 decoder=decoder,
                 bearer_token=os.environ[token_env] if token_env else None,
             )
-        )
         report = evaluate(
             suite, agent=agent, target=target, trials=trials, judge=output_judge
         )

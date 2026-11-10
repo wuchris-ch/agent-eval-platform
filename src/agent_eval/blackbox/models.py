@@ -143,6 +143,9 @@ class Observation(StrictModel):
     actual_output: JsonValue
     status: Literal["completed", "error"] = "completed"
     latency_ms: float | None = Field(default=None, ge=0)
+    # Token counts reported by a model endpoint. None means the target did not report usage.
+    tokens_in: int | None = Field(default=None, ge=0)
+    tokens_out: int | None = Field(default=None, ge=0)
     trace_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
     span_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{16}$")
 
@@ -189,7 +192,7 @@ class Report(StrictModel):
     suite_sha256: str
     agent: str
     target_sha256: str
-    mode: Literal["command", "http", "replay"]
+    mode: Literal["command", "http", "model", "replay"]
     trials: int
     evaluations: int
     accepted: int
@@ -197,6 +200,9 @@ class Report(StrictModel):
     infra_errors: int
     average_score: float
     median_latency_ms: float | None
+    # Totals over observations that reported usage; None when none did.
+    tokens_in: int | None = None
+    tokens_out: int | None = None
     passed: bool
     results: list[Result]
     inspection: InspectionReport | None = None

@@ -18,7 +18,7 @@ from .models import (
     digest,
 )
 from .scoring import Judge, score
-from .targets import Target, TargetError
+from .targets import MeteredOutput, Target, TargetError
 
 
 def grade_observation(
@@ -108,12 +108,19 @@ def evaluate(
                 started = time.perf_counter()
                 try:
                     actual = target.invoke(case.model_copy(deep=True).input)
+                    latency_ms = (time.perf_counter() - started) * 1000
+                    tokens_in = tokens_out = None
+                    if isinstance(actual, MeteredOutput):
+                        tokens_in, tokens_out = actual.tokens_in, actual.tokens_out
+                        actual = actual.output
                     observation = Observation(
                         case_id=case.id,
                         trial=trial,
                         input_sha256=input_sha,
                         actual_output=actual,
-                        latency_ms=(time.perf_counter() - started) * 1000,
+                        latency_ms=latency_ms,
+                        tokens_in=tokens_in,
+                        tokens_out=tokens_out,
                     )
                 except TargetError as exc:
                     error = exc.code
@@ -139,6 +146,13 @@ def evaluate(
         for result in results
         if result.observation is not None and result.observation.latency_ms is not None
     ]
+    metered = [
+        result.observation
+        for result in results
+        if result.observation is not None
+        and result.observation.tokens_in is not None
+        and result.observation.tokens_out is not None
+    ]
     return Report(
         run_id=str(uuid.uuid4()),
         created_at=datetime.now(UTC).isoformat(),
@@ -159,6 +173,8 @@ def evaluate(
         infra_errors=len(results) - accepted - rejected,
         average_score=sum(result.score or 0 for result in results) / len(results),
         median_latency_ms=median(latency) if latency else None,
+        tokens_in=sum(item.tokens_in or 0 for item in metered) if metered else None,
+        tokens_out=sum(item.tokens_out or 0 for item in metered) if metered else None,
         passed=accepted == len(results),
         results=results,
     )

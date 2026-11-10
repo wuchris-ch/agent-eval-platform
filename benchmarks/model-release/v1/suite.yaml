@@ -1,0 +1,103 @@
+schema_version: "1.0"
+id: model-release-triage
+version: "1.0.0"
+metrics:
+  - name: triage-decision
+    kind: json_subset
+cases:
+  - id: api-outage
+    input:
+      incident: "Every request to the public API returns HTTP 503 since the 14:02 deploy."
+      affected_users: "all customers"
+    expected_output:
+      severity: critical
+      escalate: true
+      category: availability
+  - id: leaked-database-password
+    input:
+      incident: "A production database password was committed to a public GitHub repository, and unknown accounts cloned the repository."
+      affected_users: "all customers"
+    expected_output:
+      severity: critical
+      escalate: true
+      category: security
+  - id: dropped-orders-table
+    input:
+      incident: "A migration dropped the orders table in production. The newest backup is from yesterday, so today's orders are lost."
+      affected_users: "all customers who ordered today"
+    expected_output:
+      severity: critical
+      escalate: true
+      category: data
+  - id: invoice-access-breach
+    input:
+      incident: "Any signed-in user can view other customers' invoices by changing the ID in the URL. Logs show that several accounts did this last week."
+      affected_users: "all customers"
+    expected_output:
+      severity: critical
+      escalate: true
+      category: security
+  - id: search-sql-injection
+    input:
+      incident: "A penetration tester found that the search field allows SQL injection. There is no evidence that anyone exploited it."
+      affected_users: "none known"
+    expected_output:
+      severity: high
+      escalate: true
+      category: security
+  - id: password-reset-email
+    input:
+      incident: "Password reset emails are not sent, so users who forgot their password cannot sign in. There is no other way to recover an account."
+      affected_users: "many users"
+    expected_output:
+      severity: high
+      escalate: true
+      category: functional
+  - id: slow-monthly-report
+    input:
+      incident: "The monthly report page takes 40 seconds to load for large accounts. The CSV export gives the same data quickly."
+      affected_users: "some large accounts"
+    expected_output:
+      severity: medium
+      escalate: false
+      category: performance
+  - id: slow-search-europe
+    input:
+      incident: "Search results take 6 seconds instead of 1 second for users in Europe since a CDN change. Results are correct."
+      affected_users: "users in Europe"
+    expected_output:
+      severity: medium
+      escalate: false
+      category: performance
+  - id: csv-export-missing-row
+    input:
+      incident: "The CSV export leaves out the last row for accounts with more than 10,000 records. The same data is complete through the API."
+      affected_users: "some large accounts"
+    expected_output:
+      severity: medium
+      escalate: false
+      category: functional
+  - id: settings-label-typo
+    input:
+      incident: "A button label on the settings page says 'Recieve' instead of 'Receive'."
+      affected_users: "all users see it"
+    expected_output:
+      severity: low
+      escalate: false
+      category: functional
+  - id: malformed-client-json
+    input:
+      incident: "One integration client gets HTTP 400 because it sends malformed JSON. Other clients work."
+      affected_users: "one client"
+    expected_output:
+      severity: low
+      escalate: false
+      category: functional
+  - id: single-user-calendar-sync
+    input:
+      incident: "One user's calendar stopped syncing after they changed the clock settings on their phone. Nobody else reports a problem."
+      affected_users: "one user"
+    expected_output:
+      severity: low
+      escalate: false
+      category: functional

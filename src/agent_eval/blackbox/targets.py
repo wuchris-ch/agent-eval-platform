@@ -39,10 +39,19 @@ class TargetCancelled(RuntimeError):
 
 
 class Target(Protocol):
-    mode: Literal["command", "http"]
+    mode: Literal["command", "http", "model"]
     identity: str
 
-    def invoke(self, input_value: JsonValue) -> JsonValue: ...
+    def invoke(self, input_value: JsonValue) -> JsonValue | MeteredOutput: ...
+
+
+@dataclass(frozen=True)
+class MeteredOutput:
+    """A target answer plus the token usage that its model endpoint reported."""
+
+    output: JsonValue
+    tokens_in: int | None
+    tokens_out: int | None
 
 
 def _timeout(value: float) -> float:
@@ -334,3 +343,96 @@ class HttpTarget:
         if expired.is_set():
             raise TargetError("target_timeout")
         return self.decoder.decode(bytes(raw))
+
+
+def _reported_count(usage: JsonValue, key: str) -> int | None:
+    value = usage.get(key) if isinstance(usage, dict) else None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        return None
+    return value
+
+
+class ModelTarget:
+    """Send each case input to a model through an OpenAI-compatible chat API.
+
+    Works with hosted gateways and local servers such as Ollama
+    (`http://127.0.0.1:11434/v1`). The model sees the optional system prompt
+    and the case input, never the expected output or scoring policy.
+    """
+
+    mode = "model"
+
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        *,
+        system_prompt: str | None = None,
+        response_format: str = "text",
+        timeout: float = 120,
+        api_key: str | None = None,
+    ):
+        if not model.strip() or len(model) > 200:
+            raise ValueError("model name must contain 1 to 200 characters")
+        if response_format not in {"text", "json"}:
+            raise ValueError("response format must be text or json")
+        self.model = model
+        self.system_prompt = system_prompt
+        self.response_format = response_format
+        # The hardened HTTP transport bounds time, size, redirects and credentials.
+        self.transport = HttpTarget(
+            base_url.rstrip("/") + "/chat/completions",
+            timeout=timeout,
+            decoder=ResponseDecoder("json"),
+            bearer_token=api_key,
+        )
+        self.identity = digest(
+            {
+                "mode": self.mode,
+                "endpoint": self.transport.identity,
+                "model": model,
+                "system_prompt_sha256": digest(system_prompt),
+                "format": response_format,
+                "timeout": timeout,
+            }
+        )
+
+    def invoke(self, input_value: JsonValue) -> MeteredOutput:
+        messages = []
+        if self.system_prompt:
+            messages.append({"role": "system", "content": self.system_prompt})
+        messages.append(
+            {
+                "role": "user",
+                "content": input_value
+                if isinstance(input_value, str)
+                else json_bytes(input_value).decode("utf-8"),
+            }
+        )
+        request: dict[str, JsonValue] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0,
+            "stream": False,
+        }
+        if self.response_format == "json":
+            request["response_format"] = {"type": "json_object"}
+        response = self.transport.invoke(request)
+        try:
+            content = response["choices"][0]["message"]["content"]  # type: ignore[index, call-overload]
+        except (KeyError, IndexError, TypeError):
+            raise TargetError("invalid_output") from None
+        if not isinstance(content, str):
+            raise TargetError("invalid_output")
+        output: JsonValue = content
+        if self.response_format == "json":
+            # A reply that is not JSON stays text, so the checks reject it as a
+            # model answer instead of reporting an infrastructure error.
+            with contextlib.suppress(ValueError, RecursionError):
+                output = parse_json(content)
+        usage = response.get("usage") if isinstance(response, dict) else None
+        return MeteredOutput(
+            output,
+            tokens_in=_reported_count(usage, "prompt_tokens"),
+            tokens_out=_reported_count(usage, "completion_tokens"),
+        )
