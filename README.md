@@ -68,6 +68,27 @@ repository checks, tool-call checks, and DeepEval inspection while keeping the
 shared input/output score separate. Saved runs can be inspected without rerunning
 the agent.
 
+## Compare local and hosted models
+
+Run the same release checks on open-weight models served locally by Ollama and
+on hosted models, then pick the cheapest model that passes:
+
+```sh
+ollama pull qwen2.5:7b
+uv run agent-eval blackbox compare-models \
+  --suite benchmarks/model-release/v1/suite.yaml \
+  --models benchmarks/model-release/v1/models.yaml \
+  --system-prompt benchmarks/model-release/v1/system-prompt.md \
+  --response-format json --trials 3 --out /tmp/model-comparison
+```
+
+Each model gets the same cases and trials. The report shows the release gate,
+accepted evaluations, token use, cost and median and p95 latency per model.
+Hosted models are priced per token from the models file. Local models cost zero
+dollars per token, with an optional hardware cost per hour. The
+[model comparison guide](docs/model-comparison.md) covers the models file,
+cost rules and outputs.
+
 ## Platform verification
 
 Verified September 11, 2026 (Vancouver; September 12 UTC), on released evaluator revision `048a8d4`.
