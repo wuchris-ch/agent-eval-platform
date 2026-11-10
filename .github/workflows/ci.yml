@@ -388,8 +388,8 @@ jobs:
           assert packages["semgrep"]["version"] == "1.184.0"
           assert packages["click"]["version"] == "8.4.2"
           assert packages["semgrep"]["sdist"]["hash"] == (
-              "sha256:9c0506af2d9a81629907ce7b0cee572c"
-              "07ef713aa27026a709b8ba7ba2147f34"
+              "sha256:0fc8a58e9a62de59ce644dde792dfc36"
+              "764245d0139ab85632f66a8e0846a8c5"
           )
           PY
           # semgrep 1.184.0 pins mcp==1.29.0 and opentelemetry-api~=1.37.0. These
