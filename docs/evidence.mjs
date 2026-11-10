@@ -8,6 +8,7 @@ const SHORT = {
   "reviewer-baseline": "PR reviewer benchmark",
   "producer-bridge": "HTTP round trip",
   "oracle-controls": "Oracle controls",
+  "model-comparison": "Model comparison",
 };
 const PHASE_COLORS = ["#7cb2ff", "#3fcbd3", "#b195f7", "#f5a35c", "#ecbd4f", "#3fd294"];
 const RECEIPT_FIELDS = [

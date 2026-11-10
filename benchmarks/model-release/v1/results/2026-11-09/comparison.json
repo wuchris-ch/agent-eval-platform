@@ -1,0 +1,112 @@
+{
+  "schema_version": "agent-eval.model-comparison/v1",
+  "created_at": "2026-11-10T04:30:29.625315+00:00",
+  "suite_id": "model-release-triage",
+  "suite_version": "1.0.0",
+  "suite_sha256": "c9e9c0b994f3909cacbd289b0576bd6d70eec7eef81b60e154911c77db6574f5",
+  "trials": 3,
+  "models": [
+    {
+      "label": "ollama-llama3.2-3b",
+      "model": "llama3.2:3b",
+      "deployment": "local",
+      "run_id": "8f058e87-64ff-41b1-812c-33254fef7565",
+      "passed": false,
+      "evaluations": 36,
+      "accepted": 15,
+      "rejected": 21,
+      "infra_errors": 0,
+      "average_score": 0.4166666666666667,
+      "tokens_in": 13356,
+      "tokens_out": 600,
+      "usage_measured": 36,
+      "median_latency_ms": 369.64222928509116,
+      "p95_latency_ms": 540.4260000213981,
+      "model_seconds": 19.242686165496707,
+      "cost_usd": 0.0,
+      "price": {
+        "input_usd_per_million_tokens": 0.0,
+        "output_usd_per_million_tokens": 0.0,
+        "hardware_usd_per_hour": 0.0,
+        "source": null
+      }
+    },
+    {
+      "label": "ollama-qwen2.5-7b",
+      "model": "qwen2.5:7b",
+      "deployment": "local",
+      "run_id": "16407ceb-a08d-4f4f-8e99-008bffeff279",
+      "passed": false,
+      "evaluations": 36,
+      "accepted": 27,
+      "rejected": 9,
+      "infra_errors": 0,
+      "average_score": 0.75,
+      "tokens_in": 12954,
+      "tokens_out": 864,
+      "usage_measured": 36,
+      "median_latency_ms": 1183.1946047022939,
+      "p95_latency_ms": 1376.2122504413128,
+      "model_seconds": 68.41917391493917,
+      "cost_usd": 0.0,
+      "price": {
+        "input_usd_per_million_tokens": 0.0,
+        "output_usd_per_million_tokens": 0.0,
+        "hardware_usd_per_hour": 0.0,
+        "source": null
+      }
+    },
+    {
+      "label": "ollama-qwen2.5-14b",
+      "model": "qwen2.5:14b",
+      "deployment": "local",
+      "run_id": "f6f49536-b8a6-4305-aecf-b1f98d7bbde7",
+      "passed": false,
+      "evaluations": 36,
+      "accepted": 33,
+      "rejected": 3,
+      "infra_errors": 0,
+      "average_score": 0.9166666666666666,
+      "tokens_in": 12954,
+      "tokens_out": 672,
+      "usage_measured": 36,
+      "median_latency_ms": 1999.4853963144124,
+      "p95_latency_ms": 2536.9323333725333,
+      "model_seconds": 78.00091579835862,
+      "cost_usd": 0.0,
+      "price": {
+        "input_usd_per_million_tokens": 0.0,
+        "output_usd_per_million_tokens": 0.0,
+        "hardware_usd_per_hour": 0.0,
+        "source": null
+      }
+    },
+    {
+      "label": "hosted-gpt-6.1-sol",
+      "model": "gpt-6.1-sol",
+      "deployment": "hosted",
+      "run_id": "a07fc599-cb15-47e6-804a-ea167076a32e",
+      "passed": true,
+      "evaluations": 36,
+      "accepted": 36,
+      "rejected": 0,
+      "infra_errors": 0,
+      "average_score": 1.0,
+      "tokens_in": 659561,
+      "tokens_out": 684,
+      "usage_measured": 36,
+      "median_latency_ms": 3829.339771065861,
+      "p95_latency_ms": 4855.922625400126,
+      "model_seconds": 139.9138632081449,
+      "cost_usd": 1.3259619999999999,
+      "price": {
+        "input_usd_per_million_tokens": 2.0,
+        "output_usd_per_million_tokens": 10.0,
+        "hardware_usd_per_hour": 0.0,
+        "source": "OpenAI API standard short-context list price for gpt-6.1-sol, checked 2026-11-09"
+      }
+    }
+  ],
+  "recommended": "hosted-gpt-6.1-sol",
+  "reason": "hosted-gpt-6.1-sol is the cheapest of 1 model(s) that passed the release gate, at $1.3260 for the run."
+}
