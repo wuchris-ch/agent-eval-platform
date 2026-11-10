@@ -28,7 +28,7 @@ _EXPECTED_INVOCATION_POLICY: dict[str, Any] = {
         ],
     },
     "semgrep": {
-        "version": "1.176.0",
+        "version": "1.184.0",
         "arguments": [
             "--disable-nosem",
             "--no-git-ignore",

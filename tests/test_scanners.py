@@ -36,7 +36,7 @@ def _private_scanner_state(monkeypatch, tmp_path):
     monkeypatch.setattr(
         scanners,
         "_observed_runtime_version",
-        lambda name: {"ruff": "0.15.20", "semgrep": "1.176.0"}[name],
+        lambda name: {"ruff": "0.15.20", "semgrep": "1.184.0"}[name],
     )
     installed_version = scanners._installed_version
 
@@ -51,7 +51,7 @@ def _private_scanner_state(monkeypatch, tmp_path):
 
 def _semgrep_report(results=None, **updates):
     report = {
-        "version": "1.176.0",
+        "version": "1.184.0",
         "results": [] if results is None else results,
         "errors": [],
         "paths": {"scanned": []},
@@ -308,7 +308,7 @@ def test_scanner_runtime_has_exact_top_level_versions_and_stable_identity():
     assert project["project"]["requires-python"] == ">=3.12,<3.13"
     assert project["project"]["dependencies"] == [
         "ruff==0.15.20",
-        "semgrep==1.176.0",
+        "semgrep==1.184.0",
     ]
     assert len(scanner_runtime_digest()) == 64
     assert len(scanner_runtime_environment_digest()) == 64
@@ -351,7 +351,7 @@ def test_scanner_invocation_policy_is_exact_and_runtime_bound():
         ],
     }
     assert policy["semgrep"] == {
-        "version": "1.176.0",
+        "version": "1.184.0",
         "arguments": [
             "--disable-nosem",
             "--no-git-ignore",
@@ -522,7 +522,7 @@ def test_scanner_assurance_identity_is_canonical_and_fail_closed():
         },
         scanner_versions={
             "ruff": "0.15.20",
-            "semgrep": "1.176.0",
+            "semgrep": "1.184.0",
             "gitleaks": "8.30.1",
             "trivy": "0.72.0",
         },
@@ -583,7 +583,7 @@ def test_python_scanners_reject_wrong_observed_versions(
     monkeypatch.setattr(
         scanners,
         "_observed_runtime_version",
-        lambda name: "0.0.0" if name == scanner_name else "1.176.0",
+        lambda name: "0.0.0" if name == scanner_name else "1.184.0",
     )
     monkeypatch.setattr(
         scanners,
@@ -613,7 +613,7 @@ def test_scan_results_reject_assurance_that_contradicts_observed_material():
         },
         scanner_versions={
             "ruff": "0.15.20",
-            "semgrep": "1.176.0",
+            "semgrep": "1.184.0",
             "gitleaks": "8.30.1",
             "trivy": "0.72.0",
         },
@@ -705,7 +705,7 @@ def test_scanner_environment_digest_binds_installed_package_tree(monkeypatch, tm
     environment = tmp_path / "environment"
     package = environment / "lib" / "python3.12" / "site-packages" / "semgrep"
     package.mkdir(parents=True)
-    (package / "__init__.py").write_text("VERSION = '1.176.0'\n", encoding="utf-8")
+    (package / "__init__.py").write_text("VERSION = '1.184.0'\n", encoding="utf-8")
     bin_dir = environment / "bin"
     bin_dir.mkdir()
     (bin_dir / "semgrep").symlink_to("../lib/python3.12/site-packages/semgrep")

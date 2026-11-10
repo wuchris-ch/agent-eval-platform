@@ -48,7 +48,7 @@ SCANNER_EXECUTABLE_NAMES = (
 )
 SCANNER_REQUIRED_VERSIONS = {
     "ruff": "0.15.20",
-    "semgrep": "1.176.0",
+    "semgrep": "1.184.0",
     "gitleaks": "8.30.1",
     "trivy": "0.72.0",
 }
