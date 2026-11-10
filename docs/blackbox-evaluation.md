@@ -114,7 +114,8 @@ The model receives the system prompt and the case input only. With
 JSON stays text, so the checks reject it as a model answer. Each observation
 records latency and the `prompt_tokens` and `completion_tokens` that the endpoint
 reports. The report adds `tokens_in` and `tokens_out` totals. Use
-`--token-env` for a gateway key.
+`--token-env` for a gateway key. To run the same suite on several models and
+pick the cheapest one that passes, see [model comparison](model-comparison.md).
 
 ## Suites and generated goldens
 

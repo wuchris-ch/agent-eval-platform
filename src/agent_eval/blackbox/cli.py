@@ -14,6 +14,13 @@ from rich.console import Console
 
 from ..limits import MAX_RESULTS_JSON_BYTES, read_stable_bounded_file
 from ..paths import atomic_write_private, ensure_private_directory, get_state_dir
+from .comparison import (
+    ModelSpec,
+    compare,
+    load_plan,
+    model_target,
+    render_markdown,
+)
 from .inspection import (
     InspectionEvidence,
     finish_evidence,
@@ -33,7 +40,7 @@ from .models import (
 from .runner import evaluate
 from .scoring import DeepEvalJudge
 from .storage import load_database_observations, load_observations, save_report
-from .targets import CommandTarget, HttpTarget, ModelTarget, ResponseDecoder
+from .targets import CommandTarget, HttpTarget, ModelTarget, ResponseDecoder, Target
 from .telemetry import export_report
 
 app = typer.Typer(
@@ -497,3 +504,72 @@ def import_goldens(
     except Exception as exc:
         _failure("Golden import", exc)
     console.print(f"Frozen {len(suite.cases)} cases. Suite: {path}", markup=False)
+
+
+@app.command("compare-models")
+def compare_models(
+    suite_path: Path = typer.Option(..., "--suite", exists=True, dir_okay=False),
+    plan_path: Path = typer.Option(
+        ...,
+        "--models",
+        exists=True,
+        dir_okay=False,
+        help="YAML list of models, endpoints and prices.",
+    ),
+    output: Path = typer.Option(
+        ...,
+        "--out",
+        file_okay=False,
+        help="Directory for comparison.json, comparison.md and per-model reports.",
+    ),
+    system_prompt: Path | None = typer.Option(
+        None,
+        "--system-prompt",
+        exists=True,
+        dir_okay=False,
+        help="File sent to every model as the system message.",
+    ),
+    response_format: str = typer.Option(
+        "text", "--response-format", help="text or json"
+    ),
+    trials: int = typer.Option(1, "--trials", min=1),
+):
+    """Run the same suite on each model and recommend the cheapest model that passes."""
+    try:
+        suite = load_suite(suite_path)
+        plan = load_plan(plan_path)
+        prompt = system_prompt.read_text("utf-8") if system_prompt else None
+        targets: list[tuple[ModelSpec, Target]] = [
+            (spec, model_target(spec, prompt, response_format)) for spec in plan.models
+        ]
+        comparison, reports = compare(suite, targets, trials=trials)
+        for report in reports:
+            save_report(suite, report)
+        (output / "reports").mkdir(parents=True, exist_ok=True)
+        for report in reports:
+            (output / "reports" / f"{report.agent}.json").write_text(
+                report.model_dump_json(indent=2) + "\n", encoding="utf-8"
+            )
+        (output / "comparison.json").write_text(
+            comparison.model_dump_json(indent=2) + "\n", encoding="utf-8"
+        )
+        (output / "comparison.md").write_text(
+            render_markdown(comparison), encoding="utf-8"
+        )
+    except Exception as exc:
+        _failure("Model comparison", exc)
+    for result in comparison.models:
+        cost = "unknown" if result.cost_usd is None else f"${result.cost_usd:.4f}"
+        console.print(
+            f"{'PASS' if result.passed else 'FAIL'}  {result.label}  "
+            f"accepted={result.accepted}/{result.evaluations}  "
+            f"tokens={result.tokens_in}/{result.tokens_out}  cost={cost}",
+            markup=False,
+        )
+    console.print(
+        f"Recommended: {comparison.recommended or 'none'}. {comparison.reason}",
+        markup=False,
+    )
+    console.print(f"Comparison: {output / 'comparison.md'}", markup=False)
+    if comparison.recommended is None:
+        raise typer.Exit(2)

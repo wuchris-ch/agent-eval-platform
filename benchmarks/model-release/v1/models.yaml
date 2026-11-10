@@ -1,0 +1,30 @@
+# Models compared on the model release suite. Local models run on Ollama and
+# cost zero dollars per token. Set hardware_usd_per_hour to include machine cost.
+# Hosted prices are list prices per million tokens.
+schema_version: "1.0"
+models:
+  - label: ollama-llama3.2-3b
+    model: llama3.2:3b
+    deployment: local
+    base_url: http://127.0.0.1:11434/v1
+    timeout: 300
+  - label: ollama-qwen2.5-7b
+    model: qwen2.5:7b
+    deployment: local
+    base_url: http://127.0.0.1:11434/v1
+    timeout: 300
+  - label: ollama-qwen2.5-14b
+    model: qwen2.5:14b
+    deployment: local
+    base_url: http://127.0.0.1:11434/v1
+    timeout: 300
+  - label: hosted-gpt-6.1-sol
+    model: gpt-6.1-sol
+    deployment: hosted
+    base_url_env: MODEL_GATEWAY_BASE_URL
+    api_key_env: MODEL_GATEWAY_API_KEY
+    timeout: 600
+    price:
+      input_usd_per_million_tokens: 2.00
+      output_usd_per_million_tokens: 10.00
+      source: OpenAI API standard short-context list price for gpt-6.1-sol, checked 2026-11-09
