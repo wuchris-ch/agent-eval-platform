@@ -341,7 +341,7 @@ jobs:
               assert adversarial_results.scanner_versions["ruff"] == "0.15.20"
               assert adversarial_results.lint_errors == 3
               assert adversarial_results.scanner_status["semgrep"] == "ok"
-              assert adversarial_results.scanner_versions["semgrep"] == "1.176.0"
+              assert adversarial_results.scanner_versions["semgrep"] == "1.184.0"
               assert adversarial_results.sec_findings_high == 4
               assert adversarial_results.scanner_status["gitleaks"] == "ok"
               assert adversarial_results.scanner_versions["gitleaks"] == "8.30.1"
@@ -385,7 +385,7 @@ jobs:
               pathlib.Path("src/agent_eval/scanner_runtime/uv.lock").read_text()
           )
           packages = {package["name"]: package for package in lock["package"]}
-          assert packages["semgrep"]["version"] == "1.176.0"
+          assert packages["semgrep"]["version"] == "1.184.0"
           assert packages["click"]["version"] == "8.4.2"
           assert packages["semgrep"]["sdist"]["hash"] == (
               "sha256:9c0506af2d9a81629907ce7b0cee572c"
