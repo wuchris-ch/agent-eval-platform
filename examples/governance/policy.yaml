@@ -39,7 +39,7 @@ task_registry:
     - task_id: example-todo-api
       task_tree_sha256: 029b9fcb68e389256aa4ace3ae5bc6ffef4f081e168d1e07dddfdd03b6033e3d
       execution_spec_digests:
-        - 0acce5c74ca26252226a2082b81cdb3375d170341c1e5056eadbe285fbea574f
+        - d49b5de32c00605343e20e310bdd767e236821da145f00e5ae22168267c6a489
       approved_images:
         - platform: linux/arm64
           reference: agent-eval/example-todo-api:governed-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff

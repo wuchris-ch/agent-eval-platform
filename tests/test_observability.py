@@ -78,7 +78,7 @@ def _record() -> RunRecord:
             scanner_status={"ruff": "ok", "semgrep": "ok"},
             scanner_versions={
                 "ruff": "0.15.20",
-                "semgrep": "1.176.0",
+                "semgrep": "1.184.0",
                 "gitleaks": "8.30.1",
                 "trivy": "0.72.0",
             },

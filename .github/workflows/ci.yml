@@ -29,7 +29,11 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python-version }}
+          # The locked scanner runtime runs offline on Python 3.12, which newer
+          # runner images no longer provide. The last version is the default.
+          python-version: |
+            3.12
+            ${{ matrix.python-version }}
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.11.28"
@@ -388,8 +392,15 @@ jobs:
               "07ef713aa27026a709b8ba7ba2147f34"
           )
           PY
+          # semgrep 1.184.0 pins mcp==1.29.0 and opentelemetry-api~=1.37.0. These
+          # advisories cover MCP HTTP servers/clients and inbound tracestate
+          # parsing; the runtime only runs `semgrep scan` offline. Remove each
+          # exception when semgrep allows the fixed version.
           uv run --frozen --no-default-groups --group security pip-audit \
-            --requirement "$RUNNER_TEMP/scanner-requirements.txt" --disable-pip
+            --requirement "$RUNNER_TEMP/scanner-requirements.txt" --disable-pip \
+            --ignore-vuln CVE-2026-59951 --ignore-vuln CVE-2026-116684 \
+            --ignore-vuln CVE-2026-116685 --ignore-vuln CVE-2026-116686 \
+            --ignore-vuln CVE-2026-114603
       - name: Verify distribution contents and license metadata
         run: |
           python - <<'PY'

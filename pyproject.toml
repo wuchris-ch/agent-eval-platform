@@ -28,9 +28,9 @@ database = [
     "psycopg[binary]>=3.3.3,<4",
 ]
 observability = [
-    "opentelemetry-api==1.43.0",
-    "opentelemetry-exporter-otlp==1.43.0",
-    "opentelemetry-sdk==1.43.0",
+    "opentelemetry-api==1.45.1",
+    "opentelemetry-exporter-otlp==1.45.1",
+    "opentelemetry-sdk==1.45.1",
 ]
 judge = [
     "deepeval>=4,<5",
